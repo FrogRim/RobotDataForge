@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Robot Data Forge Trajectory",
+  "type": "object",
+  "required": ["id", "episode_id", "task_id", "schema_version", "source", "frames"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["input_device", "runtime", "simulator", "robot", "task_name"]
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "object",
+            "properties": {
+              "teleop_intent": {
+                "type": "object",
+                "description": "Operator/XR retargeter intent before RDF validation and curation."
+              },
+              "executed_control": {
+                "type": "object",
+                "description": "Robot controller command actually applied to the simulator or robot."
+              },
+              "learning_action": {
+                "type": "object",
+                "description": "Candidate learning action; not learning-ready until evaluator and curator accept the trajectory."
+              },
+              "retargeted_robot_action": {
+                "type": "object",
+                "description": "Legacy compatibility alias for the applied robot command."
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "teleop_pipeline": {
+                "type": "object",
+                "description": "Pipeline role metadata that separates teleop intent, executed control, and candidate learning action."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

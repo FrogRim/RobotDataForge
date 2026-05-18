@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: robot_data_forge
+      POSTGRES_USER: rdf
+      POSTGRES_PASSWORD: "${RDF_POSTGRES_PASSWORD:?Set RDF_POSTGRES_PASSWORD before starting local postgres}" # pragma: allowlist secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

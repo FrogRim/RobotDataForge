@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RDF MVP-2 Learning-Proven Proof Strategy</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f5f7;
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d7dce3;
+      --panel: #ffffff;
+      --pass: #0f766e;
+      --wait: #9a5b00;
+      --fail: #b42318;
+      --info: #2457a7;
+      --soft-pass: #e6f5f2;
+      --soft-wait: #fff4dc;
+      --soft-info: #eaf1ff;
+      --shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.58;
+    }
+
+    a { color: #1d4ed8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    .report {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 28px;
+      padding: 34px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--info);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    h1, h2, h3 { margin: 0; line-height: 1.2; letter-spacing: 0; }
+    h1 { font-size: clamp(28px, 4vw, 44px); }
+    h2 { font-size: 24px; }
+    h3 { font-size: 17px; }
+
+    .lead {
+      max-width: 780px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .stamp {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 8px;
+      padding: 16px;
+      align-self: start;
+    }
+
+    .stamp-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid #edf0f3;
+      font-size: 14px;
+    }
+
+    .stamp-row:last-child { border-bottom: 0; }
+    .stamp-row span { color: var(--muted); }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 16px 34px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    nav a {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #253041;
+      font-size: 13px;
+      font-weight: 750;
+      padding: 7px 11px;
+    }
+
+    section {
+      padding: 30px 34px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    section:last-child { border-bottom: 0; }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .section-head p {
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .pass { color: var(--pass); background: var(--soft-pass); border: 1px solid #b7e1da; }
+    .wait { color: var(--wait); background: var(--soft-wait); border: 1px solid #f2d393; }
+    .info { color: var(--info); background: var(--soft-info); border: 1px solid #c9dafc; }
+    .fail { color: var(--fail); background: #fff0ee; border: 1px solid #ffd0ca; }
+
+    .summary-grid, .principle-grid, .source-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 16px;
+      min-width: 0;
+    }
+
+    .card small {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .card p { margin: 0; color: var(--muted); }
+
+    .callout {
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--info);
+      border-radius: 8px;
+      background: #fbfdff;
+      padding: 18px;
+    }
+
+    .callout.warn { border-left-color: var(--wait); background: #fffaf0; }
+    .callout.good { border-left-color: var(--pass); background: #f5fffc; }
+
+    .callout p { margin: 10px 0 0; color: #3f4855; }
+
+    .ladder {
+      display: grid;
+      gap: 12px;
+      counter-reset: ladder;
+    }
+
+    .ladder-item {
+      display: grid;
+      grid-template-columns: 62px minmax(0, 1fr) 210px;
+      gap: 14px;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .ladder-item::before {
+      counter-increment: ladder;
+      content: counter(ladder);
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      color: #fff;
+      background: #111827;
+      font-weight: 900;
+    }
+
+    .ladder-item p { margin: 7px 0 0; color: var(--muted); }
+
+    .gate {
+      display: grid;
+      align-content: center;
+      border-left: 1px solid var(--line);
+      padding-left: 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 12px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      color: #2c3440;
+      background: #f8fafc;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    code {
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      background: #f8fafc;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+
+    .footer-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      header, .summary-grid, .principle-grid, .source-grid, .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .ladder-item {
+        grid-template-columns: 52px minmax(0, 1fr);
+      }
+
+      .gate {
+        grid-column: 2;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        padding: 12px 0 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page { padding: 16px 10px 28px; }
+      header, section, nav { padding-left: 18px; padding-right: 18px; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <article class="report">
+      <header>
+        <div>
+          <p class="eyebrow">Robot Data Forge MVP-2 Direction</p>
+          <h1>Learning-Proven은 단계별로 증명한다</h1>
+          <p class="lead">
+            앞으로 RDF의 다음 목표는 curated data가 항상 이긴다고 가정하는 것이 아니다.
+            MVP-1의 learning-ready artifact를 기반으로, 데이터 계약과 전이 구간, 정책 용량, 평가 프로토콜을 차례로 검증한 뒤
+            held-out curated-vs-uncurated A/B에서 policy uplift를 측정한다.
+          </p>
+        </div>
+        <aside class="stamp">
+          <div class="stamp-row"><span>작성 기준</span><strong>2026-05-18</strong></div>
+          <div class="stamp-row"><span>MVP-1</span><strong>Learning-ready PASS</strong></div>
+          <div class="stamp-row"><span>MVP-2</span><strong>Learning-proven PENDING</strong></div>
+          <div class="stamp-row"><span>현재 A/B</span><strong>Uplift 0.0</strong></div>
+          <div class="stamp-row"><span>결론</span><strong>Staged proof ladder</strong></div>
+        </aside>
+      </header>
+
+      <nav>
+        <a href="#decision">결정</a>
+        <a href="#why">왜 바꾸는가</a>
+        <a href="#ladder">Proof Ladder</a>
+        <a href="#sources">외부 기준</a>
+        <a href="#stop">판정 규칙</a>
+        <a href="#next">다음 구현</a>
+      </nav>
+
+      <section id="decision">
+        <div class="section-head">
+          <div>
+            <h2>1. 방향 결정</h2>
+            <p>MVP-2는 단일 policy uplift gate가 아니라 staged learning proof로 진행한다.</p>
+          </div>
+          <span class="badge info">New direction</span>
+        </div>
+
+        <div class="summary-grid">
+          <div class="card">
+            <small>Keep</small>
+            <strong>MVP-1</strong>
+            <p>XR/HMD raw trajectory를 검증 가능한 learning-ready dataset artifact로 만드는 파이프라인.</p>
+          </div>
+          <div class="card">
+            <small>Move to MVP-2</small>
+            <strong>Uplift</strong>
+            <p>Curated policy가 uncurated baseline보다 나은지 보는 downstream learning proof.</p>
+          </div>
+          <div class="card">
+            <small>Do not infer</small>
+            <strong>Failure</strong>
+            <p>현재 uplift 0.0은 전체 방향 실패가 아니라 현재 data/policy/eval 조합의 negative evidence다.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="why">
+        <div class="section-head">
+          <div>
+            <h2>2. 왜 이렇게 잡는가</h2>
+            <p><code>candidate_success_rate &gt; baseline_success_rate</code>가 항상 성립하지 않아도 방법론이 틀렸다는 뜻은 아니다.</p>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="callout good">
+            <h3>올바른 해석</h3>
+            <p>
+              Uplift는 데이터 품질, 데이터 규모, task transition coverage, action contract, policy class, training recipe,
+              held-out 평가 난이도가 모두 맞아야 나오는 downstream 결과다. 따라서 한 번의 zero-uplift는
+              "학습 증명이 아직 안 됐다"이지 "validated dataset pipeline이 무가치하다"가 아니다.
+            </p>
+          </div>
+          <div class="callout warn">
+            <h3>금지할 해석</h3>
+            <p>
+              Curated가 baseline보다 못 이겼다고 해서 curation gate를 느슨하게 만들거나,
+              tiny dataset과 smoke-grade trainer 결과를 제품 실패로 과잉 일반화하면 안 된다.
+              다음 실험 전에 더 쉬운 sanity gate부터 닫아야 한다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="ladder">
+        <div class="section-head">
+          <div>
+            <h2>3. MVP-2 Proof Ladder</h2>
+            <p>다음 held-out A/B는 아래 전제들이 통과된 뒤에만 의미가 있다.</p>
+          </div>
+          <span class="badge wait">Before next A/B</span>
+        </div>
+
+        <div class="ladder">
+          <div class="ladder-item">
+            <div>
+              <h3>Train-set overfit sanity</h3>
+              <p>강한 policy가 accepted train trajectories 자체를 재현할 수 있는지 먼저 확인한다.</p>
+            </div>
+            <div class="gate">실패하면 dataset/action/loader 계약 문제를 의심한다.</div>
+          </div>
+          <div class="ladder-item">
+            <div>
+              <h3>Replay/action contract sanity</h3>
+              <p>학습에 쓰는 action이 evaluator/replay 환경에서 같은 의미로 실행되는지 확인한다.</p>
+            </div>
+            <div class="gate">성공처럼 보이는 trajectory라도 replay/action contract가 깨지면 학습 증거가 아니다.</div>
+          </div>
+          <div class="ladder-item">
+            <div>
+              <h3>Transition coverage audit</h3>
+              <p>APPROACH, CONTACT, INSERT, SEAT 전이 구간이 accepted set 안에 충분히 들어 있는지 본다.</p>
+            </div>
+            <div class="gate">Stable SEAT/hold만 있으면 policy가 삽입 절차를 배울 근거가 부족하다.</div>
+          </div>
+          <div class="ladder-item">
+            <div>
+              <h3>Stronger policy/trainer</h3>
+              <p>Smoke-grade linear BC를 넘어서 ACT, Diffusion Policy, LeRobot 계열 등 더 적합한 policy path를 고른다.</p>
+            </div>
+            <div class="gate">약한 모델 실패는 데이터 실패와 구분해야 한다.</div>
+          </div>
+          <div class="ladder-item">
+            <div>
+              <h3>Dataset size and coverage ablation</h3>
+              <p>episode 수, scene/pose 다양성, transition 분포를 늘릴수록 train/eval 지표가 어떻게 바뀌는지 기록한다.</p>
+            </div>
+            <div class="gate">단순 accepted count보다 coverage가 중요하다.</div>
+          </div>
+          <div class="ladder-item">
+            <div>
+              <h3>Curation ablation</h3>
+              <p>같은 task/split 조건에서 uncurated baseline과 curated candidate를 동일 contract로 export한다.</p>
+            </div>
+            <div class="gate">curation 효과만 비교하려면 나머지 변수를 고정해야 한다.</div>
+          </div>
+          <div class="ladder-item">
+            <div>
+              <h3>Held-out policy A/B</h3>
+              <p>동일 scenario/seed/evaluator에서 candidate success rate가 baseline보다 높은지 측정한다.</p>
+            </div>
+            <div class="gate">양성이면 learning-proven claim 후보, 음성이면 negative report로 보존한다.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="sources">
+        <div class="section-head">
+          <div>
+            <h2>4. 외부 기준에서 배운 것</h2>
+            <p>선행 프로젝트들도 curation 하나로 끝내지 않고 데이터 규모, 다양성, 표준화, 강한 policy, 평가를 분리한다.</p>
+          </div>
+        </div>
+
+        <div class="source-grid">
+          <div class="card">
+            <small>DROID</small>
+            <strong>Scale & diversity</strong>
+            <p>Quest 기반 teleop을 포함한 대규모 조작 dataset은 scene/task/operator 다양성과 calibration metadata를 품질 인프라로 다룬다.</p>
+            <p><a href="https://droid-dataset.github.io/">droid-dataset.github.io</a></p>
+          </div>
+          <div class="card">
+            <small>Open X-Embodiment</small>
+            <strong>Standardized data</strong>
+            <p>여러 robot/task dataset을 표준화하고 모델 평가를 분리한다. RDF도 schema/export/eval contract를 먼저 고정해야 한다.</p>
+            <p><a href="https://arxiv.org/abs/2310.08864">arxiv.org/abs/2310.08864</a></p>
+          </div>
+          <div class="card">
+            <small>MimicGen</small>
+            <strong>Source demos first</strong>
+            <p>소수의 신뢰 가능한 human demos를 기반으로 대규모 synthetic demos를 만든다. RDF도 source demo quality를 먼저 닫아야 한다.</p>
+            <p><a href="https://mimicgen.github.io/">mimicgen.github.io</a></p>
+          </div>
+          <div class="card">
+            <small>Diffusion Policy</small>
+            <strong>Policy capacity</strong>
+            <p>contact-rich manipulation에는 단순 linear BC보다 강한 policy class가 필요할 수 있다.</p>
+            <p><a href="https://arxiv.org/abs/2303.04137">arxiv.org/abs/2303.04137</a></p>
+          </div>
+          <div class="card">
+            <small>LeRobot</small>
+            <strong>End-to-end stack</strong>
+            <p>데이터 수집, 저장, streaming, model training을 하나의 재현 가능한 stack으로 보는 방향이 RDF MVP-2와 맞다.</p>
+            <p><a href="https://arxiv.org/abs/2602.22818">arxiv.org/abs/2602.22818</a></p>
+          </div>
+          <div class="card">
+            <small>robomimic</small>
+            <strong>Controlled evaluation</strong>
+            <p>데모 기반 학습은 모델/데이터/eval protocol을 분리해서 반복 측정해야 한다.</p>
+            <p><a href="https://robomimic.github.io/">robomimic.github.io</a></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="stop">
+        <div class="section-head">
+          <div>
+            <h2>5. 결과 판정 규칙</h2>
+            <p>음성 결과를 숨기지 않고, 어떤 결론을 낼 수 있는지 엄격히 제한한다.</p>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>결과</th>
+              <th>해석</th>
+              <th>다음 조치</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>train-set overfit fail</code></td>
+              <td>dataset/action/loader/policy contract 중 하나가 학습을 방해한다.</td>
+              <td>held-out A/B 중지, action schema와 loader부터 수정.</td>
+            </tr>
+            <tr>
+              <td><code>transition coverage fail</code></td>
+              <td>accepted dataset이 삽입 절차를 충분히 담지 못한다.</td>
+              <td>APPROACH/CONTACT/INSERT/SEAT 전이 demo를 다시 수집.</td>
+            </tr>
+            <tr>
+              <td><code>baseline = candidate = 0</code></td>
+              <td>현재 policy/eval 난이도에서 둘 다 task를 못 푼다.</td>
+              <td>policy capacity, data scale, task curriculum을 먼저 개선.</td>
+            </tr>
+            <tr>
+              <td><code>candidate <= baseline</code></td>
+              <td>curation uplift는 아직 증명되지 않았다.</td>
+              <td>negative report 보존, curation criterion과 dataset composition 분석.</td>
+            </tr>
+            <tr>
+              <td><code>candidate > baseline</code></td>
+              <td>MVP-2 learning-proven claim 후보가 생긴다.</td>
+              <td>confidence interval, held-out split, repeat run으로 claim 강도 확인.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="next">
+        <div class="section-head">
+          <div>
+            <h2>6. 1차 구현 결과와 다음 수집 방향</h2>
+            <p>transition coverage audit과 train-set overfit sanity는 구현됐다. 현재 live artifact는 transition coverage에서 막힌다.</p>
+          </div>
+          <span class="badge info">Implemented</span>
+        </div>
+
+        <div class="principle-grid">
+          <div class="card">
+            <small>Implemented</small>
+            <strong>Transition audit</strong>
+            <p><code>scripts/run_mvp2_learning_sanity.py</code>가 accepted material의 APPROACH/CONTACT/INSERT/SEAT coverage를 집계한다.</p>
+          </div>
+          <div class="card">
+            <small>Implemented</small>
+            <strong>Overfit smoke</strong>
+            <p>동일 script가 train-set memorization sanity와 linear probe diagnostic을 생성한다.</p>
+          </div>
+          <div class="card">
+            <small>Current blocker</small>
+            <strong>Transition-rich collection</strong>
+            <p>현재 live accepted artifact는 <code>SEAT</code> 60프레임뿐이다. 다음 수집은 접근, 접촉, 삽입 전이를 포함해야 한다.</p>
+          </div>
+        </div>
+
+        <table style="margin-top: 18px;">
+          <thead>
+            <tr>
+              <th>Report</th>
+              <th>결과</th>
+              <th>해석</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>storage/mvp2_learning_sanity/mvp2_learning_sanity_report.json</code></td>
+              <td><code>passed=false</code>, missing <code>APPROACH</code>, <code>CONTACT</code>, <code>INSERT</code></td>
+              <td>현재 live artifact는 A/B 준비 전 transition coverage를 보강해야 한다.</td>
+            </tr>
+            <tr>
+              <td><code>storage/mvp2_learning_sanity/readiness_mvp2_learning_sanity_report.json</code></td>
+              <td><code>passed=true</code> on synthetic transition-rich fixture</td>
+              <td>script 자체는 transition-rich dataset을 pass로 판정한다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <p class="footer-note">
+          이 문서는 MVP-1 learning-ready proof를 유지하면서 MVP-2 learning-proven proof를 단계별 검증 문제로 재정의한다.
+          현재 zero-uplift A/B는 삭제하지 않고 MVP-2 negative evidence로 보존한다.
+        </p>
+      </section>
+    </article>
+  </main>
+</body>
+</html>

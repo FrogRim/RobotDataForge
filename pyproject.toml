@@ -1,0 +1,23 @@
+[project]
+name = "robot-data-forge"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "h5py>=3.11",
+  "numpy>=1.26",
+]
+
+[dependency-groups]
+dev = [
+  "robot-data-forge-api[dev]",
+]
+
+[tool.uv.workspace]
+members = ["apps/api"]
+
+[tool.uv.sources]
+robot-data-forge-api = { workspace = true }
+
+[tool.pytest.ini_options]
+pythonpath = ["apps/api"]
+testpaths = ["apps/api/tests"]
