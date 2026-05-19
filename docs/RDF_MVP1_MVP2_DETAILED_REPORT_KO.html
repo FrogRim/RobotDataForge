@@ -531,7 +531,7 @@
           </p>
         </div>
         <aside class="stamp" aria-label="보고서 메타데이터">
-          <div class="stamp-row"><span>작성 기준</span><strong>2026-05-18</strong></div>
+          <div class="stamp-row"><span>작성 기준</span><strong>2026-05-19</strong></div>
           <div class="stamp-row"><span>Proof audit</span><strong>PASS</strong></div>
           <div class="stamp-row"><span>현재 stage</span><strong>MVP-1</strong></div>
           <div class="stamp-row"><span>다음 stage</span><strong>MVP-2</strong></div>
@@ -795,7 +795,7 @@
             <h2>6. MVP-2 구현 목표와 현재 상태</h2>
             <p>MVP-2는 MVP-1 artifact가 실제 downstream policy 성능 개선으로 이어지는지 증명하는 단계다. 단, 이제 이 단계는 단일 A/B 승부가 아니라 staged learning proof로 진행한다.</p>
           </div>
-          <span class="badge wait">Learning-proven pending</span>
+          <span class="badge info">Gate infra complete · collecting 1/10</span>
         </div>
 
         <table>
@@ -811,8 +811,8 @@
             <tr>
               <td>Transition-rich accepted dataset</td>
               <td>APPROACH, CONTACT, INSERT, SEAT 전환이 살아 있는 accepted/replay-verified trajectory pool.</td>
-              <td><span class="status wait">PENDING</span></td>
-              <td>현재 accepted proof material은 MVP-1에는 충분하지만, policy learning value를 보이기에는 transition coverage가 더 필요하다.</td>
+              <td><span class="status wait">IN PROGRESS</span></td>
+              <td>Phase-conditional evaluator gate 구현 완료. live HMD runtime 변경은 <code>patches/isaaclab/2026-05-19-rdf-live-hmd-curation.patch</code>로 캡처됐다. 첫 Gate A pass episode 수집됨 (1/10, <code>episode_1a3521e94409</code>, depth=0.018). 나머지 9개 수집 중.</td>
             </tr>
             <tr>
               <td>Stronger policy/trainer</td>
@@ -1085,10 +1085,10 @@ uv run python scripts/run_mvp1c_final_hud_ingest_preflight.py --pretty
             </div>
           </div>
           <div class="timeline-item">
-            <time>Step 3</time>
+            <time>Step 3 🔵</time>
             <div>
-              <h3>Transition-rich accepted data 수집</h3>
-              <p>다음 실제 작업. stable SEAT/hold sample이 아니라 접근부터 삽입까지 이어지는 replay-verified accepted demonstrations를 확보한다.</p>
+              <h3>Transition-rich accepted data 수집 — 진행 중 (1/10)</h3>
+              <p>Phase-conditional saturation gate, RETARGETING_JUMP trailing 60프레임 window, insertion_depth 수정, threshold 완화가 구현됐다. IsaacLab live runtime 변경은 patch artifact로 보존했다. 첫 Gate A pass episode (<code>episode_1a3521e94409</code>) 수집 완료. 목표는 10개다.</p>
             </div>
           </div>
           <div class="timeline-item">
@@ -1127,7 +1127,7 @@ uv run python scripts/run_mvp1c_final_hud_ingest_preflight.py --pretty
           이 HTML은 `storage/mvp1_proof/proof_audit.json`,
           `storage/mvp1c_final_hud_ingest_preflight/preflight_report.json`,
           `storage/mvp1_proof/mvp1c_negative_result_report.md`,
-          그리고 2026-05-18 replacement Goal을 기준으로 작성했다.
+          그리고 2026-05-19 기준으로 업데이트했다.
         </p>
       </section>
     </article>

@@ -528,7 +528,7 @@ def _insertion_task_state(env: Any, config: dict[str, Any] | None) -> dict[str, 
     if axial_distance_to_target is not None:
         axial_component = _vec_scale(insertion_axis, axial_distance_to_target)
         lateral_distance = _vec_norm(_vec_sub(delta_to_target, axial_component))
-    depth_projection = _vec_dot(_vec_sub(peg_tip, hole_position), insertion_axis)
+    depth_projection = _vec_dot(_vec_sub(peg_tip, hole_target), insertion_axis)
     alignment = _angle_between(peg_axis, hole_axis)
     success_criteria = dict(config.get("success_criteria") or DEFAULT_INSERTION_SUCCESS_CRITERIA)
     task_state = {

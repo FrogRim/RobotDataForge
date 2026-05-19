@@ -325,7 +325,7 @@
           </p>
         </div>
         <aside class="stamp">
-          <div class="stamp-row"><span>작성 기준</span><strong>2026-05-18</strong></div>
+          <div class="stamp-row"><span>작성 기준</span><strong>2026-05-19</strong></div>
           <div class="stamp-row"><span>MVP-1</span><strong>Learning-ready PASS</strong></div>
           <div class="stamp-row"><span>MVP-2</span><strong>Learning-proven PENDING</strong></div>
           <div class="stamp-row"><span>현재 A/B</span><strong>Uplift 0.0</strong></div>
@@ -557,48 +557,63 @@
       <section id="next">
         <div class="section-head">
           <div>
-            <h2>6. 1차 구현 결과와 다음 수집 방향</h2>
-            <p>transition coverage audit과 train-set overfit sanity는 구현됐다. 현재 live artifact는 transition coverage에서 막힌다.</p>
+            <h2>6. MVP-2 Gate 구현 완료 및 수집 현황</h2>
+            <p>Phase-conditional curation gate 인프라가 완성됐다. 첫 Gate A pass episode가 수집됐고, 나머지 9개 수집 중이다.</p>
           </div>
-          <span class="badge info">Implemented</span>
+          <span class="badge info">Gate infra complete · 1/10 collected</span>
         </div>
 
         <div class="principle-grid">
           <div class="card">
-            <small>Implemented</small>
-            <strong>Transition audit</strong>
-            <p><code>scripts/run_mvp2_learning_sanity.py</code>가 accepted material의 APPROACH/CONTACT/INSERT/SEAT coverage를 집계한다.</p>
+            <small>✅ Implemented</small>
+            <strong>Phase-conditional saturation gate</strong>
+            <p>INSERT saturation → soft metric (hard fail 제거). SEAT saturation &gt; 0.30 → hard fail. RDF evaluator는 commit됐고, live HMD runtime 변경은 <code>patches/isaaclab/2026-05-19-rdf-live-hmd-curation.patch</code>로 캡처됐다.</p>
           </div>
           <div class="card">
-            <small>Implemented</small>
-            <strong>Overfit smoke</strong>
-            <p>동일 script가 train-set memorization sanity와 linear probe diagnostic을 생성한다.</p>
+            <small>✅ Implemented</small>
+            <strong>RETARGETING_JUMP trailing window</strong>
+            <p>cumulative max → 최근 60프레임 max로 변경. 단발 jump 이후 ~60프레임 만에 gate pass 복귀 가능.</p>
+          </div>
+          <div class="card">
+            <small>✅ Implemented</small>
+            <strong>insertion_depth 수정 + threshold 완화</strong>
+            <p><code>hole_target</code>(입구) 기준 depth 계산. <code>depth_min</code> 0.025→0.010, <code>hold_sec</code> 1.5→0.5, <code>jump_max</code> 1.5→3.5. 이 완화는 MVP-2 수집 UX 기준이며, policy uplift claim은 아직 하지 않는다.</p>
+          </div>
+          <div class="card">
+            <small>✅ Collected 1/10</small>
+            <strong>첫 Gate A pass episode</strong>
+            <p><code>episode_1a3521e94409</code> — depth=0.0184, score=0.563. auto-finalize 성공 (hold=0.53/0.50s). 9개 추가 수집 진행 중.</p>
           </div>
           <div class="card">
             <small>Current blocker</small>
-            <strong>Transition-rich collection</strong>
-            <p>현재 live accepted artifact는 <code>SEAT</code> 60프레임뿐이다. 다음 수집은 접근, 접촉, 삽입 전이를 포함해야 한다.</p>
+            <strong>Gate A pass episode ≥10개</strong>
+            <p>현재 1개 수집됨. <code>scripts/run_collection_loop.sh</code>로 자동 반복 수집 중. 10개 도달 후 curated vs uncurated policy training 예정.</p>
           </div>
         </div>
 
         <table style="margin-top: 18px;">
           <thead>
             <tr>
-              <th>Report</th>
+              <th>항목</th>
               <th>결과</th>
               <th>해석</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><code>storage/mvp2_learning_sanity/mvp2_learning_sanity_report.json</code></td>
-              <td><code>passed=false</code>, missing <code>APPROACH</code>, <code>CONTACT</code>, <code>INSERT</code></td>
-              <td>현재 live artifact는 A/B 준비 전 transition coverage를 보강해야 한다.</td>
+              <td>MVP-2 curation diagnostic</td>
+              <td>Gate A pass 2개 (구 gate로 거부됨), <code>gate_match_failure_count=0</code></td>
+              <td>phase-conditional gate로 전환 후 transition-rich episode 수집 가능해짐.</td>
             </tr>
             <tr>
-              <td><code>storage/mvp2_learning_sanity/readiness_mvp2_learning_sanity_report.json</code></td>
-              <td><code>passed=true</code> on synthetic transition-rich fixture</td>
-              <td>script 자체는 transition-rich dataset을 pass로 판정한다.</td>
+              <td>첫 Gate A pass episode</td>
+              <td><code>episode_1a3521e94409</code>, depth=0.0184, score=0.563</td>
+              <td>CONTACT≥1, INSERT≥20, SEAT≥8 프레임 포함. learning-ready trajectory 확보.</td>
+            </tr>
+            <tr>
+              <td>Isaac Sim Stop 버튼 crash</td>
+              <td><code>env.sim.is_stopped()</code> 가드 추가</td>
+              <td>Stop 버튼 후 segfault 수정. 안정적 수집 루프 가능.</td>
             </tr>
           </tbody>
         </table>

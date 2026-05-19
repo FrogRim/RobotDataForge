@@ -804,9 +804,9 @@ def _evaluate_peg_in_hole(
             task_config,
             success_criteria,
             ("insertion_depth_min",),
-            default=0.025,
+            default=0.010,
         )
-        or 0.025
+        or 0.010
     )
     min_stable_steps = int(
         success_criteria.get(
