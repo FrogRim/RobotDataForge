@@ -86,6 +86,7 @@ ACTION_CONTRACT_FAILURES = {
 }
 
 REQUIRED_SOURCE_FIELDS = {"input_device", "runtime", "simulator", "robot", "task_name"}
+SEAT_SAT_FAIL_THRESHOLD = 0.30
 
 
 @dataclass(frozen=True)
@@ -129,7 +130,9 @@ def _duration(trajectory: dict[str, Any], frames: list[dict[str, Any]]) -> float
     if summary.get("duration_sec") is not None:
         return float(summary["duration_sec"])
     if len(frames) >= 2:
-        return max(0.0, float(frames[-1].get("t", 0.0)) - float(frames[0].get("t", 0.0)))
+        return max(
+            0.0, float(frames[-1].get("t", 0.0)) - float(frames[0].get("t", 0.0))
+        )
     return 0.0
 
 
@@ -170,25 +173,38 @@ def failure_category_for_reason(reason: str | None) -> str:
     return "UNKNOWN"
 
 
-def _status_for_failure(reason: str | None, failure_names: set[str], *, evidence_available: bool = True) -> str:
+def _status_for_failure(
+    reason: str | None, failure_names: set[str], *, evidence_available: bool = True
+) -> str:
     if reason in failure_names:
         return "fail"
     return "pass" if evidence_available else "unknown"
 
 
 def _operator_success(trajectory: dict[str, Any]) -> bool:
-    summary = trajectory.get("summary") if isinstance(trajectory.get("summary"), dict) else {}
+    summary = (
+        trajectory.get("summary") if isinstance(trajectory.get("summary"), dict) else {}
+    )
     status = str(summary.get("episode_status") or "").lower()
-    finalize_reason = str(summary.get("episode_finalize_reason") or summary.get("complete_reason") or "").lower()
+    finalize_reason = str(
+        summary.get("episode_finalize_reason") or summary.get("complete_reason") or ""
+    ).lower()
     success_label_source = str(summary.get("success_label_source") or "").lower()
-    if success_label_source == "task_state_auto" or finalize_reason == "auto_success_ready":
+    if (
+        success_label_source == "task_state_auto"
+        or finalize_reason == "auto_success_ready"
+    ):
         return False
     return status == "success" or finalize_reason in {"operator_success", "success"}
 
 
 def _auto_success_ready(trajectory: dict[str, Any]) -> bool:
-    summary = trajectory.get("summary") if isinstance(trajectory.get("summary"), dict) else {}
-    finalize_reason = str(summary.get("episode_finalize_reason") or summary.get("complete_reason") or "").lower()
+    summary = (
+        trajectory.get("summary") if isinstance(trajectory.get("summary"), dict) else {}
+    )
+    finalize_reason = str(
+        summary.get("episode_finalize_reason") or summary.get("complete_reason") or ""
+    ).lower()
     success_label_source = str(summary.get("success_label_source") or "").lower()
     return bool(
         summary.get("auto_success_ready") is True
@@ -198,13 +214,17 @@ def _auto_success_ready(trajectory: dict[str, Any]) -> bool:
 
 
 def _success_label_source(trajectory: dict[str, Any]) -> str | None:
-    summary = trajectory.get("summary") if isinstance(trajectory.get("summary"), dict) else {}
+    summary = (
+        trajectory.get("summary") if isinstance(trajectory.get("summary"), dict) else {}
+    )
     source = summary.get("success_label_source")
     return str(source) if isinstance(source, str) and source.strip() else None
 
 
 def _replay_verified(trajectory: dict[str, Any]) -> bool:
-    summary = trajectory.get("summary") if isinstance(trajectory.get("summary"), dict) else {}
+    summary = (
+        trajectory.get("summary") if isinstance(trajectory.get("summary"), dict) else {}
+    )
     replay_gate = summary.get("action_replay_gate")
     return isinstance(replay_gate, dict) and replay_gate.get("passed") is True
 
@@ -224,9 +244,30 @@ def _action_contract_status(frames: list[dict[str, Any]]) -> str:
     return "unknown" if saw_action else "unknown"
 
 
-def _native_action_saturation(frames: list[dict[str, Any]]) -> tuple[str, float | None]:
+def _frame_phase(frame: dict[str, Any]) -> str:
+    metadata = frame.get("metadata") or {}
+    phase = metadata.get("action_phase")
+    if isinstance(phase, str) and phase.strip():
+        return phase.strip().upper()
+    task_state = metadata.get("task_state") or {}
+    phase = task_state.get("action_phase")
+    if isinstance(phase, str) and phase.strip():
+        return phase.strip().upper()
+    phase = frame.get("action_phase")
+    if isinstance(phase, str) and phase.strip():
+        return phase.strip().upper()
+    return "UNKNOWN"
+
+
+def _native_action_saturation(
+    frames: list[dict[str, Any]],
+) -> tuple[str, float | None, dict[str, float]]:
+    """Return saturation status, aggregate ratio, and per-phase ratios."""
     total = 0
     saturated = 0
+    phase_total: dict[str, int] = {}
+    phase_saturated: dict[str, int] = {}
+
     for frame in frames:
         action = frame.get("action")
         if not isinstance(action, dict):
@@ -245,17 +286,36 @@ def _native_action_saturation(frames: list[dict[str, Any]]) -> tuple[str, float 
                 break
         if not vector:
             continue
+
+        phase = _frame_phase(frame)
+        is_saturated = any(abs(value) >= 0.999 for value in vector[:6])
         total += 1
-        if any(abs(value) >= 0.999 for value in vector[:6]):
+        if is_saturated:
             saturated += 1
+        phase_total[phase] = phase_total.get(phase, 0) + 1
+        if is_saturated:
+            phase_saturated[phase] = phase_saturated.get(phase, 0) + 1
+
     if total == 0:
-        return "unknown", None
-    ratio = saturated / total
-    return ("fail" if ratio > 0.05 else "pass"), ratio
+        return "unknown", None, {}
+
+    aggregate_ratio = saturated / total
+    phase_ratios: dict[str, float] = {
+        phase: phase_saturated.get(phase, 0) / count
+        for phase, count in phase_total.items()
+    }
+    seat_ratio = phase_ratios.get("SEAT", 0.0)
+    status = "fail" if seat_ratio > SEAT_SAT_FAIL_THRESHOLD else "pass"
+    return status, aggregate_ratio, phase_ratios
 
 
 def _sync_quality_status(metrics: dict[str, Any], reason: str | None) -> str:
-    if reason in {"SYNC_FAILURE", "CLOCK_DRIFT", "TIMESTAMP_NON_MONOTONIC", "FRAME_JITTER"}:
+    if reason in {
+        "SYNC_FAILURE",
+        "CLOCK_DRIFT",
+        "TIMESTAMP_NON_MONOTONIC",
+        "FRAME_JITTER",
+    }:
         return "fail"
     sync_metrics = metrics.get("sync_metrics")
     if isinstance(sync_metrics, dict):
@@ -299,7 +359,11 @@ def add_evaluation_semantics(
     task_success_candidate_pool = bool(operator_success or auto_success_ready)
     replay_verified = _replay_verified(trajectory)
     action_contract_status = _action_contract_status(frames)
-    native_action_saturation, native_action_saturation_ratio = _native_action_saturation(frames)
+    (
+        native_action_saturation,
+        native_action_saturation_ratio,
+        native_action_saturation_phase_ratios,
+    ) = _native_action_saturation(frames)
     sync_quality = _sync_quality_status(metrics, failure_reason)
     retargeting_jump = _status_for_failure(
         failure_reason,
@@ -310,18 +374,36 @@ def add_evaluation_semantics(
     data_quality_reasons: list[str] = []
     if category == "DATA_QUALITY_FAILURE" and failure_reason:
         data_quality_reasons.append(failure_reason)
-    if native_action_saturation == "fail" and "NATIVE_ACTION_SATURATION" not in data_quality_reasons:
+    if (
+        native_action_saturation == "fail"
+        and "NATIVE_ACTION_SATURATION" not in data_quality_reasons
+    ):
         data_quality_reasons.append("NATIVE_ACTION_SATURATION")
-    if sync_quality == "fail" and failure_reason in {"SYNC_FAILURE", "CLOCK_DRIFT", "TIMESTAMP_NON_MONOTONIC", "FRAME_JITTER"}:
+    if sync_quality == "fail" and failure_reason in {
+        "SYNC_FAILURE",
+        "CLOCK_DRIFT",
+        "TIMESTAMP_NON_MONOTONIC",
+        "FRAME_JITTER",
+    }:
         if failure_reason not in data_quality_reasons:
             data_quality_reasons.append(failure_reason)
 
     action_contract_valid = action_contract_status == "pass"
-    data_quality_passed = not data_quality_reasons and retargeting_jump != "fail" and sync_quality != "fail"
+    data_quality_passed = (
+        not data_quality_reasons
+        and retargeting_jump != "fail"
+        and sync_quality != "fail"
+    )
     rejection_reasons: list[str] = []
     if not task_success_candidate_pool:
-        summary = trajectory.get("summary") if isinstance(trajectory.get("summary"), dict) else {}
-        rejection_reasons.append(f"EPISODE_STATUS:{summary.get('episode_status') or 'unknown'}")
+        summary = (
+            trajectory.get("summary")
+            if isinstance(trajectory.get("summary"), dict)
+            else {}
+        )
+        rejection_reasons.append(
+            f"EPISODE_STATUS:{summary.get('episode_status') or 'unknown'}"
+        )
     if not replay_verified:
         rejection_reasons.append("REPLAY_NOT_VERIFIED")
     if not success:
@@ -367,6 +449,10 @@ def add_evaluation_semantics(
         "retargeting_jump": retargeting_jump,
         "native_action_saturation": native_action_saturation,
         "native_action_saturation_ratio": native_action_saturation_ratio,
+        "native_action_saturation_phase_ratios": native_action_saturation_phase_ratios,
+        "native_action_saturation_seat_ratio": native_action_saturation_phase_ratios.get(
+            "SEAT", 0.0
+        ),
         "sync_quality": sync_quality,
         "control_quality": "fail"
         if data_quality_reasons or action_contract_status == "fail"
@@ -408,19 +494,26 @@ def _tracking_loss_rate(frames: list[dict[str, Any]]) -> float:
     losses = 0
     for frame in frames:
         metadata = frame.get("metadata") or {}
-        if metadata.get("right_hand_tracked") is False or metadata.get("xr_frame_valid") is False:
+        if (
+            metadata.get("right_hand_tracked") is False
+            or metadata.get("xr_frame_valid") is False
+        ):
             losses += 1
     return losses / len(frames)
 
 
-def _post_warmup_frames(trajectory: dict[str, Any], frames: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _post_warmup_frames(
+    trajectory: dict[str, Any], frames: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     for index, frame in enumerate(frames):
         metadata = frame.get("metadata") or {}
         if metadata.get("recording_started_after_warmup") is True:
             return frames[index:]
 
     summary = trajectory.get("summary") or {}
-    warmup_dropped_frames = int(_float_or_none(summary.get("warmup_dropped_frames")) or 0)
+    warmup_dropped_frames = int(
+        _float_or_none(summary.get("warmup_dropped_frames")) or 0
+    )
     if warmup_dropped_frames > 0:
         # Current recorder drops warm-up frames before saving. If no explicit marker
         # exists, the stored frames are already post-warm-up.
@@ -440,7 +533,9 @@ def _latency_stats(frames: list[dict[str, Any]]) -> tuple[float | None, float | 
     return sum(latencies) / len(latencies), max(latencies)
 
 
-def _frame_interval_stats(frames: list[dict[str, Any]]) -> tuple[float | None, float | None]:
+def _frame_interval_stats(
+    frames: list[dict[str, Any]],
+) -> tuple[float | None, float | None]:
     times: list[float] = []
     for frame in frames:
         timestamp = _float_or_none(frame.get("t"))
@@ -516,7 +611,9 @@ def _retargeting_vector(frame: dict[str, Any]) -> list[float] | None:
 
 
 def _retargeting_jump_stats(frames: list[dict[str, Any]]) -> tuple[float, float]:
-    vectors = [vector for frame in frames if (vector := _retargeting_vector(frame)) is not None]
+    vectors = [
+        vector for frame in frames if (vector := _retargeting_vector(frame)) is not None
+    ]
     jumps = [
         euclidean(vectors[index - 1], vectors[index])
         for index in range(1, len(vectors))
@@ -541,7 +638,9 @@ def _latest_task_state(frames: list[dict[str, Any]]) -> dict[str, Any]:
     return {}
 
 
-def _latest_task_float(frames: list[dict[str, Any]], keys: tuple[str, ...]) -> float | None:
+def _latest_task_float(
+    frames: list[dict[str, Any]], keys: tuple[str, ...]
+) -> float | None:
     for frame in reversed(frames):
         state = _task_state(frame)
         for key in keys:
@@ -551,19 +650,26 @@ def _latest_task_float(frames: list[dict[str, Any]], keys: tuple[str, ...]) -> f
     return None
 
 
-def _insertion_distance_from_state(state: dict[str, Any]) -> tuple[float | None, str, float | None]:
+def _insertion_distance_from_state(
+    state: dict[str, Any],
+) -> tuple[float | None, str, float | None]:
     lateral_distance = _float_or_none(state.get("peg_lateral_distance_to_target"))
     distance_3d = _float_or_none(state.get("peg_tip_distance_3d_to_target"))
     if distance_3d is None:
         distance_3d = _float_or_none(
-            state.get("peg_tip_distance_to_target", state.get("peg_tip_distance_to_hole_bottom"))
+            state.get(
+                "peg_tip_distance_to_target",
+                state.get("peg_tip_distance_to_hole_bottom"),
+            )
         )
     if lateral_distance is not None:
         return lateral_distance, "lateral_projection", distance_3d
     return distance_3d, "legacy_3d", distance_3d
 
 
-def _latest_insertion_distance(frames: list[dict[str, Any]]) -> tuple[float | None, str, float | None]:
+def _latest_insertion_distance(
+    frames: list[dict[str, Any]],
+) -> tuple[float | None, str, float | None]:
     for frame in reversed(frames):
         state = _task_state(frame)
         if not state:
@@ -594,8 +700,12 @@ def _latest_task_bool(
     return None
 
 
-def _is_peg_in_hole_task(task_config: dict[str, Any], success_criteria: dict[str, Any]) -> bool:
-    task_type = str(task_config.get("task_type") or success_criteria.get("task_type") or "").lower()
+def _is_peg_in_hole_task(
+    task_config: dict[str, Any], success_criteria: dict[str, Any]
+) -> bool:
+    task_type = str(
+        task_config.get("task_type") or success_criteria.get("task_type") or ""
+    ).lower()
     if "peg" in task_type and ("hole" in task_type or "insert" in task_type):
         return True
     peg_specific_keys = {
@@ -605,7 +715,10 @@ def _is_peg_in_hole_task(task_config: dict[str, Any], success_criteria: dict[str
         "axis_alignment_error_max_rad",
         "insertion_depth_min",
     }
-    return bool(peg_specific_keys.intersection(success_criteria.keys()) or peg_specific_keys.intersection(task_config.keys()))
+    return bool(
+        peg_specific_keys.intersection(success_criteria.keys())
+        or peg_specific_keys.intersection(task_config.keys())
+    )
 
 
 def _stable_inserted_steps(
@@ -620,12 +733,18 @@ def _stable_inserted_steps(
         state = _task_state(frame)
         distance, _, _ = _insertion_distance_from_state(state)
         alignment = _float_or_none(
-            state.get("axis_alignment_error_rad", state.get("peg_axis_alignment_error_rad"))
+            state.get(
+                "axis_alignment_error_rad", state.get("peg_axis_alignment_error_rad")
+            )
         )
         depth = _float_or_none(state.get("insertion_depth"))
         if distance is None or alignment is None or depth is None:
             break
-        if distance <= distance_max and alignment <= alignment_max and depth >= depth_min:
+        if (
+            distance <= distance_max
+            and alignment <= alignment_max
+            and depth >= depth_min
+        ):
             stable_steps += 1
             continue
         break
@@ -642,38 +761,63 @@ def _evaluate_peg_in_hole(
 ) -> EvaluationResult | None:
     """Evaluate MVP-1 insertion metrics when frame metadata.task_state is available."""
 
-    if not _is_peg_in_hole_task(task_config, success_criteria) or not _latest_task_state(frames):
+    if not _is_peg_in_hole_task(
+        task_config, success_criteria
+    ) or not _latest_task_state(frames):
         return None
 
-    peg_tip_distance, peg_distance_metric, peg_tip_distance_3d = _latest_insertion_distance(frames)
+    peg_tip_distance, peg_distance_metric, peg_tip_distance_3d = (
+        _latest_insertion_distance(frames)
+    )
     axis_alignment_error = _latest_task_float(
         frames,
         ("axis_alignment_error_rad", "peg_axis_alignment_error_rad"),
     )
     insertion_depth = _latest_task_float(frames, ("insertion_depth",))
-    if peg_tip_distance is None or axis_alignment_error is None or insertion_depth is None:
+    if (
+        peg_tip_distance is None
+        or axis_alignment_error is None
+        or insertion_depth is None
+    ):
         return _failure("INVALID_TRAJECTORY")
 
-    distance_max = _threshold(
-        task_config,
-        success_criteria,
-        ("peg_tip_distance_to_target_max", "peg_tip_distance_to_hole_bottom_max"),
-        default=0.015,
-    ) or 0.015
-    alignment_max = _threshold(
-        task_config,
-        success_criteria,
-        ("peg_axis_alignment_error_max_rad", "axis_alignment_error_max_rad"),
-        default=0.25,
-    ) or 0.25
-    depth_min = _threshold(
-        task_config,
-        success_criteria,
-        ("insertion_depth_min",),
-        default=0.025,
-    ) or 0.025
-    min_stable_steps = int(success_criteria.get("min_stable_steps", task_config.get("min_stable_steps", 10)))
-    max_completion_time_sec = float(success_criteria.get("max_completion_time_sec", task_config.get("max_completion_time_sec", 45.0)))
+    distance_max = (
+        _threshold(
+            task_config,
+            success_criteria,
+            ("peg_tip_distance_to_target_max", "peg_tip_distance_to_hole_bottom_max"),
+            default=0.015,
+        )
+        or 0.015
+    )
+    alignment_max = (
+        _threshold(
+            task_config,
+            success_criteria,
+            ("peg_axis_alignment_error_max_rad", "axis_alignment_error_max_rad"),
+            default=0.25,
+        )
+        or 0.25
+    )
+    depth_min = (
+        _threshold(
+            task_config,
+            success_criteria,
+            ("insertion_depth_min",),
+            default=0.025,
+        )
+        or 0.025
+    )
+    min_stable_steps = int(
+        success_criteria.get(
+            "min_stable_steps", task_config.get("min_stable_steps", 10)
+        )
+    )
+    max_completion_time_sec = float(
+        success_criteria.get(
+            "max_completion_time_sec", task_config.get("max_completion_time_sec", 45.0)
+        )
+    )
 
     summary = trajectory.get("summary") or {}
     duration_sec = _duration(trajectory, frames)
@@ -682,8 +826,12 @@ def _evaluate_peg_in_hole(
     post_warmup_frames = _post_warmup_frames(trajectory, frames)
     tracking_loss_after_warmup = _tracking_loss_rate(post_warmup_frames)
     average_input_latency_ms, max_input_latency_ms = _latency_stats(post_warmup_frames)
-    frame_interval_mean_ms, frame_interval_jitter_ms = _frame_interval_stats(post_warmup_frames)
-    retargeting_jump_max, retargeting_jump_mean = _retargeting_jump_stats(post_warmup_frames)
+    frame_interval_mean_ms, frame_interval_jitter_ms = _frame_interval_stats(
+        post_warmup_frames
+    )
+    retargeting_jump_max, retargeting_jump_mean = _retargeting_jump_stats(
+        post_warmup_frames
+    )
     collision_count = int(summary.get("collision_count", 0))
     contact_sequence_valid = _latest_task_bool(
         trajectory,
@@ -748,7 +896,14 @@ def _evaluate_peg_in_hole(
         0.45 * task_completion_score
         + 0.20 * efficiency_score
         + 0.20 * smoothness_score
-        + 0.15 * (1.0 if contact_sequence_valid is True else 0.5 if contact_sequence_valid is None else 0.0)
+        + 0.15
+        * (
+            1.0
+            if contact_sequence_valid is True
+            else 0.5
+            if contact_sequence_valid is None
+            else 0.0
+        )
     )
 
     failure_reason = None
@@ -775,7 +930,9 @@ def _evaluate_peg_in_hole(
         and frame_interval_jitter_ms > max_frame_interval_jitter_ms
     ):
         failure_reason = "FRAME_JITTER"
-    elif max_retargeting_jump is not None and retargeting_jump_max > max_retargeting_jump:
+    elif (
+        max_retargeting_jump is not None and retargeting_jump_max > max_retargeting_jump
+    ):
         failure_reason = "RETARGETING_JUMP"
     elif duration_sec > max_completion_time_sec:
         failure_reason = "TIMEOUT"
@@ -799,17 +956,33 @@ def _evaluate_peg_in_hole(
         max(tracking_loss_rate, tracking_loss_after_warmup)
         + (0.2 if total_distance <= 1e-9 else 0.0)
     )
-    contact_sequence_score = 1.0 if contact_sequence_valid is True else 0.0 if contact_sequence_valid is False else 0.5
+    contact_sequence_score = (
+        1.0
+        if contact_sequence_valid is True
+        else 0.0
+        if contact_sequence_valid is False
+        else 0.5
+    )
     interaction_quality_score = clamp01(
         1.0
         - min(tracking_loss_after_warmup, 1.0) * 0.35
         - min(retargeting_jump_max / max(max_retargeting_jump or 1.0, 1e-9), 1.0) * 0.25
-        - min(collision_count / max(float(success_criteria.get("max_collision_count", 10)), 1.0), 1.0) * 0.25
+        - min(
+            collision_count
+            / max(float(success_criteria.get("max_collision_count", 10)), 1.0),
+            1.0,
+        )
+        * 0.25
         - (0.15 if object_drop_detected else 0.0)
     )
     physical_plausibility_score = clamp01(
         1.0
-        - min(collision_count / max(float(success_criteria.get("max_collision_count", 10)), 1.0), 1.0) * 0.35
+        - min(
+            collision_count
+            / max(float(success_criteria.get("max_collision_count", 10)), 1.0),
+            1.0,
+        )
+        * 0.35
         - min(retargeting_jump_max / max(max_retargeting_jump or 1.0, 1e-9), 1.0) * 0.35
         - min(tracking_loss_after_warmup, 1.0) * 0.15
         - (0.15 if object_drop_detected else 0.0)
@@ -924,20 +1097,29 @@ def evaluate_trajectory(
         return peg_result
 
     summary = trajectory.get("summary") or {}
-    target = summary.get("target_position") or task_config.get("target_position") or task_config.get("goal_position")
+    target = (
+        summary.get("target_position")
+        or task_config.get("target_position")
+        or task_config.get("goal_position")
+    )
     if target is None:
         return _failure("INVALID_TRAJECTORY")
     target_position = [float(v) for v in target]
 
     distance_to_target_max = float(
-        success_criteria.get("distance_to_target_max", task_config.get("success_tolerance", 0.03))
+        success_criteria.get(
+            "distance_to_target_max", task_config.get("success_tolerance", 0.03)
+        )
     )
     min_stable_steps = int(success_criteria.get("min_stable_steps", 20))
-    max_completion_time_sec = float(success_criteria.get("max_completion_time_sec", 30.0))
+    max_completion_time_sec = float(
+        success_criteria.get("max_completion_time_sec", 30.0)
+    )
 
     final_distance = euclidean(object_points[-1], target_position)
     stable_steps = sum(
-        1 for point in object_points[-min_stable_steps:]
+        1
+        for point in object_points[-min_stable_steps:]
         if euclidean(point, target_position) <= distance_to_target_max
     )
     duration_sec = _duration(trajectory, frames)
@@ -946,10 +1128,16 @@ def evaluate_trajectory(
     post_warmup_frames = _post_warmup_frames(trajectory, frames)
     tracking_loss_after_warmup = _tracking_loss_rate(post_warmup_frames)
     average_input_latency_ms, max_input_latency_ms = _latency_stats(post_warmup_frames)
-    frame_interval_mean_ms, frame_interval_jitter_ms = _frame_interval_stats(post_warmup_frames)
-    retargeting_jump_max, retargeting_jump_mean = _retargeting_jump_stats(post_warmup_frames)
+    frame_interval_mean_ms, frame_interval_jitter_ms = _frame_interval_stats(
+        post_warmup_frames
+    )
+    retargeting_jump_max, retargeting_jump_mean = _retargeting_jump_stats(
+        post_warmup_frames
+    )
     collision_count = int((trajectory.get("summary") or {}).get("collision_count", 0))
-    bad_contact_sequence = bool((trajectory.get("summary") or {}).get("bad_contact_sequence", False))
+    bad_contact_sequence = bool(
+        (trajectory.get("summary") or {}).get("bad_contact_sequence", False)
+    )
 
     max_tracking_loss_after_warmup = _threshold(
         task_config,
@@ -1013,7 +1201,9 @@ def evaluate_trajectory(
         and frame_interval_jitter_ms > max_frame_interval_jitter_ms
     ):
         failure_reason = "FRAME_JITTER"
-    elif max_retargeting_jump is not None and retargeting_jump_max > max_retargeting_jump:
+    elif (
+        max_retargeting_jump is not None and retargeting_jump_max > max_retargeting_jump
+    ):
         failure_reason = "RETARGETING_JUMP"
     elif duration_sec > max_completion_time_sec:
         failure_reason = "TIMEOUT"
@@ -1037,12 +1227,24 @@ def evaluate_trajectory(
         1.0
         - min(tracking_loss_after_warmup, 1.0) * 0.45
         - min(retargeting_jump_max / max(max_retargeting_jump or 1.0, 1e-9), 1.0) * 0.25
-        - min((collision_count / max(float(success_criteria.get("max_collision_count", 10)), 1.0)), 1.0) * 0.3
+        - min(
+            (
+                collision_count
+                / max(float(success_criteria.get("max_collision_count", 10)), 1.0)
+            ),
+            1.0,
+        )
+        * 0.3
     )
     contact_sequence_score = 0.0 if bad_contact_sequence else 0.5
     physical_plausibility_score = clamp01(
         1.0
-        - min(collision_count / max(float(success_criteria.get("max_collision_count", 10)), 1.0), 1.0) * 0.4
+        - min(
+            collision_count
+            / max(float(success_criteria.get("max_collision_count", 10)), 1.0),
+            1.0,
+        )
+        * 0.4
         - min(retargeting_jump_max / max(max_retargeting_jump or 1.0, 1e-9), 1.0) * 0.4
         - min(tracking_loss_after_warmup, 1.0) * 0.2
     )
@@ -1092,7 +1294,9 @@ def evaluate_trajectory(
                 "task_completion_score": task_completion_score,
                 "interaction_quality_score": interaction_quality_score,
                 "contact_sequence_score": contact_sequence_score,
-                "contact_sequence_source": "summary.bad_contact_sequence" if bad_contact_sequence else "not_available",
+                "contact_sequence_source": "summary.bad_contact_sequence"
+                if bad_contact_sequence
+                else "not_available",
                 "physical_plausibility_score": physical_plausibility_score,
                 "evaluator_confidence": evaluator_confidence,
                 "failure_mode": failure_mode,
