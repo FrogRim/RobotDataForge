@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ForgeXR Data Trust Layer Reset Summary</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f5f6f8;
+      --surface: #ffffff;
+      --ink: #18202a;
+      --muted: #647080;
+      --line: #d9e0e8;
+      --blue: #2459c9;
+      --blue-soft: #eaf0ff;
+      --green: #14745f;
+      --green-soft: #e7f4ef;
+      --amber: #a15c07;
+      --amber-soft: #fff4df;
+      --red: #b42318;
+      --red-soft: #fff0ee;
+      --slate: #344054;
+      --slate-soft: #eef1f5;
+      --code: #111827;
+      --code-bg: #edf1f5;
+      --shadow: 0 18px 46px rgba(24, 31, 44, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: var(--code-bg);
+      color: var(--code);
+      font-size: 0.92em;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 30px 0 48px;
+    }
+
+    .shell {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 34px;
+      padding: 38px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(36, 89, 201, 0.08), rgba(20, 116, 95, 0.06)),
+        #ffffff;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 820;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 860px;
+      font-size: clamp(34px, 5vw, 60px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 20px 0 0;
+      max-width: 900px;
+      color: var(--slate);
+      font-size: 17px;
+    }
+
+    .status-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .status-box h2 {
+      margin: 0 0 14px;
+      font-size: 16px;
+    }
+
+    .status-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--slate);
+      font-size: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 3px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 820;
+      white-space: nowrap;
+    }
+
+    .pill.green {
+      color: var(--green);
+      border-color: #b8dfd0;
+      background: var(--green-soft);
+    }
+
+    .pill.blue {
+      color: var(--blue);
+      border-color: #c7d6ff;
+      background: var(--blue-soft);
+    }
+
+    .pill.amber {
+      color: var(--amber);
+      border-color: #ebca95;
+      background: var(--amber-soft);
+    }
+
+    .pill.red {
+      color: var(--red);
+      border-color: #f1b8b2;
+      background: var(--red-soft);
+    }
+
+    main {
+      padding: 34px 38px 42px;
+    }
+
+    section + section {
+      margin-top: 36px;
+      padding-top: 34px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 30px;
+      align-items: start;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .section-copy {
+      max-width: 820px;
+      color: var(--muted);
+    }
+
+    .source-grid,
+    .change-grid,
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .source,
+    .change,
+    .evidence,
+    .note {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 18px;
+    }
+
+    .source {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 170px;
+      gap: 16px;
+    }
+
+    .source p,
+    .change p,
+    .evidence p,
+    .note p,
+    .timeline p {
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .before-after {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      font-size: 14px;
+    }
+
+    .before-after th,
+    .before-after td {
+      vertical-align: top;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .before-after th {
+      background: var(--slate-soft);
+      color: var(--slate);
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    .before-after tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .before {
+      border-left: 4px solid var(--red);
+    }
+
+    .after {
+      border-left: 4px solid var(--green);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 12px;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 18px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .time-label {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 820;
+      text-transform: uppercase;
+    }
+
+    .command-box {
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px solid #c6ced8;
+      border-radius: 8px;
+      background: #111827;
+      color: #f9fafb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .callout {
+      border-left: 5px solid var(--amber);
+      border-radius: 8px;
+      padding: 18px 20px;
+      background: var(--amber-soft);
+      color: #5c3b05;
+    }
+
+    .callout strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #4a2f03;
+    }
+
+    .artifact-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 16px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .artifact-list a {
+      display: block;
+      min-height: 52px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .artifact-list strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .artifact-list span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    footer {
+      padding: 22px 38px;
+      border-top: 1px solid var(--line);
+      background: #fbfcfe;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 940px) {
+      header,
+      .section-head {
+        grid-template-columns: 1fr;
+      }
+
+      .source-grid,
+      .change-grid,
+      .evidence-grid,
+      .artifact-list {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline-item {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .page {
+        width: min(100% - 22px, 1180px);
+        padding: 18px 0 32px;
+      }
+
+      header,
+      main,
+      footer {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+
+      .before-after {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="shell">
+      <header>
+        <div>
+          <p class="eyebrow">ForgeXR / Robot Data Forge reset memo</p>
+          <h1>HMD-first 수집 경로에서 데이터 신뢰 레이어로 제품 축을 옮겼다</h1>
+          <p class="lead">
+            LinkedIn의 MVP-1/Gate 0 글은 중요한 교훈을 남겼다. 작업 성공 여부보다
+            훈련 가능한 데이터인지가 더 중요하고, 불안정한 XR 입력은 수집 전에 차단되어야 한다.
+            이번 리셋은 그 교훈을 문서, proof command, artifact 구조에 반영한 결과다.
+          </p>
+        </div>
+        <aside class="status-box" aria-label="Reset status">
+          <h2>현재 판정</h2>
+          <ul class="status-list">
+            <li><span class="pill green">Primary</span> data trust layer proof</li>
+            <li><span class="pill blue">Proof path</span> HMD-free fixtures</li>
+            <li><span class="pill amber">Adapter</span> Quest/OpenXR/HMD experimental</li>
+            <li><span class="pill red">Blocked</span> Gate A physical collection</li>
+          </ul>
+        </aside>
+      </header>
+
+      <main>
+        <section aria-labelledby="sources">
+          <div class="section-head">
+            <h2 id="sources">참고한 근거</h2>
+            <p class="section-copy">
+              이번 문서는 공개 LinkedIn 내러티브와 repo 내부 문서가 같은 방향을 가리키는지
+              대조해서 작성했다. 외부 홍보 문구가 아니라, 현재 코드와 proof artifact가 실제로
+              뒷받침하는 주장만 남기는 것이 기준이다.
+            </p>
+          </div>
+          <div class="source-grid">
+            <article class="source">
+              <div>
+                <h3><a href="social_narrative.md">LinkedIn posts capture</a></h3>
+                <p>
+                  MVP-1은 learning-ready이지 learning-proven이 아니며, Gate 0은 불안정한
+                  Quest handtracking 입력을 막는 제품 기능이라는 메시지를 보존한다.
+                </p>
+              </div>
+              <span class="pill blue">Public narrative</span>
+            </article>
+            <article class="source">
+              <div>
+                <h3><a href="../../README.md">README</a> / <a href="../developer/project_instructions.md">Project Instructions</a></h3>
+                <p>
+                  RDF를 HMD 제품이 아니라 replay-verified, action-labelled,
+                  task-validated, trainer-loadable artifact를 만드는 데이터 신뢰 레이어로 재정의했다.
+                </p>
+              </div>
+              <span class="pill green">Product boundary</span>
+            </article>
+            <article class="source">
+              <div>
+                <h3><a href="../developer/worklog.md">WORKLOG</a> / <a href="../developer/project_instructions.md">Project Instructions</a></h3>
+                <p>
+                  HMD-free proof reset의 구현 파일, 생성 artifact, 검증 명령,
+                  남은 리스크, 금지해야 할 주장까지 durable context로 남겼다.
+                </p>
+              </div>
+              <span class="pill amber">Execution record</span>
+            </article>
+          </div>
+        </section>
+
+        <section aria-labelledby="why">
+          <div class="section-head">
+            <h2 id="why">왜 바꿨나</h2>
+            <p class="section-copy">
+              기존 방향은 민간 작업자가 쉽게 로봇 데이터를 만들 수 있다는 장기 목표와 맞닿아 있었지만,
+              1차 제품 증명 경로가 Quest handtracking, ALVR, SteamVR/OpenXR, Isaac XR UI에 지나치게
+              묶였다. 구매자가 사는 것은 HMD 자체가 아니라, 신뢰 가능한 데이터와 그 증거다.
+            </p>
+          </div>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="time-label">MVP-1 lesson</div>
+              <div>
+                <h3>Task success와 training eligibility를 분리했다</h3>
+                <p>
+                  사람이 작업을 끝내도 action semantics, replay 가능성, quality gate,
+                  curation evidence, export/trainer compatibility가 없으면 구매 가능한 데이터가 아니다.
+                </p>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="time-label">Gate 0 evidence</div>
+              <div>
+                <h3>입력 스트림 안정성이 task success보다 앞선다</h3>
+                <p>
+                  Gate 0은 task success를 무시하고 hand tracking rate, XR frame validity,
+                  raw wrist jump, tracking loss, recenter instability 같은 입력 truth를 먼저 검증한다.
+                </p>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="time-label">Reset decision</div>
+              <div>
+                <h3>첫 proof를 HMD-free로 옮겼다</h3>
+                <p>
+                  HMD/OpenXR 코드는 삭제하지 않고 experimental input adapter로 격하시켰다.
+                  대신 데이터 신뢰 레이어 자체가 작동하는지 scripted/synthetic replay fixture로 검증한다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="before-after">
+          <div class="section-head">
+            <h2 id="before-after">무엇이 바뀌었나</h2>
+            <p class="section-copy">
+              이번 변경의 핵심은 기능 추가보다 claim boundary 재정렬이다. HMD 경로를 버린 것이 아니라,
+              제품의 생사를 좌우하는 기본 proof path에서 분리했다.
+            </p>
+          </div>
+          <table class="before-after">
+            <thead>
+              <tr>
+                <th>영역</th>
+                <th>이전 방향</th>
+                <th>현재 방향</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>제품 정체성</strong></td>
+                <td class="before">XR/HMD teleoperation pipeline 중심</td>
+                <td class="after">robot data trust layer 중심</td>
+              </tr>
+              <tr>
+                <td><strong>1차 proof 입력</strong></td>
+                <td class="before">Quest 3 handtracking + ALVR + SteamVR/OpenXR + Isaac Lab</td>
+                <td class="after">HMD-free scripted fixture + synthetic replay fixture</td>
+              </tr>
+              <tr>
+                <td><strong>HMD의 역할</strong></td>
+                <td class="before">데이터 수집의 기본 경로처럼 보임</td>
+                <td class="after">preserved experimental input adapter</td>
+              </tr>
+              <tr>
+                <td><strong>성공 기준</strong></td>
+                <td class="before">작업 성공과 live collection에 관심이 쏠림</td>
+                <td class="after">provenance, schema, replay, action contract, curation, export, trainer smoke</td>
+              </tr>
+              <tr>
+                <td><strong>구매자 가치</strong></td>
+                <td class="before">새로운 XR 입력 방식의 가능성</td>
+                <td class="after">재현 가능한 신뢰 기록과 accepted/rejected evidence</td>
+              </tr>
+              <tr>
+                <td><strong>금지된 주장</strong></td>
+                <td class="before">HMD readiness, Gate A readiness, policy uplift로 오해될 여지</td>
+                <td class="after">HMD readiness, physical collection readiness, policy uplift 미주장</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section aria-labelledby="implementation">
+          <div class="section-head">
+            <h2 id="implementation">어떻게 바꿨나</h2>
+            <p class="section-copy">
+              repo의 새 proof lane은 buyer-facing artifact를 중심으로 구성된다. 단일 명령으로
+              fixture 생성, 평가, curation, export, trainer smoke, trust report 생성을 이어 붙인다.
+            </p>
+          </div>
+          <div class="change-grid">
+            <article class="change">
+              <h3><a href="../../scripts/run_data_trust_layer_proof.py">HMD-free proof runner</a></h3>
+              <p>
+                <code>scripts/run_data_trust_layer_proof.py</code>가 accepted/rejected fixture를 만들고
+                proof bundle을 생성한다.
+              </p>
+            </article>
+            <article class="change">
+              <h3>Action semantics normalization</h3>
+              <p>
+                구매자에게 보이는 action source를 <code>scripted_fixture</code>,
+                <code>synthetic_replay_fixture</code>, <code>robot_delta_ee_pose</code>,
+                <code>task_frame</code>으로 정리했다.
+              </p>
+            </article>
+            <article class="change">
+              <h3>Buyer trust artifacts</h3>
+              <p>
+                <code>trust_record.json</code>, <code>buyer_dataset_card.json</code>,
+                <code>proof_report.json</code>이 provenance, limitations, reproducible command를 담는다.
+              </p>
+            </article>
+            <article class="change">
+              <h3>Accepted/rejected curation</h3>
+              <p>
+                좋은 데이터만 남기는 것이 아니라, reject된 이유도 manifest로 남겨 데이터 품질 판단의
+                audit trail을 만든다.
+              </p>
+            </article>
+            <article class="change">
+              <h3>Export + trainer smoke</h3>
+              <p>
+                HDF5 export와 trainer loader smoke를 proof의 일부로 실행해 artifact가 downstream 학습
+                시스템에 로드 가능한지 확인한다.
+              </p>
+            </article>
+            <article class="change">
+              <h3>Legacy schema boundary</h3>
+              <p>
+                기존 <code>raw_xr_*</code> 필드는 compatibility observation field로 명시했다.
+                이것은 HMD readiness나 Gate A evidence가 아니다.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section aria-labelledby="evidence">
+          <div class="section-head">
+            <h2 id="evidence">현재 검증 증거</h2>
+            <p class="section-copy">
+              첫 리셋 proof의 완료 기준은 physical HMD 재실행이 아니다. implementation acceptance는
+              offline/synthetic fixture, latest artifact 설명 가능성, frame/epoch failure classification,
+              명확한 unsafe block semantics, 기존 audit/proof 흐름 유지로 판단한다.
+            </p>
+          </div>
+          <div class="evidence-grid">
+            <article class="evidence">
+              <h3>Proof run</h3>
+              <p><code>passed=true</code>, accepted examples 4개, rejected examples 4개를 생성했다.</p>
+            </article>
+            <article class="evidence">
+              <h3>Tests</h3>
+              <p>data trust proof tests 9개, MVP-1 trainer/proof audit tests 7개가 통과했다.</p>
+            </article>
+            <article class="evidence">
+              <h3>Review gate</h3>
+              <p>independent code-reviewer는 APPROVE, architect는 CLEAR로 판정했다.</p>
+            </article>
+          </div>
+          <div class="command-box">uv run python scripts/run_data_trust_layer_proof.py --clean --pretty</div>
+          <ul class="artifact-list">
+            <li>
+              <a href="../../storage/data_trust_layer_proof/trust_record.json">
+                <strong>trust_record.json</strong>
+                <span>provenance, schema version, audit trail, non-claims</span>
+              </a>
+            </li>
+            <li>
+              <a href="../../storage/data_trust_layer_proof/buyer_dataset_card.json">
+                <strong>buyer_dataset_card.json</strong>
+                <span>buyer-facing source, limitations, reproduce command</span>
+              </a>
+            </li>
+            <li>
+              <a href="../../storage/data_trust_layer_proof/proof_report.json">
+                <strong>proof_report.json</strong>
+                <span>accepted/rejected counts, export, trainer smoke evidence</span>
+              </a>
+            </li>
+            <li>
+              <a href="../../apps/api/tests/test_data_trust_layer_proof_script.py">
+                <strong>test_data_trust_layer_proof_script.py</strong>
+                <span>guards source metadata, claims, action semantics, governance docs</span>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="nonchanges">
+          <div class="section-head">
+            <h2 id="nonchanges">바꾸지 않은 것</h2>
+            <p class="section-copy">
+              리셋은 방향 전환이지 삭제가 아니다. 장기적으로 일반 작업자가 로봇 데이터를 만들어
+              판매할 수 있게 한다는 목표는 유지하되, 첫 구매자 신뢰 증명은 HMD 안정성에 의존하지 않는다.
+            </p>
+          </div>
+          <div class="note">
+            <h3>Claim boundary</h3>
+            <p>
+              Gate A physical collection은 아직 재개하지 않는다. Quest/OpenXR/HMD 경로는 보존하지만
+              experimental adapter이며, physical HMD Gate 0 rerun은 implementation acceptance가 아니라
+              별도의 release validation이다. MVP-1은 policy improvement를 주장하지 않고,
+              MVP-2에서 downstream policy performance를 검증한다.
+            </p>
+          </div>
+        </section>
+
+        <section aria-labelledby="public-positioning">
+          <div class="section-head">
+            <h2 id="public-positioning">앞으로의 공개 내러티브</h2>
+            <p class="section-copy">
+              LinkedIn의 다음 글은 Quest handtracking 실패담에 머무르기보다, 실패를 통해 제품 정의가
+              선명해졌다는 쪽으로 가져가는 것이 맞다. 핵심 문장은 단순하다.
+            </p>
+          </div>
+          <div class="callout">
+            <strong>ForgeXR / RDF is not an HMD demo. It is a robot data trust layer.</strong>
+            Bad input is blocked, rejected data is explained, accepted data is replay-verified,
+            and every buyer-facing artifact carries provenance, schema, limitations, curation,
+            export, and trainer-loader evidence.
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        Generated on 2026-06-04 from <a href="social_narrative.md">LinkedIn narrative capture</a>,
+        <a href="../../README.md">README</a>, <a href="../developer/project_instructions.md">Project Instructions</a>,
+        and <a href="../developer/worklog.md">WORKLOG</a>.
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

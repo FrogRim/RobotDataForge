@@ -1,0 +1,1281 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Data Forge 다음 액션 / HMD Acceptance Guide</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7f7;
+      --paper: #ffffff;
+      --paper-soft: #edf4f2;
+      --ink: #18212a;
+      --muted: #5e6b76;
+      --line: #d8e0e4;
+      --green: #126b54;
+      --blue: #2459c9;
+      --red: #b42318;
+      --amber: #a16207;
+      --teal: #0f766e;
+      --violet: #6d28d9;
+      --slate: #455667;
+      --shadow: 0 14px 28px rgba(24, 33, 42, 0.08);
+      --radius: 8px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+    button, input { font: inherit; }
+    code, pre { font-family: var(--mono); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 18px;
+      border-right: 1px solid var(--line);
+      background: #fbfcfc;
+    }
+
+    .brand {
+      display: grid;
+      gap: 8px;
+      padding-bottom: 18px;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.25;
+    }
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .status-card {
+      display: grid;
+      gap: 9px;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+    }
+    .status-card span {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .status-card strong {
+      font-size: 15px;
+      line-height: 1.3;
+    }
+    .progress {
+      height: 9px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #e2e8ec;
+    }
+    .progress i {
+      display: block;
+      width: 90%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+    }
+
+    nav {
+      display: grid;
+      gap: 5px;
+      margin-top: 18px;
+    }
+    nav a {
+      color: var(--ink);
+      text-decoration: none;
+      padding: 9px 10px;
+      border-radius: var(--radius);
+      font-size: 13px;
+    }
+    nav a:hover { background: var(--paper-soft); }
+
+    main {
+      display: grid;
+      gap: 22px;
+      padding: 24px;
+      max-width: 1500px;
+      width: 100%;
+    }
+    section, .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    section {
+      padding: 18px;
+      box-shadow: none;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.7fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+    .hero .panel {
+      padding: 18px;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    h2, h3, h4 {
+      margin: 0;
+      line-height: 1.25;
+    }
+    h2 { font-size: 28px; }
+    h3 { font-size: 20px; }
+    h4 { font-size: 15px; }
+    p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .verdict {
+      display: grid;
+      align-content: start;
+      gap: 10px;
+    }
+    .verdict-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 9px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .verdict-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .verdict-row span { color: var(--muted); }
+    .verdict-row strong { text-align: right; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .pass { color: var(--green); background: #e5f5ef; border-color: #b9dfd0; }
+    .warn { color: var(--amber); background: #fff7df; border-color: #ead18a; }
+    .fail { color: var(--red); background: #fff0ee; border-color: #f0c4bd; }
+    .info { color: var(--blue); background: #edf3ff; border-color: #c5d5ff; }
+    .neutral { color: var(--slate); background: #eef2f5; border-color: #d5dde3; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .metric {
+      padding: 14px;
+      box-shadow: none;
+    }
+    .metric small {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+    .metric strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 25px;
+      line-height: 1.1;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: end;
+    }
+    .segmented {
+      display: inline-flex;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f8fafb;
+    }
+    .segmented button {
+      border: 0;
+      border-radius: 6px;
+      padding: 7px 10px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .segmented button[aria-pressed="true"] {
+      background: var(--paper);
+      color: var(--ink);
+      box-shadow: 0 1px 4px rgba(24, 33, 42, 0.12);
+    }
+    .search {
+      min-width: 220px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 9px 10px;
+      background: var(--paper);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .step {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbfcfc;
+    }
+    .step-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+    }
+    .step-num {
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      color: white;
+      background: var(--blue);
+      font-weight: 900;
+    }
+    .step ul, .dense-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+    .step li, .dense-list li {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+    }
+    .mark {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 900;
+      background: #e7eef9;
+      color: var(--blue);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+    .three-col {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .list-panel {
+      padding: 14px;
+      box-shadow: none;
+    }
+    .list-panel h4 { margin-bottom: 10px; }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 820px;
+      background: var(--paper);
+    }
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    th {
+      color: var(--muted);
+      background: #f6f9fa;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    tr:last-child td { border-bottom: 0; }
+
+    .code-block {
+      display: grid;
+      gap: 0;
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #111827;
+    }
+    .code-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 11px;
+      color: #d9e2ec;
+      background: #1f2937;
+      font-size: 12px;
+    }
+    .copy-btn {
+      border: 1px solid #475569;
+      border-radius: 6px;
+      color: #eef2f7;
+      background: #334155;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    pre {
+      margin: 0;
+      padding: 13px;
+      overflow: auto;
+      color: #e5eef8;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .note {
+      border-left: 4px solid var(--blue);
+      padding: 12px 14px;
+      background: #eef5ff;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      color: #28415e;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .notice {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin: 14px 0;
+      padding: 12px 14px;
+      border: 1px solid #b9dfd0;
+      border-left: 4px solid var(--green);
+      border-radius: var(--radius);
+      background: #edf8f4;
+      color: #214b40;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .notice strong { color: var(--green); white-space: nowrap; }
+    .danger-note {
+      border-left-color: var(--red);
+      background: #fff1ef;
+      color: #5f241d;
+    }
+
+    .todo-checks {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    label.check {
+      display: flex;
+      align-items: start;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbfcfc;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin-top: 1px;
+      accent-color: var(--blue);
+    }
+
+    .hidden { display: none !important; }
+    .mono { font-family: var(--mono); }
+    .strong { color: var(--ink); font-weight: 800; }
+
+    @media (max-width: 1120px) {
+      .layout { grid-template-columns: 1fr; }
+      aside { position: relative; height: auto; }
+      .hero, .two-col, .three-col { grid-template-columns: 1fr; }
+      .grid, .steps, .todo-checks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 720px) {
+      main { padding: 14px; }
+      h2 { font-size: 23px; }
+      .grid, .steps, .todo-checks { grid-template-columns: 1fr; }
+      .section-head { align-items: stretch; flex-direction: column; }
+      .controls { justify-content: start; }
+      .search { width: 100%; min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <div class="brand">
+        <h1>RDF 다음 액션 / HMD Acceptance Guide</h1>
+        <p>HMD 안에서 직접 판정 가능한 XR text widget 기반 수집 UX와 MVP-2 policy uplift proof까지 남은 작업.</p>
+      </div>
+      <div class="status-card">
+        <span>현재 단계</span>
+        <strong>MVP-1 learning-ready 완료, MVP-2 policy uplift 대기</strong>
+      </div>
+      <div class="status-card">
+        <span>MVP-1 진행률</span>
+        <strong>11 / 11 gates</strong>
+        <div class="progress" aria-label="11 of 11 gates"><i></i></div>
+      </div>
+      <div class="status-card">
+        <span>다음 목표</span>
+        <strong>transition-rich accepted trajectory + stronger trainer</strong>
+      </div>
+      <nav aria-label="문서 섹션">
+        <a href="#summary">요약</a>
+        <a href="#process">사용자 실행 절차</a>
+        <a href="#hmd">HMD UI/UX</a>
+        <a href="#extensions">Isaac 확장</a>
+        <a href="#semantics">평가 의미론</a>
+        <a href="#task">목표 task 선택</a>
+        <a href="#commands">명령어</a>
+        <a href="#criteria">판정 기준</a>
+        <a href="#risks">리스크</a>
+      </nav>
+    </aside>
+
+    <main>
+      <div class="hero" id="summary">
+        <div class="panel">
+          <p class="eyebrow">Current Decision</p>
+          <h2>HMD 수집 판정은 terminal이 아니라 XR text widget 안에서 끝나야 한다.</h2>
+          <p>
+            <span class="mono">bounded_direct_ee_target</span> live run에서 최신 non-empty trajectory
+            <span class="mono">traj_7ff3428ec656</span>가 159 frames, validator pass, calibration issue 0으로 기록됐다.
+            사용자는 HMD에서 robot fingertip이 손 움직임에 납득 가능한 속도로 반응했고, 손 10cm 이동 시 EEF가 같은 방향으로 눈에 띄게 움직였다고 판정했다.
+            또한 episode는 <span class="mono">operator_success</span>로 finalize됐다. 다만 evaluator는 <span class="mono">RETARGETING_JUMP</span>를 냈고,
+            이는 task failure가 아니라 <span class="mono">DATA_QUALITY_FAILURE</span>로 분리한다. 다음 run은 terminal/P-N-F-R/primitive marker를 기본 UX에서 빼고,
+            IsaacLab <span class="mono">xr_widgets</span> 기반 XR text widget으로 <span class="mono">RECENTER: OK</span>,
+            <span class="mono">SUCCESS READY</span>, hold progress, auto finalize 상태를 HMD 안에서 직접 확인한다. 이후 replay verification,
+            curated accepted 승격까지가 MVP-1 learning-ready proof이며, held-out <span class="mono">policy_success_rate</span> uplift는 MVP-2로 간다. 필요한 Isaac XR extension은
+            <span class="mono">isaaclab.python.xr.openxr.kit</span>에 고정했고, preflight가 누락 여부를 검사한다.
+          </p>
+        </div>
+        <div class="panel verdict">
+          <div class="verdict-row"><span>바로 할 일</span><strong>XR text widget HMD run</strong></div>
+          <div class="verdict-row"><span>하지 말 일</span><strong>대량 HMD 수집</strong></div>
+          <div class="verdict-row"><span>HMD minimum</span><strong><span class="chip pass">통과</span></strong></div>
+          <div class="verdict-row"><span>핵심 blocker</span><strong>HMD-visible success + replay gate</strong></div>
+        </div>
+      </div>
+
+      <section>
+        <div class="grid">
+          <div class="panel metric">
+            <small>Proof stage</small>
+            <strong>MVP-1</strong>
+            <p>Learning-ready dataset pipeline proof 통과. Policy uplift는 MVP-2.</p>
+          </div>
+          <div class="panel metric">
+            <small>HMD minimum acceptance</small>
+            <strong>PASS</strong>
+            <p>손 10cm 이동과 EEF 반응성 기준을 사용자 체감으로 통과.</p>
+          </div>
+          <div class="panel metric">
+            <small>Latest live trajectory</small>
+            <strong>159 frames</strong>
+            <p>validator/calibration 통과. episode status는 success.</p>
+          </div>
+          <div class="panel metric">
+            <small>Latest semantic status</small>
+            <strong>raw saved</strong>
+            <p>human_success_pool=true, training_eligible=false.</p>
+          </div>
+          <div class="panel metric">
+            <small>MVP-2 blocker</small>
+            <strong>policy uplift</strong>
+            <p>positive held-out policy_success_rate uplift.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="process">
+        <div class="section-head">
+          <div>
+            <h3>사용자 실행 절차</h3>
+            <p>HMD를 쓰는 일은 최소화하되, 한 번 쓸 때 필요한 증거를 확실히 남기는 절차.</p>
+          </div>
+          <div class="controls">
+            <div class="segmented" aria-label="step filter">
+              <button type="button" data-filter="all" aria-pressed="true">전체</button>
+              <button type="button" data-filter="user" aria-pressed="false">사용자</button>
+              <button type="button" data-filter="codex" aria-pressed="false">Codex</button>
+              <button type="button" data-filter="decision" aria-pressed="false">판단</button>
+            </div>
+          </div>
+        </div>
+        <div class="steps" id="stepList"></div>
+      </section>
+
+      <section id="hmd">
+        <div class="section-head">
+          <div>
+            <h3>HMD UI/UX 기준</h3>
+            <p>최신 correction 기준으로 operator는 terminal을 보지 않는다. 판정은 HMD 안의 XR text widget에서 끝나야 한다.</p>
+          </div>
+        </div>
+        <div class="notice">
+          <strong>결정:</strong>
+          <span>
+            <span class="mono">P/N/R/F</span>, terminal 로그, crude sphere/cube primitive panel은 production HMD 수집 UX가 아니다.
+            기본 UI는 IsaacLab <span class="mono">isaaclab.ui.xr_widgets.show_instruction/update_instruction</span> 기반 XR text widget이다.
+            primitive fallback은 <span class="mono">RDF_TASK_GUIDANCE_PRIMITIVE_FALLBACK=0</span>으로 기본 off다.
+          </span>
+        </div>
+        <div class="notice">
+          <strong>2026-05-17 수정:</strong>
+          <span>
+            직전 run에서는 widget enabled 로그가 있었지만 HMD 안에서는 보이지 않았다. 원인은 XR session 시작 전에
+            <span class="mono">/_xr/stage/xrCamera</span> source prim 없이 widget을 만들어 시야 밖에 배치될 수 있었던 것이다.
+            이제 widget은 source prim이 실제로 생긴 뒤 lazy-create되며, 생성 성공 시 사용한 source/translation/target을 로그로 남긴다.
+          </span>
+        </div>
+        <div class="two-col" style="margin-bottom: 14px;">
+          <article class="panel list-panel">
+            <span class="chip pass">Primary HMD UI</span>
+            <h4>XR text widget에서 보여야 할 내용</h4>
+            <ul class="dense-list">
+              <li><span class="mark">1</span><span><span class="mono">RECENTER: MOVE TO START BOX</span>이면 robot EEF/fingertip을 AR start box 안으로 이동.</span></li>
+              <li><span class="mark">2</span><span><span class="mono">RECENTER: HOLD START n/N</span>이면 box 안에서 움직이지 않고 hold.</span></li>
+              <li><span class="mark">3</span><span><span class="mono">RECENTER: OK</span> 또는 green start box면 자동 recenter 완료.</span></li>
+              <li><span class="mark">4</span><span><span class="mono">PHASE: APPROACH/ALIGN/INSERT</span>로 현재 task phase를 확인.</span></li>
+              <li><span class="mark">5</span><span><span class="mono">SUCCESS READY 0.0/1.0s</span>와 progress bar로 practice success hold를 확인.</span></li>
+              <li><span class="mark">6</span><span><span class="mono">AUTO FINALIZE READY</span>가 보이면 keyboard 없이 success finalize가 진행된다.</span></li>
+            </ul>
+          </article>
+          <article class="panel list-panel">
+            <span class="chip fail">Not Primary UX</span>
+            <h4>기본 수집에서 쓰지 않을 것</h4>
+            <ul class="dense-list">
+              <li><span class="mark">-</span><span>HMD를 쓴 operator에게 terminal 로그를 보라고 하지 않는다.</span></li>
+              <li><span class="mark">-</span><span><span class="mono">P/N/R/F</span> hotkey는 debug fallback일 뿐이다.</span></li>
+              <li><span class="mark">-</span><span>sphere/cube primitive 상태등은 proper UI가 아니므로 기본 off다.</span></li>
+              <li><span class="mark">-</span><span>HMD 안에서 성공 판정이 안 보이면 accepted 수집으로 넘어가지 않는다.</span></li>
+              <li><span class="mark">-</span><span>XR text widget이 안 보이면 먼저 UI 문제를 고치고 task data 수집을 미룬다.</span></li>
+            </ul>
+          </article>
+        </div>
+        <div class="two-col">
+          <article class="panel list-panel">
+            <h4>통과한 HMD minimum 기준</h4>
+            <ul class="dense-list">
+              <li><span class="mark">1</span><span>HMD에서 robot fingertip이 손 움직임에 납득 가능한 속도로 반응했다.</span></li>
+              <li><span class="mark">2</span><span>손을 약 10cm 움직였을 때 EEF가 같은 방향으로 눈에 띄게 움직였다.</span></li>
+              <li><span class="mark">3</span><span>최신 operator-success recording validator는 <span class="mono">passed=true</span>, frame_count 159, issue 0이다.</span></li>
+              <li><span class="mark">4</span><span>calibration analyzer는 issue 0, warning 0, hand tracking rate 1.0을 반환했다.</span></li>
+              <li><span class="mark">5</span><span>desired/applied EE action, native Isaac action, action/replay contract가 저장됐다.</span></li>
+            </ul>
+          </article>
+          <article class="panel list-panel">
+            <h4>아직 실패한 기준</h4>
+            <ul class="dense-list">
+              <li><span class="mark">A</span><span>latest episode는 <span class="mono">operator_success</span>로 finalize됐다.</span></li>
+              <li><span class="mark">B</span><span>evaluator failure reason은 <span class="mono">RETARGETING_JUMP</span>이며, 이는 task failure가 아니라 data quality failure로 분리한다.</span></li>
+              <li><span class="mark">C</span><span>raw/human_success evidence로는 남지만 curated accepted count는 0이다.</span></li>
+              <li><span class="mark">D</span><span>accepted 승격에는 task success와 <span class="mono">action_replay_gate.passed=true</span>가 필요하다.</span></li>
+              <li><span class="mark">E</span><span>MVP-1C는 positive held-out <span class="mono">policy_success_rate</span> uplift 전까지 닫지 않는다.</span></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="extensions">
+        <div class="section-head">
+          <div>
+            <h3>Isaac Sim Extension 활성화 상태</h3>
+            <p>수동 Extension Manager 작업이 아니라 RDF 전용 IsaacLab OpenXR experience에 필요한 extension을 고정한다.</p>
+          </div>
+        </div>
+        <div class="notice">
+          <strong>결정:</strong>
+          <span>
+            MVP-1 HMD collection은 <span class="mono">/home/kangrim/IsaacLab/apps/isaaclab.python.xr.openxr.kit</span>로 실행한다.
+            필요한 XR/OpenXR/UI extension은 이 <span class="mono">.kit</span> dependency에 명시했고,
+            <span class="mono">check_rdf_runtime_env.py</span>가 dependency, handtracking 설정, 로컬 extension 존재 여부를 모두 검사한다.
+          </span>
+        </div>
+        <div class="three-col" style="margin-bottom: 14px;">
+          <article class="panel list-panel">
+            <span class="chip pass">OpenXR / HMD</span>
+            <h4>필수 런타임 extension</h4>
+            <ul class="dense-list">
+              <li><span class="mark">1</span><span><span class="mono">omni.kit.xr.system.openxr</span></span></li>
+              <li><span class="mark">2</span><span><span class="mono">omni.kit.xr.profile.ar</span></span></li>
+              <li><span class="mark">3</span><span><span class="mono">omni.kit.xr.core</span></span></li>
+              <li><span class="mark">4</span><span><span class="mono">omni.kit.xr.profile.common</span></span></li>
+            </ul>
+          </article>
+          <article class="panel list-panel">
+            <span class="chip pass">HMD Guidance UI</span>
+            <h4>XR text widget extension</h4>
+            <ul class="dense-list">
+              <li><span class="mark">1</span><span><span class="mono">omni.kit.xr.ui.stage</span></span></li>
+              <li><span class="mark">2</span><span><span class="mono">omni.kit.xr.scene_view.core</span></span></li>
+              <li><span class="mark">3</span><span><span class="mono">omni.kit.xr.scene_view.utils</span></span></li>
+              <li><span class="mark">4</span><span><span class="mono">omni.ui.scene</span></span></li>
+            </ul>
+          </article>
+          <article class="panel list-panel">
+            <span class="chip warn">Deprecated 주의</span>
+            <h4>직접 올리지 않는 것</h4>
+            <ul class="dense-list">
+              <li><span class="mark">-</span><span><span class="mono">isaacsim.xr.openxr</span>는 로컬에 있지만 Isaac Sim 5.x에서 deprecated 경고가 있다.</span></li>
+              <li><span class="mark">-</span><span>현재 primary path는 <span class="mono">omni.kit.xr.*</span> handtracking이다.</span></li>
+              <li><span class="mark">-</span><span>ROS, Replicator, URDF importer는 MVP-1 HMD collection 필수 extension이 아니다.</span></li>
+            </ul>
+          </article>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Preflight 항목</th>
+                <th>현재 상태</th>
+                <th>의미</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="mono">isaac_xr_openxr_kit</span></td>
+                <td><span class="chip pass">PASS</span></td>
+                <td>RDF live run이 사용할 OpenXR experience 파일이 존재한다.</td>
+              </tr>
+              <tr>
+                <td><span class="mono">isaac_xr_kit_dependencies</span></td>
+                <td><span class="chip pass">PASS</span></td>
+                <td>필수 XR/OpenXR/UI dependency가 <span class="mono">.kit</span>에 명시되어 있다.</td>
+              </tr>
+              <tr>
+                <td><span class="mono">isaac_xr_kit_handtracking_settings</span></td>
+                <td><span class="chip pass">PASS</span></td>
+                <td>OpenXR hand tracking component 설정이 켜져 있다.</td>
+              </tr>
+              <tr>
+                <td><span class="mono">isaac_xr_local_extensions</span></td>
+                <td><span class="chip pass">8 / 8</span></td>
+                <td>필수 XR/UI extension이 로컬 Isaac Sim release tree에 있다.</td>
+              </tr>
+              <tr>
+                <td><span class="mono">process_alvr_dashboard</span>, <span class="mono">process_vrserver</span></td>
+                <td><span class="chip warn">WARN 가능</span></td>
+                <td><span class="mono">--no-start-xr</span> run 전에는 사용자가 ALVR/SteamVR을 직접 켜야 한다. 꺼져 있으면 WARN이 정상이다.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="semantics">
+        <div class="section-head">
+          <div>
+            <h3>Evaluation Semantics Split</h3>
+            <p>이제 `evaluation.success=false`를 곧바로 “사람이 task를 실패했다”로 해석하지 않는다. Raw/operator evidence와 training/proof eligibility를 분리한다.</p>
+          </div>
+        </div>
+        <div class="three-col">
+          <article class="panel list-panel">
+            <span class="chip pass">Task Outcome</span>
+            <h4>작업 결과</h4>
+            <ul class="dense-list">
+              <li><span class="mark">1</span><span><span class="mono">operator_success</span>는 N/finalize 기준이다.</span></li>
+              <li><span class="mark">2</span><span><span class="mono">evaluator_task_success</span>는 true / false / unknown이다.</span></li>
+              <li><span class="mark">3</span><span>object state만으로 안정 판정이 안 되면 false가 아니라 unknown이다.</span></li>
+            </ul>
+          </article>
+          <article class="panel list-panel">
+            <span class="chip warn">Data Quality</span>
+            <h4>데이터 품질</h4>
+            <ul class="dense-list">
+              <li><span class="mark">1</span><span><span class="mono">RETARGETING_JUMP</span>는 <span class="mono">DATA_QUALITY_FAILURE</span>다.</span></li>
+              <li><span class="mark">2</span><span>sync, replay, action contract, native action saturation을 별도 gate로 본다.</span></li>
+              <li><span class="mark">3</span><span>품질 실패는 raw 저장을 막지 않지만 학습 승격을 막는다.</span></li>
+            </ul>
+          </article>
+          <article class="panel list-panel">
+            <span class="chip fail">Curation</span>
+            <h4>승격 기준</h4>
+            <ul class="dense-list">
+              <li><span class="mark">1</span><span><span class="mono">raw_saved</span>, <span class="mono">human_success_pool</span>은 관대하게 기록한다.</span></li>
+              <li><span class="mark">2</span><span><span class="mono">training_eligible</span>, <span class="mono">curated_accepted</span>, <span class="mono">proof_eligible</span>은 엄격하다.</span></li>
+              <li><span class="mark">3</span><span>accepted 승격에는 replay/action/data-quality gate가 필요하다.</span></li>
+            </ul>
+          </article>
+        </div>
+        <div class="table-wrap" style="margin-top: 14px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Field</th>
+                <th>Latest Value</th>
+                <th>해석</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="mono">operator_success</span></td>
+                <td><span class="chip pass">true</span></td>
+                <td>사용자가 N으로 성공 lifecycle을 남겼다. Raw/human evidence로 보존한다.</td>
+              </tr>
+              <tr>
+                <td><span class="mono">evaluator_task_success</span></td>
+                <td><span class="chip warn">unknown</span></td>
+                <td>data quality gate가 먼저 걸렸으므로 task 실패로 단정하지 않는다.</td>
+              </tr>
+              <tr>
+                <td><span class="mono">failure_category</span></td>
+                <td><span class="chip warn">DATA_QUALITY_FAILURE</span></td>
+                <td><span class="mono">RETARGETING_JUMP</span>는 task outcome failure가 아니다.</td>
+              </tr>
+              <tr>
+                <td><span class="mono">native_action_saturation</span></td>
+                <td><span class="chip fail">fail</span></td>
+                <td>native Isaac action이 자주 포화된다. 이 상태는 accepted training material로 쓰면 안 된다.</td>
+              </tr>
+              <tr>
+                <td><span class="mono">curated_accepted</span></td>
+                <td><span class="chip fail">false</span></td>
+                <td>replay/action/data-quality gate 전부 통과해야 true가 된다.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <div>
+            <h3>Control Mode와 남은 튜닝 포인트</h3>
+            <p>기본 경로는 유지한다. 지금은 더 빠르게 만드는 것보다 RETARGETING_JUMP를 줄이면서 Peg-in-Hole 성공 가능성을 높이는 쪽이 우선이다.</p>
+          </div>
+          <input class="search" id="knobSearch" type="search" placeholder="knob 검색">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Knob</th>
+                <th>의미</th>
+                <th>느릴 때</th>
+                <th>위험</th>
+              </tr>
+            </thead>
+            <tbody id="knobRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="task">
+        <div class="section-head">
+          <div>
+            <h3>목표 Task 선택</h3>
+            <p>결정은 “Franka + Peg-in-Hole 유지, Connector Insertion은 다음 wedge”다. 지금 바꿀 것은 로봇 asset이 아니라 HMD-to-EEF control/action/replay contract다.</p>
+          </div>
+        </div>
+        <div class="three-col">
+          <article class="panel list-panel">
+            <span class="chip pass">즉시 추천</span>
+            <h4>Guided Peg-in-Hole</h4>
+            <p>현재 MVP-1C survival gate용. 기존 evaluator, phase, replay gate를 그대로 쓸 수 있다.</p>
+            <ul class="dense-list">
+              <li><span class="mark">+</span><span>구현/검증 비용이 낮다.</span></li>
+              <li><span class="mark">+</span><span>policy loop root cause를 빠르게 볼 수 있다.</span></li>
+              <li><span class="mark">-</span><span>고객 wedge로는 약하다.</span></li>
+            </ul>
+          </article>
+          <article class="panel list-panel">
+            <span class="chip warn">다음 후보</span>
+            <h4>Connector Insertion</h4>
+            <p>MVP-1D 또는 MVP-2 customer/investor proof 후보. 산업용 assembly 포지션이 더 강하다.</p>
+            <ul class="dense-list">
+              <li><span class="mark">+</span><span>산업 vertical 메시지가 강하다.</span></li>
+              <li><span class="mark">+</span><span>orientation/contact phase 가치가 잘 드러난다.</span></li>
+              <li><span class="mark">-</span><span>asset/evaluator/held-out variant 설계가 더 필요하다.</span></li>
+            </ul>
+          </article>
+          <article class="panel list-panel">
+            <span class="chip fail">지금 비추천</span>
+            <h4>복잡한 자유 조작</h4>
+            <p>현재 stage에서는 task success와 curation reason을 명확히 만들기 어렵다.</p>
+            <ul class="dense-list">
+              <li><span class="mark">-</span><span>success 기준이 흔들린다.</span></li>
+              <li><span class="mark">-</span><span>policy uplift 실패 원인 분리가 어렵다.</span></li>
+              <li><span class="mark">-</span><span>Robot Data Forge 포지셔닝이 흐려진다.</span></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="commands">
+        <div class="section-head">
+          <div>
+            <h3>명령어 Playbook</h3>
+            <p>HMD를 쓰기 전/중/후에 실제로 실행할 명령어. <span class="mono">--no-start-xr</span>이면 ALVR Dashboard, SteamVR, Quest ALVR 연결은 사용자가 먼저 켠다.</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-head"><strong>0. 사전 상태 확인</strong><button class="copy-btn" data-copy="cmd-preflight">복사</button></div>
+          <pre id="cmd-preflight">uv run python scripts/check_rdf_runtime_env.py --pretty
+uv run python scripts/run_mvp1_proof_audit.py --pretty</pre>
+        </div>
+        <p class="note">
+          <span class="mono">check_rdf_runtime_env.py</span>는 이제 Isaac XR extension도 검사한다.
+          <span class="mono">isaac_xr_kit_dependencies</span>, <span class="mono">isaac_xr_kit_handtracking_settings</span>,
+          <span class="mono">isaac_xr_local_extensions</span>가 PASS면 extension 활성화/설치 쪽은 닫힌 것으로 본다.
+        </p>
+        <div class="code-block">
+          <div class="code-head"><strong>1. HMD practice/easy SUCCESS_READY 자동 finalize</strong><button class="copy-btn" data-copy="cmd-hmd-responsive">복사</button></div>
+          <pre id="cmd-hmd-responsive">RDF_DEBUG_ACTION_EVERY=20 \
+RDF_ISAAC_TASK=Isaac-Forge-PegInsert-Direct-v0 \
+RDF_TASK_TYPE=peg_in_hole \
+RDF_MAX_FRAMES=900 \
+RDF_WARMUP_VALID_FRAMES=10 \
+RDF_ACTION_POS_AXIS_MAP=x,z,y \
+RDF_TELEOP_CONTROL_MODE=bounded_direct_ee_target \
+RDF_DIRECT_EE_POS_GAIN=0.18 \
+RDF_DIRECT_EE_ROT_GAIN=0.25 \
+RDF_DIRECT_EE_MAX_STEP_M=0.06 \
+RDF_DIRECT_EE_MAX_ROT_STEP_RAD=0.20 \
+RDF_DIRECT_EE_SMOOTHING_ALPHA=0.95 \
+RDF_DIRECT_EE_DEADZONE_M=0.0001 \
+RDF_DIRECT_EE_WORKSPACE_RADIUS_M=0.35 \
+RDF_ACTION_POS_GAIN=0.55 \
+RDF_ACTION_ROT_GAIN=0.25 \
+RDF_ACTION_SMOOTHING_ALPHA=0.65 \
+RDF_VISUAL_DEBUG=0 \
+RDF_TASK_GUIDANCE=1 \
+RDF_TASK_GUIDANCE_EVERY=5 \
+RDF_TASK_GUIDANCE_PANEL=1 \
+RDF_TASK_GUIDANCE_PANEL_SIZE=0.9 \
+RDF_TASK_GUIDANCE_PANEL_SOURCE=/_xr/stage/xrCamera \
+RDF_TASK_GUIDANCE_PANEL_TRANSLATION=1.05,0.25,-1.25 \
+RDF_TASK_GUIDANCE_PRIMITIVE_FALLBACK=0 \
+RDF_GUIDANCE_PEG_TIP_DISTANCE_MAX=0.015 \
+RDF_GUIDANCE_PEG_AXIS_ALIGNMENT_MAX_RAD=1.10 \
+RDF_GUIDANCE_INSERTION_DEPTH_MIN=0.012 \
+RDF_INSERTION_AXIS_WORLD=0,0,1 \
+RDF_SUCCESS_READY_HOLD_SEC=0.25 \
+RDF_AUTO_SUCCESS_FINALIZE=1 \
+RDF_TERMINAL_HOTKEYS=0 \
+RDF_AUTO_RECENTER_ON_FIRST_VALID=1 \
+RDF_AUTO_RECENTER_VALID_FRAMES=10 \
+RDF_EXIT_AFTER_FINALIZE=1 \
+./scripts/run_live_rdf_smoke_test.sh --no-start-xr</pre>
+        </div>
+        <p class="note">
+          이 command의 <span class="mono">RDF_GUIDANCE_*</span>와 <span class="mono">RDF_INSERTION_AXIS_WORLD</span> 값은 HMD 미니게임 안내와 auto finalize 판단만 쉽게 만든다.
+          저장된 trajectory의 evaluator/proof 기준은 낮추지 않는다. 따라서 practice 성공은 raw/operator evidence로 보고,
+          accepted dataset 후보는 replay/action/data-quality gate와 strict evaluator를 별도로 통과해야 한다.
+          XR text widget은 오른쪽 위 위치를 유지하되 생성 시점 회전으로 고정된다.
+          <span class="mono">SUCCESS_READY: NO</span>는 빨간색, hold 충족/auto-finalize-ready 상태에서는 <span class="mono">SUCCESS_READY: YES</span>가 초록색으로 보인다.
+        </p>
+        <div class="code-block">
+          <div class="code-head"><strong>2. Accepted/proof attempt: live curation gate auto finalize</strong><button class="copy-btn" data-copy="cmd-hmd-live-curation">복사</button></div>
+          <pre id="cmd-hmd-live-curation">RDF_DEBUG_ACTION_EVERY=20 \
+RDF_ISAAC_TASK=Isaac-Forge-PegInsert-Direct-v0 \
+RDF_TASK_TYPE=peg_in_hole \
+RDF_MAX_FRAMES=900 \
+RDF_WARMUP_VALID_FRAMES=10 \
+RDF_ACTION_POS_AXIS_MAP=x,z,y \
+RDF_TELEOP_CONTROL_MODE=bounded_direct_ee_target \
+RDF_DIRECT_EE_POS_GAIN=0.10 \
+RDF_DIRECT_EE_ROT_GAIN=0.18 \
+RDF_DIRECT_EE_MAX_STEP_M=0.025 \
+RDF_DIRECT_EE_MAX_ROT_STEP_RAD=0.12 \
+RDF_DIRECT_EE_SMOOTHING_ALPHA=0.75 \
+RDF_DIRECT_EE_DEADZONE_M=0.0001 \
+RDF_DIRECT_EE_WORKSPACE_RADIUS_M=0.30 \
+RDF_ACTION_POS_GAIN=0.35 \
+RDF_ACTION_ROT_GAIN=0.18 \
+RDF_ACTION_SMOOTHING_ALPHA=0.45 \
+RDF_VISUAL_DEBUG=0 \
+RDF_TASK_GUIDANCE=1 \
+RDF_TASK_GUIDANCE_EVERY=5 \
+RDF_TASK_GUIDANCE_PANEL=1 \
+RDF_TASK_GUIDANCE_PANEL_SIZE=0.9 \
+RDF_TASK_GUIDANCE_PANEL_SOURCE=/_xr/stage/xrCamera \
+RDF_TASK_GUIDANCE_PANEL_TRANSLATION=1.05,0.25,-1.25 \
+RDF_TASK_GUIDANCE_PRIMITIVE_FALLBACK=0 \
+RDF_PEG_TIP_DISTANCE_MAX=0.015 \
+RDF_PEG_AXIS_ALIGNMENT_MAX_RAD=0.25 \
+RDF_INSERTION_DEPTH_MIN=0.025 \
+RDF_GUIDANCE_PEG_TIP_DISTANCE_MAX=0.015 \
+RDF_GUIDANCE_PEG_AXIS_ALIGNMENT_MAX_RAD=0.25 \
+RDF_GUIDANCE_INSERTION_DEPTH_MIN=0.025 \
+RDF_INSERTION_AXIS_WORLD=0,0,1 \
+RDF_SUCCESS_READY_HOLD_SEC=0.50 \
+RDF_AUTO_SUCCESS_FINALIZE=1 \
+RDF_AUTO_FINALIZE_REQUIRE_LIVE_CURATION=1 \
+RDF_LIVE_CURATION_MIN_FRAMES=60 \
+RDF_LIVE_CURATION_MAX_NATIVE_ACTION_SATURATION_RATIO=0.05 \
+RDF_LIVE_CURATION_MAX_RETARGETING_JUMP=1.50 \
+RDF_LIVE_CURATION_MAX_TRACKING_LOSS_RATE=0.05 \
+RDF_LIVE_CURATION_ON_FAIL=reset \
+RDF_TERMINAL_HOTKEYS=0 \
+RDF_AUTO_RECENTER_ON_FIRST_VALID=1 \
+RDF_AUTO_RECENTER_VALID_FRAMES=10 \
+RDF_EXIT_AFTER_FINALIZE=1 \
+./scripts/run_live_rdf_smoke_test.sh --no-start-xr</pre>
+        </div>
+        <p class="note">
+          이 command는 <span class="mono">SUCCESS_READY</span>만으로 Isaac을 끝내지 않는다.
+          HMD에 <span class="mono">LIVE:PASS</span>가 함께 떠야 자동 success finalize가 발생한다.
+          <span class="mono">LIVE:PENDING</span>이면 frame 수나 hold가 더 필요하고,
+          <span class="mono">LIVE:FAIL</span>이면 예를 들어 <span class="mono">NATIVE_ACTION_SATURATION:0.210&gt;0.050</span>처럼 첫 실패 이유가 표시된다.
+          <span class="mono">RDF_LIVE_CURATION_ON_FAIL=reset</span>은 실패 attempt를 reset episode로 저장하고 새 episode를 시작하므로,
+          operator는 task 성공 후 종료되지 않으면 curated 조건을 아직 못 맞춘 것으로 보면 된다.
+          replay verification과 policy uplift proof는 live에서 확정할 수 없어서 run 이후 진단 명령으로 다시 확인한다.
+        </p>
+        <div class="code-block">
+          <div class="code-head"><strong>3. Debug fallback: manual hotkey finalize</strong><button class="copy-btn" data-copy="cmd-hmd-custom">복사</button></div>
+          <pre id="cmd-hmd-custom">RDF_DEBUG_ACTION_EVERY=20 \
+RDF_ISAAC_TASK=Isaac-Forge-PegInsert-Direct-v0 \
+RDF_TASK_TYPE=peg_in_hole \
+RDF_MAX_FRAMES=900 \
+RDF_WARMUP_VALID_FRAMES=10 \
+RDF_ACTION_POS_AXIS_MAP=x,z,y \
+RDF_TELEOP_CONTROL_MODE=bounded_direct_ee_target \
+RDF_DIRECT_EE_POS_GAIN=0.18 \
+RDF_DIRECT_EE_ROT_GAIN=0.25 \
+RDF_DIRECT_EE_MAX_STEP_M=0.06 \
+RDF_DIRECT_EE_MAX_ROT_STEP_RAD=0.20 \
+RDF_DIRECT_EE_SMOOTHING_ALPHA=0.95 \
+RDF_DIRECT_EE_DEADZONE_M=0.0001 \
+RDF_DIRECT_EE_WORKSPACE_RADIUS_M=0.35 \
+RDF_ACTION_POS_GAIN=0.55 \
+RDF_ACTION_ROT_GAIN=0.25 \
+RDF_ACTION_SMOOTHING_ALPHA=0.65 \
+RDF_VISUAL_DEBUG=0 \
+RDF_TASK_GUIDANCE=1 \
+RDF_TASK_GUIDANCE_EVERY=10 \
+RDF_TASK_GUIDANCE_PANEL=1 \
+RDF_TASK_GUIDANCE_PANEL_SIZE=0.9 \
+RDF_TASK_GUIDANCE_PANEL_SOURCE=/_xr/stage/xrCamera \
+RDF_TASK_GUIDANCE_PANEL_TRANSLATION=1.05,0.25,-1.25 \
+RDF_TASK_GUIDANCE_PRIMITIVE_FALLBACK=0 \
+RDF_SUCCESS_READY_HOLD_SEC=1.5 \
+RDF_AUTO_SUCCESS_FINALIZE=0 \
+RDF_TERMINAL_HOTKEYS=1 \
+RDF_AUTO_RECENTER_ON_FIRST_VALID=1 \
+RDF_AUTO_RECENTER_VALID_FRAMES=10 \
+RDF_EXIT_AFTER_FINALIZE=1 \
+./scripts/run_live_rdf_smoke_test.sh --no-start-xr</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-head"><strong>4. 수집 후 진단</strong><button class="copy-btn" data-copy="cmd-post">복사</button></div>
+          <pre id="cmd-post">uv run python scripts/verify_latest_rdf_recording.py --pretty
+uv run python scripts/analyze_teleop_calibration.py --latest --pretty
+uv run python scripts/run_mvp1_live_export_smoke.py --clean --pretty
+uv run python scripts/run_mvp1_proof_audit.py --pretty</pre>
+        </div>
+      </section>
+
+      <section id="criteria">
+        <div class="section-head">
+          <div>
+            <h3>Acceptance 판정 기준</h3>
+            <p>2026-05-15 HMD run 기준으로 minimum responsiveness는 통과했다. 이제 task success와 accepted 승격 기준을 남겨둔다.</p>
+          </div>
+        </div>
+        <div class="todo-checks">
+          <label class="check"><input type="checkbox" checked> Start XR/AR 이후 HMD에서 robot fingertip이 손 움직임에 납득 가능한 속도로 반응한다.</label>
+          <label class="check"><input type="checkbox" checked> Isaac XR extension preflight가 `isaac_xr_kit_dependencies`, `isaac_xr_kit_handtracking_settings`, `isaac_xr_local_extensions` PASS를 반환한다.</label>
+          <label class="check"><input type="checkbox" checked> 손을 10cm 움직였을 때 EEF가 같은 방향으로 눈에 띄게 움직인다.</label>
+          <label class="check"><input type="checkbox" checked> 체감 지연이 0.5초 이상이 아니며, operator가 조작 불가능하다고 느끼지 않는다.</label>
+          <label class="check"><input type="checkbox" checked> Terminal action_debug에 control=bounded_direct_ee_target, target_error_norm, command_step_norm, eef_delta_norm이 기록된다.</label>
+          <label class="check"><input type="checkbox"> HMD 안의 XR text widget에서 `RECENTER: OK`가 보여 auto recenter를 확인할 수 있다.</label>
+          <label class="check"><input type="checkbox"> HMD 안의 XR text widget에서 `SUCCESS READY 0.0/1.0s`와 progress bar가 빨간색으로 보여 hold 진행을 확인할 수 있다.</label>
+          <label class="check"><input type="checkbox"> HMD 안의 XR text widget에서 hold 충족/auto-finalize-ready 상태가 초록색으로 보인다.</label>
+          <label class="check"><input type="checkbox"> 머리를 좌우로 돌려도 XR text widget이 gaze를 따라 회전하지 않는다.</label>
+          <label class="check"><input type="checkbox"> HMD no-keyboard run에서 `P/N/R/F` 없이 auto recenter와 `SUCCESS_READY` auto finalize가 동작한다.</label>
+          <label class="check"><input type="checkbox" checked> Debug fallback run에서는 `N` 또는 `F`로 explicit finalize할 수 있다.</label>
+          <label class="check"><input type="checkbox" checked> latest recording validator가 `passed=true`, frame_count > 100을 반환한다.</label>
+          <label class="check"><input type="checkbox" checked> calibration analyzer issue_count=0이고 hand tracking rate가 높다.</label>
+          <label class="check"><input type="checkbox" checked> operator_success trajectory가 raw_saved=true, human_success_pool=true로 남는다.</label>
+          <label class="check"><input type="checkbox" checked> RETARGETING_JUMP가 DATA_QUALITY_FAILURE로 분리되어 task failure처럼 표시되지 않는다.</label>
+          <label class="check"><input type="checkbox"> 움직이는 debug marker 없이 XR text widget만으로 task guidance를 이해할 수 있다.</label>
+          <label class="check"><input type="checkbox"> `RDF_AUTO_SUCCESS_FINALIZE=1` 테스트에서 hold 완료 시 `episode_finalize_reason=auto_success_ready`로 저장된다.</label>
+          <label class="check"><input type="checkbox"> accepted/proof attempt에서는 `RDF_AUTO_FINALIZE_REQUIRE_LIVE_CURATION=1`로 SUCCESS_READY 이후 `LIVE:PASS`까지 확인한 뒤 종료된다.</label>
+          <label class="check"><input type="checkbox"> `LIVE:FAIL`이면 HMD에 첫 실패 reason이 보이고, `RDF_LIVE_CURATION_ON_FAIL=reset` run에서는 success 종료 대신 reset/new attempt로 이어진다.</label>
+          <label class="check"><input type="checkbox"> Terminal에 `[RDF][LIVE_CURATION]` 로그가 남아 saturation, retargeting jump, tracking loss fail reason을 재현할 수 있다.</label>
+          <label class="check"><input type="checkbox"> 자동 success는 human_success_pool이 아니라 task_success_candidate_pool로 분리된다.</label>
+          <label class="check"><input type="checkbox"> accepted 승격 가능한 Peg-in-Hole trajectory를 만든다.</label>
+          <label class="check"><input type="checkbox"> RETARGETING_JUMP와 native action saturation을 accepted 기준 이하로 낮춘다.</label>
+          <label class="check"><input type="checkbox"> live trajectory가 replay gate를 통과해 accepted 승격 후보가 된다.</label>
+          <label class="check"><input type="checkbox"> replay-verified accepted pool로 curated vs uncurated A/B를 다시 실행한다.</label>
+        </div>
+        <p class="note">
+          최소 통과선과 operator-success raw evidence는 이번 run에서 충족했다. MVP-1 통과선은 operator가 HMD에서 보고 Peg-in-Hole을 실제로 성공시키고,
+          그 trajectory가 replay/curation/export/policy A/B proof까지 이어지는 것이다.
+        </p>
+      </section>
+
+      <section id="risks">
+        <div class="section-head">
+          <div>
+            <h3>레드 플래그</h3>
+            <p>아래 조건이 나오면 데이터를 더 모으지 말고 설정/설계로 돌아간다.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Red Flag</th>
+                <th>의미</th>
+                <th>대응</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="chip fail">XR widget 안 보임</span></td>
+                <td>operator가 HMD 안에서 recenter/SUCCESS_READY를 알 수 없으면 no-keyboard collection UX가 아직 실패한 것.</td>
+                <td><span class="mono">HMD task guidance widget created</span> 로그를 확인한다. 없으면 source prim 대기 상태이고, 있으면 <span class="mono">RDF_TASK_GUIDANCE_PANEL_TRANSLATION</span> / size를 조정한다.</td>
+              </tr>
+              <tr>
+                <td><span class="chip fail">XR extension 누락</span></td>
+                <td><span class="mono">isaac_xr_kit_dependencies</span> 또는 <span class="mono">isaac_xr_local_extensions</span>가 FAIL이면 HMD UI/handtracking 이전의 설치/활성화 문제.</td>
+                <td><span class="mono">isaaclab.python.xr.openxr.kit</span> dependency와 Isaac Sim release tree를 먼저 복구.</td>
+              </tr>
+              <tr>
+                <td><span class="chip fail">robot follow 없음</span></td>
+                <td>손 입력은 들어오지만 control application이 죽었거나 mode가 잘못됨.</td>
+                <td><span class="mono">RDF_TELEOP_CONTROL_MODE</span>, action_debug, eef_delta_norm 확인.</td>
+              </tr>
+              <tr>
+                <td><span class="chip fail">너무 느림</span></td>
+                <td>operator가 task를 수행할 수 없으면 collected trajectory 품질도 무너짐.</td>
+                <td>responsive/custom follow로 gain, max_step, smoothing을 비교.</td>
+              </tr>
+              <tr>
+                <td><span class="chip warn">RETARGETING_JUMP</span></td>
+                <td>trajectory가 accepted material로 부적합할 가능성이 큼.</td>
+                <td>calibration/recenter 절차, smoothing, max step을 조정.</td>
+              </tr>
+              <tr>
+                <td><span class="chip warn">0-frame latest</span></td>
+                <td>종료 직전 새 episode가 열린 것일 수 있음.</td>
+                <td>바로 이전 non-empty trajectory id를 명시해 진단.</td>
+              </tr>
+              <tr>
+                <td><span class="chip fail">policy 0.0 반복</span></td>
+                <td>데이터 수집보다 policy/action semantics 문제가 우선.</td>
+                <td>ACT/action chunking 또는 scripted residual BC survival gate로 전환.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const steps = [
+      {
+        group: "codex",
+        title: "Preflight",
+        body: "HMD 착용 전 runtime, Isaac XR extension, proof audit, 현재 stage를 확인한다.",
+        items: ["runtime env passed", "Isaac XR kit dependencies PASS", "local XR/UI extensions 8/8", "proof audit current_stage=MVP-1", "MVP-2 uplift is not an MVP-1 blocker"]
+      },
+      {
+        group: "user",
+        title: "ALVR/SteamVR 준비",
+        body: "--no-start-xr를 쓸 경우 PC의 ALVR Dashboard와 SteamVR, Quest의 ALVR 앱 연결은 사용자가 먼저 끝낸다.",
+        items: ["Quest ALVR connected", "SteamVR sees headset", "handtracking stable before Enter"]
+      },
+      {
+        group: "user",
+        title: "XR Widget No-Keyboard Run",
+        body: "bounded_direct_ee_target responsiveness는 통과했으므로, 이제 HMD 안의 XR text widget만 보고 실제 task 성공 episode를 만든다.",
+        items: ["Start XR/AR after scene setup", "wait for RECENTER: OK in HMD", "use SUCCESS READY hold progress as the success cue", "do not press P/N/R/F during primary collection"]
+      },
+      {
+        group: "codex",
+        title: "Post Diagnostics",
+        body: "latest recording, calibration analysis, live export smoke, proof audit을 확인한다.",
+        items: ["frame_count > 100", "issue_count=0", "episode status success", "semantics separates operator_success from data_quality", "export/trainer path intact"]
+      },
+      {
+        group: "decision",
+        title: "Promote / Reject",
+        body: "live trajectory가 task success와 replay gate를 통과하면 accepted 후보로 승격한다. 실패하면 원인을 task outcome, data quality, replay, action contract로 분리한다.",
+        items: ["success status", "replay gate passed", "accepted candidate count > 0", "do not mass collect until one clean accepted path exists"]
+      },
+      {
+        group: "decision",
+        title: "Policy Survival",
+        body: "replay-verified accepted pool이 생기면 policy가 최소 1회 이상 insertion 성공을 만들 수 있는지 확인한다.",
+        items: ["linear BC may still be insufficient", "try stronger baseline only after clean data", "then rerun curated-vs-uncurated A/B"]
+      }
+    ];
+
+    const knobs = [
+      ["RDF_TELEOP_CONTROL_MODE=bounded_direct_ee_target", "목표 primary mode. 손 위치가 EEF target을 직접 움직이는 수집 UX.", "현재 유지", "검증 전에는 대량 수집 금지"],
+      ["RDF_ACTION_POS_AXIS_MAP=x,z,y", "Quest/OpenXR Y-up 손 세로축을 Isaac Z-up robot 세로축으로 매핑.", "현재 유지", "손을 아래로 내려도 robot z가 안 내려가면 우선 확인"],
+      ["RDF_DIRECT_EE_POS_GAIN", "filtered hand delta가 desired EEF target 위치에 반영되는 크기.", "practice 0.18, proof/live curation 0.10", "너무 크면 workspace clamp/overshoot 증가"],
+      ["RDF_DIRECT_EE_MAX_STEP_M", "EEF target servo가 한 env step에서 움직일 수 있는 최대 거리.", "practice 0.06, proof/live curation 0.025", "너무 크면 jump/overshoot 증가"],
+      ["RDF_DIRECT_EE_SMOOTHING_ALPHA", "desired target을 얼마나 즉시 따라갈지.", "practice 0.95, proof/live curation 0.75", "높을수록 반응은 빠르지만 덜 부드러움"],
+      ["RDF_DIRECT_EE_WORKSPACE_RADIUS_M", "recenter anchor에서 desired target이 벗어날 수 있는 반경.", "practice 0.35, proof/live curation 0.30", "너무 크면 operator workspace가 과해짐"],
+      ["desired/applied EE action", "MVP-1 학습 primary action 계열.", "action_contract_version과 함께 저장", "raw hand pose를 training target으로 착각하면 안 됨"],
+      ["RDF_OPERATOR_FOLLOW_PRESET", "legacy fallback preset. safe, fast, responsive.", "direct EE target 문제 분리용", "MVP-1 primary로 쓰지 않음"],
+      ["RDF_OPERATOR_FOLLOW_WORKSPACE_GAIN", "hand delta가 operator target workspace에 반영되는 크기.", "0.12 -> 0.16 -> 0.20 순서", "너무 크면 target이 workspace 밖으로 튐"],
+      ["RDF_OPERATOR_FOLLOW_MAX_STEP_M", "robot fingertip이 한 control step에 이동 가능한 최대 거리.", "0.04 -> 0.06", "너무 크면 RETARGETING_JUMP와 overshoot"],
+      ["RDF_OPERATOR_FOLLOW_SMOOTHING_ALPHA", "target error를 얼마나 빠르게 따라갈지.", "0.90 -> 0.95", "1.0에 가까울수록 덜 부드럽고 민감"],
+      ["RDF_OPERATOR_FOLLOW_DEADZONE_M", "작은 손 떨림을 무시하는 거리.", "0.0002 -> 0.0001", "너무 낮으면 미세 떨림이 action에 반영"],
+      ["RDF_ACTION_POS_GAIN", "OpenXR hand delta를 filtered action으로 바꾸는 앞단 gain.", "practice 0.55, proof/live curation 0.35", "direct EE gain과 같이 올리면 과격해짐"],
+      ["RDF_ACTION_SMOOTHING_ALPHA", "앞단 action filter smoothing.", "practice 0.65, proof/live curation 0.45", "높을수록 최신 입력 반영, 노이즈도 증가"],
+      ["RDF_VISUAL_DEBUG", "움직이는 debug marker 표시 여부.", "collection 기본 0, debug 때만 1", "HMD에서 marker가 시점 고정처럼 보이면 끈다"],
+      ["RDF_TASK_GUIDANCE", "task_state 기반 phase/status/SUCCESS_READY 안내.", "1", "task_state unavailable이면 SUCCESS_READY 추정 금지"],
+      ["RDF_TASK_GUIDANCE_PANEL", "HMD 안에 XR text widget으로 recenter/SUCCESS_READY 표시.", "1", "terminal을 볼 수 없는 HMD run의 primary feedback"],
+      ["RDF_TASK_GUIDANCE_PANEL_SIZE", "HMD XR text widget 크기.", "1.0", "practice command는 0.9로 시작"],
+      ["RDF_TASK_GUIDANCE_PANEL_SOURCE", "XR text widget 초기 pose source prim.", "/_xr/stage/xrCamera", "source prim이 생긴 뒤 lazy-create되며 rotation은 생성 시점 값으로 고정"],
+      ["RDF_TASK_GUIDANCE_PANEL_TRANSLATION", "source prim 기준 HMD widget 위치.", "1.05,0.25,-1.25", "오른쪽/가까운 위치로 두되 fixed-rotation 모드에서 너무 위로 뜨지 않게 낮춤. 생성 후 gaze 회전은 따라가지 않음"],
+      ["RDF_TASK_GUIDANCE_PRIMITIVE_FALLBACK", "XR text widget 실패 시 crude primitive fallback 허용.", "0", "primitive panel은 production UX가 아니므로 기본 off"],
+      ["RDF_GUIDANCE_PEG_TIP_DISTANCE_MAX", "HMD guidance-only lateral distance threshold.", "unset이면 strict 0.015", "visual practice는 0.015부터 시작. evaluator/proof 기준은 낮추지 않음"],
+      ["RDF_GUIDANCE_PEG_AXIS_ALIGNMENT_MAX_RAD", "HMD guidance-only alignment threshold.", "unset이면 strict 0.25", "practice는 1.10. evaluator/proof 기준은 낮추지 않음"],
+      ["RDF_GUIDANCE_INSERTION_DEPTH_MIN", "HMD guidance-only insertion depth threshold.", "unset이면 strict 0.025", "visual practice는 0.012. evaluator/proof 기준은 낮추지 않음"],
+      ["RDF_INSERTION_AXIS_WORLD", "HMD guidance depth projection axis.", "unset이면 task_state default", "Forge visual-practice auto finalize에는 0,0,1을 명시. native/proof 성공 기준으로 해석하지 않음"],
+      ["RDF_SUCCESS_READY_HOLD_SEC", "성공 조건이 유지되어야 하는 시간.", "1.5", "너무 짧으면 순간 접촉을 성공으로 오판"],
+      ["RDF_AUTO_SUCCESS_FINALIZE", "SUCCESS_READY hold 후 자동 success finalize.", "HMD no-keyboard run에서는 1", "curation/proof gate를 우회하지 않음"],
+      ["RDF_AUTO_FINALIZE_REQUIRE_LIVE_CURATION", "SUCCESS_READY hold 이후 live-checkable curation gate까지 요구.", "proof 수집 run에서는 1", "replay verification/policy uplift 같은 offline proof gate는 run 이후 진단으로 확인"],
+      ["RDF_LIVE_CURATION_MIN_FRAMES", "live curation pass 전 필요한 saved post-warmup frame 수.", "60", "너무 낮으면 순간 성공 trajectory가 저장됨"],
+      ["RDF_LIVE_CURATION_MAX_NATIVE_ACTION_SATURATION_RATIO", "native action +/-1 saturation frame 비율 상한.", "0.05", "초과하면 HMD LIVE:FAIL; gain/max step을 낮춰야 함"],
+      ["RDF_LIVE_CURATION_MAX_RETARGETING_JUMP", "저장 프레임 사이 retargeting/action jump 상한.", "1.50", "초과하면 control이 과격하거나 recenter가 불안정함"],
+      ["RDF_LIVE_CURATION_MAX_TRACKING_LOSS_RATE", "저장 프레임 중 right-hand tracking loss 허용 비율.", "0.05", "Quest hand tracking 안정화 전 움직이면 실패 가능"],
+      ["RDF_LIVE_CURATION_ON_FAIL", "hard live curation fail 처리 방식.", "hold 또는 reset", "reset은 실패 episode를 reset 상태로 저장하고 새 episode 시작; success만 종료"],
+      ["RDF_TERMINAL_HOTKEYS", "P/N/F/R terminal fallback 사용 여부.", "기본 0, debug 때만 1", "HMD 착용 중 키보드 조작은 데이터 오염 가능"],
+      ["RDF_AUTO_RECENTER_ON_FIRST_VALID", "초기 안정 handtracking 후 자동 recenter.", "1", "P를 누르는 동작을 collection에서 제거"],
+      ["RDF_EXIT_AFTER_FINALIZE", "finalize 후 새 episode를 시작하지 않고 종료.", "auto finalize run에서는 1", "마지막에 incomplete episode가 생기는 것을 방지"]
+    ];
+
+    const stepList = document.getElementById("stepList");
+    const knobRows = document.getElementById("knobRows");
+    const filterButtons = document.querySelectorAll("[data-filter]");
+    const knobSearch = document.getElementById("knobSearch");
+
+    function renderSteps(filter = "all") {
+      const visible = steps.filter(step => filter === "all" || step.group === filter);
+      stepList.innerHTML = visible.map((step, index) => `
+        <article class="step">
+          <div class="step-head">
+            <span class="step-num">${index + 1}</span>
+            <span class="chip ${step.group === "user" ? "info" : step.group === "decision" ? "warn" : "pass"}">${step.group}</span>
+          </div>
+          <h4>${step.title}</h4>
+          <p>${step.body}</p>
+          <ul>${step.items.map(item => `<li><span class="mark">✓</span><span>${item}</span></li>`).join("")}</ul>
+        </article>
+      `).join("");
+    }
+
+    function renderKnobs(query = "") {
+      const q = query.trim().toLowerCase();
+      knobRows.innerHTML = knobs
+        .filter(row => row.join(" ").toLowerCase().includes(q))
+        .map(row => `
+          <tr>
+            <td><span class="mono strong">${row[0]}</span></td>
+            <td>${row[1]}</td>
+            <td>${row[2]}</td>
+            <td>${row[3]}</td>
+          </tr>
+        `).join("");
+    }
+
+    filterButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        filterButtons.forEach(other => other.setAttribute("aria-pressed", "false"));
+        button.setAttribute("aria-pressed", "true");
+        renderSteps(button.dataset.filter);
+      });
+    });
+
+    knobSearch.addEventListener("input", event => renderKnobs(event.target.value));
+
+    document.querySelectorAll("[data-copy]").forEach(button => {
+      button.addEventListener("click", async () => {
+        const target = document.getElementById(button.dataset.copy);
+        if (!target) return;
+        await navigator.clipboard.writeText(target.textContent.trim());
+        const old = button.textContent;
+        button.textContent = "복사됨";
+        setTimeout(() => { button.textContent = old; }, 1100);
+      });
+    });
+
+    renderSteps();
+    renderKnobs();
+  </script>
+</body>
+</html>

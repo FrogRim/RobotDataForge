@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function HomePage() {
   return (
     <main>
@@ -8,9 +10,9 @@ export default function HomePage() {
         <p>MVP-0 backend and adapter boundary are implemented. Frontend pages expose API state for operator debugging.</p>
       </section>
       <nav className="nav-grid">
-        <a href="/tasks">Tasks</a>
-        <a href="/datasets">Datasets</a>
-        <a href="/admin">Admin KPIs</a>
+        <Link href="/tasks">Tasks</Link>
+        <Link href="/datasets">Datasets</Link>
+        <Link href="/admin">Admin KPIs</Link>
       </nav>
     </main>
   );

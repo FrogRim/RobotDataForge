@@ -26,10 +26,10 @@ for path in (SCRIPT_DIR, API_ROOT):
         sys.path.insert(0, str(path))
 
 from app.services.evaluator import add_evaluation_semantics, failure_category_for_reason  # noqa: E402
-from export_rdf_to_hdf5 import EXPORTABLE_STATUSES, ExportValidationError, export_hdf5, load_json
-from inspect_rdf_hdf5 import inspect_hdf5
-from run_mvp1_proof_audit import scan_live_insertion_trajectories
-from run_mvp1_trainer_smoke import run_trainer_smoke
+from export_rdf_to_hdf5 import EXPORTABLE_STATUSES, ExportValidationError, export_hdf5, load_json  # noqa: E402
+from inspect_rdf_hdf5 import inspect_hdf5  # noqa: E402
+from run_mvp1_proof_audit import scan_live_insertion_trajectories  # noqa: E402
+from run_mvp1_trainer_smoke import run_trainer_smoke  # noqa: E402
 
 
 SCHEMA_VERSION = "rdf_mvp1_live_export_smoke_v0.1.0"

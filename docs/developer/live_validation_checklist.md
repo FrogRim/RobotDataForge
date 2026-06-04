@@ -108,7 +108,7 @@ RDF_WARMUP_VALID_FRAMES=30 ./scripts/run_live_rdf_smoke_test.sh
 ```bash
 cd ~/robot-data-forge
 RDF_ACTION_POS_GAIN=0.30 RDF_ACTION_ROT_GAIN=0.20 ./scripts/run_live_rdf_smoke_test.sh
-RDF_ACTION_POS_AXIS_MAP=x,-z,y ./scripts/run_live_rdf_smoke_test.sh
+RDF_ACTION_POS_AXIS_MAP=x,z,y ./scripts/run_live_rdf_smoke_test.sh
 ```
 
 수동 API + Isaac 실행:
@@ -244,6 +244,30 @@ frames[].metadata.retargeted.control_filter
 frames[].metadata.aligned_xr.rotation_offset_quat
 frames[].metadata.aligned_xr.position_gain
 summary.control_filter
+```
+
+Camera-conditioning-ready 확인 field:
+
+```text
+frames[].metadata.camera_conditioning
+frames[].metadata.camera_conditioning.camera_pose
+frames[].metadata.camera_conditioning.transforms
+frames[].metadata.camera_conditioning.intrinsics
+frames[].metadata.camera_conditioning.visibility
+frames[].metadata.camera_conditioning.derived_action_frames
+summary.camera_conditioning
+summary.camera_conditioning.camera_conditioning_ready
+summary.camera_conditioning.readiness_failure_reasons
+```
+
+판정:
+
+```text
+camera_conditioning_ready=true:
+  camera-conditioned visual policy/export claim에 사용할 수 있다.
+
+camera_conditioning_ready=false:
+  raw/replay/action evidence는 보존하지만, view-conditioned learning/proof material로 승격하지 않는다.
 ```
 
 최신 recording을 한 번에 확인:

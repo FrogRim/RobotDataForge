@@ -17,6 +17,8 @@ FAILURE_TAXONOMY = {
     "PHYSICALLY_IMPLAUSIBLE",
     "TRACKING_LOSS",
     "RETARGETING_JUMP",
+    "RAW_WRIST_JUMP",
+    "SCENE_STATE_DISCONTINUITY",
     "INPUT_LATENCY",
     "FRAME_JITTER",
     "EXCESSIVE_COLLISION",
@@ -61,6 +63,8 @@ DATA_QUALITY_FAILURES = {
     "PHYSICALLY_IMPLAUSIBLE",
     "TRACKING_LOSS",
     "RETARGETING_JUMP",
+    "RAW_WRIST_JUMP",
+    "SCENE_STATE_DISCONTINUITY",
     "INPUT_LATENCY",
     "FRAME_JITTER",
     "SYNC_FAILURE",
@@ -87,6 +91,10 @@ ACTION_CONTRACT_FAILURES = {
 
 REQUIRED_SOURCE_FIELDS = {"input_device", "runtime", "simulator", "robot", "task_name"}
 SEAT_SAT_FAIL_THRESHOLD = 0.30
+RAW_WRIST_VALID_TO_VALID_JUMP_DEFAULT_THRESHOLD_M = 0.10
+SCENE_STATE_DYNAMIC_JUMP_THRESHOLD_M = 0.05
+SCENE_STATE_STATIC_TARGET_JUMP_THRESHOLD_M = 0.02
+SCENE_STATE_EVENT_LIMIT = 50
 
 
 @dataclass(frozen=True)
@@ -370,6 +378,11 @@ def add_evaluation_semantics(
         {"RETARGETING_JUMP"},
         evidence_available="retargeting_jump_max" in metrics,
     )
+    raw_wrist_valid_to_valid_jump = _status_for_failure(
+        failure_reason,
+        {"RAW_WRIST_JUMP"},
+        evidence_available="raw_wrist_valid_to_valid_jump" in metrics,
+    )
 
     data_quality_reasons: list[str] = []
     if category == "DATA_QUALITY_FAILURE" and failure_reason:
@@ -392,6 +405,7 @@ def add_evaluation_semantics(
     data_quality_passed = (
         not data_quality_reasons
         and retargeting_jump != "fail"
+        and raw_wrist_valid_to_valid_jump != "fail"
         and sync_quality != "fail"
     )
     rejection_reasons: list[str] = []
@@ -447,6 +461,7 @@ def add_evaluation_semantics(
         "action_contract_valid": action_contract_valid,
         "action_contract_status": action_contract_status,
         "retargeting_jump": retargeting_jump,
+        "raw_wrist_valid_to_valid_jump": raw_wrist_valid_to_valid_jump,
         "native_action_saturation": native_action_saturation,
         "native_action_saturation_ratio": native_action_saturation_ratio,
         "native_action_saturation_phase_ratios": native_action_saturation_phase_ratios,
@@ -624,6 +639,94 @@ def _retargeting_jump_stats(frames: list[dict[str, Any]]) -> tuple[float, float]
     return max(jumps), sum(jumps) / len(jumps)
 
 
+def _raw_wrist_direct_payload(frame: dict[str, Any]) -> dict[str, Any]:
+    """Return raw-wrist direct-control diagnostics from known frame locations."""
+
+    action = frame.get("action")
+    if isinstance(action, dict) and isinstance(action.get("raw_wrist_direct"), dict):
+        return action["raw_wrist_direct"]
+
+    metadata = frame.get("metadata") or {}
+    if isinstance(metadata, dict):
+        for key in ("raw_wrist_direct", "raw_wrist_direct_control"):
+            value = metadata.get(key)
+            if isinstance(value, dict):
+                return value
+        for section_key in ("teleop_control_mode", "control_filter"):
+            section = metadata.get(section_key)
+            if not isinstance(section, dict):
+                continue
+            value = section.get("raw_wrist_direct_control")
+            if isinstance(value, dict):
+                return value
+
+    return {}
+
+
+def _raw_wrist_valid_to_valid_jump_stats(
+    frames: list[dict[str, Any]], *, threshold_m: float | None
+) -> dict[str, Any]:
+    """Detect unstable Quest/OpenXR right-wrist jumps in direct-control evidence.
+
+    This is intentionally separate from `RETARGETING_JUMP`: the former checks
+    retargeted action continuity, while this gate checks raw right-wrist stream
+    continuity before the direct EEF target servo is considered training-safe.
+    """
+
+    values: list[float] = []
+    events: list[dict[str, Any]] = []
+    gate_state_counts: dict[str, int] = {}
+    gate_reason_counts: dict[str, int] = {}
+
+    for index, frame in enumerate(frames):
+        payload = _raw_wrist_direct_payload(frame)
+        if not payload:
+            continue
+        gate_state = payload.get("gate_state")
+        if isinstance(gate_state, str) and gate_state:
+            gate_state_counts[gate_state] = gate_state_counts.get(gate_state, 0) + 1
+        gate_reason = payload.get("gate_reason")
+        if isinstance(gate_reason, str) and gate_reason:
+            gate_reason_counts[gate_reason] = gate_reason_counts.get(gate_reason, 0) + 1
+
+        jump_m = None
+        for key in ("valid_to_valid_jump_m", "raw_wrist_jump_m"):
+            jump_m = _float_or_none(payload.get(key))
+            if jump_m is not None:
+                break
+        if jump_m is None:
+            continue
+        values.append(jump_m)
+        if threshold_m is not None and jump_m > threshold_m:
+            events.append(
+                {
+                    "frame_index": _frame_sequence_id(frame, index),
+                    "jump_m": jump_m,
+                    "threshold_m": threshold_m,
+                    "gate_state": gate_state,
+                    "gate_reason": gate_reason,
+                    "t": _float_or_none(frame.get("t")),
+                }
+            )
+
+    max_m = max(values, default=0.0)
+    mean_m = sum(values) / len(values) if values else 0.0
+    return {
+        "fail": bool(events),
+        "evidence_available": bool(values),
+        "threshold_m": threshold_m,
+        "max_m": max_m,
+        "mean_m": mean_m,
+        "count": len(values),
+        "count_over_threshold": len(events),
+        "gate_state_counts": gate_state_counts,
+        "gate_reason_counts": gate_reason_counts,
+        "events": events[:SCENE_STATE_EVENT_LIMIT],
+        "event_limit": SCENE_STATE_EVENT_LIMIT,
+        "policy": "reject_training_candidate_on_raw_wrist_valid_to_valid_jump",
+    }
+
+
 def _task_state(frame: dict[str, Any]) -> dict[str, Any]:
     metadata = frame.get("metadata") or {}
     value = metadata.get("task_state")
@@ -636,6 +739,103 @@ def _latest_task_state(frames: list[dict[str, Any]]) -> dict[str, Any]:
         if state:
             return state
     return {}
+
+
+def _frame_sequence_id(frame: dict[str, Any], fallback: int) -> int:
+    metadata = frame.get("metadata") or {}
+    for source in (frame, metadata):
+        for key in ("frame_index", "step", "frame", "index"):
+            value = source.get(key)
+            if isinstance(value, bool):
+                continue
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                continue
+    return fallback
+
+
+def _scene_vector(frame: dict[str, Any], key: str) -> list[float] | None:
+    if key in {"end_effector_position", "object_position"}:
+        return _vector_or_none(frame.get(key), min_length=3)
+    return _vector_or_none(_task_state(frame).get(key), min_length=3)
+
+
+def _scene_state_discontinuity(frames: list[dict[str, Any]]) -> dict[str, Any]:
+    """Detect hidden sim/task reset boundaries inside one recorded trajectory.
+
+    Dynamic robot/object bodies may move quickly during valid teleoperation, so they
+    are recorded as diagnostic events only. Static task targets (`hole_position`,
+    `hole_target_position`) should not jump within a single insertion episode; a
+    jump there marks the trajectory as unsafe for training eligibility.
+    """
+
+    tracked_fields = {
+        "end_effector_position": (
+            "dynamic_body",
+            SCENE_STATE_DYNAMIC_JUMP_THRESHOLD_M,
+        ),
+        "object_position": ("dynamic_body", SCENE_STATE_DYNAMIC_JUMP_THRESHOLD_M),
+        "peg_position": ("dynamic_body", SCENE_STATE_DYNAMIC_JUMP_THRESHOLD_M),
+        "peg_tip_position": ("dynamic_body", SCENE_STATE_DYNAMIC_JUMP_THRESHOLD_M),
+        "hole_position": (
+            "static_task_target",
+            SCENE_STATE_STATIC_TARGET_JUMP_THRESHOLD_M,
+        ),
+        "hole_target_position": (
+            "static_task_target",
+            SCENE_STATE_STATIC_TARGET_JUMP_THRESHOLD_M,
+        ),
+    }
+    events: list[dict[str, Any]] = []
+    static_target_frames: set[int] = set()
+    dynamic_body_frames: set[int] = set()
+
+    for index in range(1, len(frames)):
+        previous = frames[index - 1]
+        current = frames[index]
+        frame_index = _frame_sequence_id(current, index)
+        previous_frame_index = _frame_sequence_id(previous, index - 1)
+        for field, (field_kind, threshold) in tracked_fields.items():
+            previous_vector = _scene_vector(previous, field)
+            current_vector = _scene_vector(current, field)
+            if previous_vector is None or current_vector is None:
+                continue
+            jump_m = euclidean(previous_vector[:3], current_vector[:3])
+            if jump_m <= threshold:
+                continue
+            event = {
+                "field": field,
+                "field_kind": field_kind,
+                "frame_index": frame_index,
+                "previous_frame_index": previous_frame_index,
+                "jump_m": jump_m,
+                "threshold_m": threshold,
+                "phase_before": _frame_phase(previous),
+                "phase_after": _frame_phase(current),
+                "t_before": _float_or_none(previous.get("t")),
+                "t_after": _float_or_none(current.get("t")),
+            }
+            events.append(event)
+            if field_kind == "static_task_target":
+                static_target_frames.add(frame_index)
+            else:
+                dynamic_body_frames.add(frame_index)
+
+    return {
+        "fail": bool(static_target_frames),
+        "event_count": len(events),
+        "frames": sorted(static_target_frames),
+        "static_task_target_frames": sorted(static_target_frames),
+        "dynamic_body_frames": sorted(dynamic_body_frames),
+        "events": events[:SCENE_STATE_EVENT_LIMIT],
+        "event_limit": SCENE_STATE_EVENT_LIMIT,
+        "thresholds_m": {
+            "dynamic_body": SCENE_STATE_DYNAMIC_JUMP_THRESHOLD_M,
+            "static_task_target": SCENE_STATE_STATIC_TARGET_JUMP_THRESHOLD_M,
+        },
+        "policy": "reject_training_candidate_on_static_task_target_jump",
+    }
 
 
 def _latest_task_float(
@@ -832,6 +1032,7 @@ def _evaluate_peg_in_hole(
     retargeting_jump_max, retargeting_jump_mean = _retargeting_jump_stats(
         post_warmup_frames
     )
+    scene_state_discontinuity = _scene_state_discontinuity(frames)
     collision_count = int(summary.get("collision_count", 0))
     contact_sequence_valid = _latest_task_bool(
         trajectory,
@@ -864,6 +1065,12 @@ def _evaluate_peg_in_hole(
         success_criteria,
         ("max_retargeting_jump", "max_retargeting_jump_max"),
     )
+    max_raw_wrist_valid_to_valid_jump_m = _threshold(
+        task_config,
+        success_criteria,
+        ("max_raw_wrist_valid_to_valid_jump_m", "max_raw_wrist_jump_m"),
+        default=RAW_WRIST_VALID_TO_VALID_JUMP_DEFAULT_THRESHOLD_M,
+    )
     max_average_input_latency_ms = _threshold(
         task_config,
         success_criteria,
@@ -878,6 +1085,10 @@ def _evaluate_peg_in_hole(
         task_config,
         success_criteria,
         ("max_frame_interval_jitter_ms", "max_jitter_ms"),
+    )
+    raw_wrist_valid_to_valid_jump = _raw_wrist_valid_to_valid_jump_stats(
+        post_warmup_frames,
+        threshold_m=max_raw_wrist_valid_to_valid_jump_m,
     )
 
     distance_score = clamp01(1 - peg_tip_distance / max(distance_max, 1e-9))
@@ -930,6 +1141,10 @@ def _evaluate_peg_in_hole(
         and frame_interval_jitter_ms > max_frame_interval_jitter_ms
     ):
         failure_reason = "FRAME_JITTER"
+    elif scene_state_discontinuity["fail"]:
+        failure_reason = "SCENE_STATE_DISCONTINUITY"
+    elif raw_wrist_valid_to_valid_jump["fail"]:
+        failure_reason = "RAW_WRIST_JUMP"
     elif (
         max_retargeting_jump is not None and retargeting_jump_max > max_retargeting_jump
     ):
@@ -1039,6 +1254,8 @@ def _evaluate_peg_in_hole(
                 "post_warmup_frame_count": len(post_warmup_frames),
                 "retargeting_jump_max": retargeting_jump_max,
                 "retargeting_jump_mean": retargeting_jump_mean,
+                "raw_wrist_valid_to_valid_jump": raw_wrist_valid_to_valid_jump,
+                "scene_state_discontinuity": scene_state_discontinuity,
                 "average_input_latency_ms": average_input_latency_ms,
                 "max_input_latency_ms": max_input_latency_ms,
                 "frame_interval_mean_ms": frame_interval_mean_ms,
@@ -1150,6 +1367,12 @@ def evaluate_trajectory(
         success_criteria,
         ("max_retargeting_jump", "max_retargeting_jump_max"),
     )
+    max_raw_wrist_valid_to_valid_jump_m = _threshold(
+        task_config,
+        success_criteria,
+        ("max_raw_wrist_valid_to_valid_jump_m", "max_raw_wrist_jump_m"),
+        default=RAW_WRIST_VALID_TO_VALID_JUMP_DEFAULT_THRESHOLD_M,
+    )
     max_average_input_latency_ms = _threshold(
         task_config,
         success_criteria,
@@ -1164,6 +1387,10 @@ def evaluate_trajectory(
         task_config,
         success_criteria,
         ("max_frame_interval_jitter_ms", "max_jitter_ms"),
+    )
+    raw_wrist_valid_to_valid_jump = _raw_wrist_valid_to_valid_jump_stats(
+        post_warmup_frames,
+        threshold_m=max_raw_wrist_valid_to_valid_jump_m,
     )
 
     distance_score = clamp01(1 - final_distance / max(distance_to_target_max, 1e-9))
@@ -1201,6 +1428,8 @@ def evaluate_trajectory(
         and frame_interval_jitter_ms > max_frame_interval_jitter_ms
     ):
         failure_reason = "FRAME_JITTER"
+    elif raw_wrist_valid_to_valid_jump["fail"]:
+        failure_reason = "RAW_WRIST_JUMP"
     elif (
         max_retargeting_jump is not None and retargeting_jump_max > max_retargeting_jump
     ):
@@ -1286,6 +1515,7 @@ def evaluate_trajectory(
                 "post_warmup_frame_count": len(post_warmup_frames),
                 "retargeting_jump_max": retargeting_jump_max,
                 "retargeting_jump_mean": retargeting_jump_mean,
+                "raw_wrist_valid_to_valid_jump": raw_wrist_valid_to_valid_jump,
                 "average_input_latency_ms": average_input_latency_ms,
                 "max_input_latency_ms": max_input_latency_ms,
                 "frame_interval_mean_ms": frame_interval_mean_ms,

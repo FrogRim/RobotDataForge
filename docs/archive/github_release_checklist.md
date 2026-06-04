@@ -52,14 +52,14 @@ docs/MVP1_TASK_SPEC.md
 docs/MVP1_VALIDATED_DATASET_PIPELINE_RESULT.html
 docs/MVP2_LEARNING_PROVEN_PROOF_STRATEGY_KO.html
 docs/RDF_MVP1_MVP2_DETAILED_REPORT_KO.html
-docs/ROBOT_DATA_FORGE_PROJECT_INSTRUCTIONS.md
+docs/developer/project_instructions.md
 docs/GITHUB_RELEASE_CHECKLIST.md
 ```
 
 Optional later:
 
 ```text
-docs/papers/
+docs/developer/papers/
 docs/MVP1_STATUS_DASHBOARD.html
 docs/MVP1_NEXT_ACTIONS_HMD_GUIDE.html
 docs/MVP1C_FULL_PROOF_EXECUTION_GUIDE.*
@@ -74,7 +74,7 @@ storage/
 .venv/
 .omc/
 Handoff.md
-docs/WORKLOG.md
+docs/developer/worklog.md
 output.txt
 *.sqlite
 *.hdf5
@@ -87,7 +87,7 @@ __pycache__/
 Reasons:
 
 - `storage/` contains live logs, SQLite databases, trajectory artifacts, HDF5 exports, and local proof outputs.
-- `Handoff.md` and `docs/WORKLOG.md` contain internal session context and machine-specific paths.
+- `Handoff.md` and `docs/developer/worklog.md` contain internal session context and machine-specific paths.
 - `output.txt` is terminal capture/debug material.
 
 ## Preflight Commands
@@ -130,7 +130,7 @@ git remote add origin git@github.com:<YOUR_USER_OR_ORG>/robot-data-forge.git
 git push -u origin main
 ```
 
-Before `git commit`, inspect `git status --short` carefully. The first commit should not include `storage/`, `.venv/`, `Handoff.md`, `docs/WORKLOG.md`, `output.txt`, SQLite files, HDF5 files, logs, caches, or local machine paths beyond documented examples.
+Before `git commit`, inspect `git status --short` carefully. The first commit should not include `storage/`, `.venv/`, `Handoff.md`, `docs/developer/worklog.md`, `output.txt`, SQLite files, HDF5 files, logs, caches, or local machine paths beyond documented examples.
 
 ## Suggested GitHub Description
 

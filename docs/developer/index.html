@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Data Forge Developer Docs</title>
+  <style>
+    :root { --bg:#f5f6f8; --paper:#fff; --ink:#171d26; --muted:#667085; --line:#d9e0e8; --blue:#2459c9; --shadow:0 18px 46px rgba(24,31,44,.08); }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.65; letter-spacing:0; }
+    a { color:var(--blue); text-decoration-thickness:1px; text-underline-offset:3px; }
+    .page { width:min(1100px,calc(100% - 36px)); margin:0 auto; padding:30px 0 48px; }
+    .shell { overflow:hidden; border:1px solid var(--line); border-radius:8px; background:var(--paper); box-shadow:var(--shadow); }
+    header, main, footer { padding:32px 36px; }
+    header { border-bottom:1px solid var(--line); }
+    .eyebrow { margin:0 0 10px; color:var(--blue); font-size:13px; font-weight:820; text-transform:uppercase; }
+    h1 { margin:0; font-size:clamp(32px,5vw,54px); line-height:1.04; letter-spacing:0; }
+    h2 { margin:0 0 12px; font-size:22px; }
+    section + section { margin-top:30px; padding-top:26px; border-top:1px solid var(--line); }
+    .lead { margin:18px 0 0; max-width:840px; color:var(--muted); }
+    .list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:0; padding:0; list-style:none; }
+    .list a { display:block; min-height:58px; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); text-decoration:none; }
+    .list strong { display:block; font-size:14px; }
+    .list span { display:block; margin-top:4px; color:var(--muted); font-size:12px; }
+    footer { border-top:1px solid var(--line); color:var(--muted); font-size:13px; background:#fbfcfe; }
+    @media (max-width:760px){ .list{grid-template-columns:1fr;} }
+    @media (max-width:620px){ .page{width:min(100% - 22px,1100px);padding:18px 0 32px;} header,main,footer{padding-left:20px;padding-right:20px;} }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="shell">
+      <header>
+        <p class="eyebrow">Developer Docs</p>
+        <h1>Contracts, validation, implementation history, and research</h1>
+        <p class="lead">Use this section to run, inspect, debug, extend, and audit RDF. Papers live here because they support implementation choices, not buyer-facing claims.</p>
+      </header>
+      <main>
+        <section>
+          <h2>Contracts and validation</h2>
+          <ul class="list">
+            <li><a href="api_spec.md"><strong>API spec</strong><span>Episode, trajectory, evaluation, and dataset API contract.</span></a></li>
+            <li><a href="data_schema.md"><strong>Data schema</strong><span>Trajectory, task state, quality, and curation schema.</span></a></li>
+            <li><a href="export_format.md"><strong>Export format</strong><span>HDF5/export artifact and trainer loader contract.</span></a></li>
+            <li><a href="hmd_free_test_execution_guide.html"><strong>HMD-free test execution</strong><span>Current test lane after demoting Quest/OpenXR/HMD to experimental adapter status.</span></a></li>
+            <li><a href="live_validation_checklist.md"><strong>Live validation checklist</strong><span>Operational validation checklist for live and adapter paths.</span></a></li>
+            <li><a href="task_spec.md"><strong>MVP-1 task spec</strong><span>Task goals, progress, efficiency, and transition coverage criteria.</span></a></li>
+            <li><a href="reference_mapping.md"><strong>Reference mapping</strong><span>How implementation maps to external references and prior art.</span></a></li>
+          </ul>
+        </section>
+        <section>
+          <h2>Operations and history</h2>
+          <ul class="list">
+            <li><a href="project_instructions.md"><strong>Project instructions</strong><span>Product boundary, reset proof path, and operating principles.</span></a></li>
+            <li><a href="worklog.md"><strong>Worklog</strong><span>Implementation history, decisions, and verification results.</span></a></li>
+            <li><a href="debugging_guide.md"><strong>Debugging guide</strong><span>Local API, dataset pipeline, and validation troubleshooting.</span></a></li>
+            <li><a href="demo_script.md"><strong>Demo script</strong><span>Demo and portfolio explanation flow.</span></a></li>
+            <li><a href="roadmap.md"><strong>Roadmap</strong><span>Forward-looking implementation and product sequence.</span></a></li>
+            <li><a href="papers/README.md"><strong>Papers</strong><span>Research notes for robot data, teleoperation, and dataset systems.</span></a></li>
+          </ul>
+        </section>
+      </main>
+      <footer><a href="../index.html">Docs hub</a> · <a href="../../index.html">Root portal</a></footer>
+    </div>
+  </div>
+</body>
+</html>

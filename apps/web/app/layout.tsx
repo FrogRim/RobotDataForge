@@ -1,5 +1,6 @@
 import "../styles/globals.css";
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 export const metadata = {
   title: "Robot Data Forge",
@@ -11,11 +12,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <header className="topbar">
-          <a href="/">Robot Data Forge</a>
+          <Link href="/">Robot Data Forge</Link>
           <nav>
-            <a href="/tasks">Tasks</a>
-            <a href="/datasets">Datasets</a>
-            <a href="/admin">Admin</a>
+            <Link href="/tasks">Tasks</Link>
+            <Link href="/datasets">Datasets</Link>
+            <Link href="/admin">Admin</Link>
           </nav>
         </header>
         {children}

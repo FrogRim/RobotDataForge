@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ForgeXR HMD Input Structural Analysis - 2026-06-03</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --ink: #18202f;
+      --muted: #5a6475;
+      --line: #d8deea;
+      --panel: #ffffff;
+      --accent: #0f766e;
+      --warn: #9a3412;
+      --code: #eef2f7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.58;
+    }
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 40px 24px 64px;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 22px;
+      margin-bottom: 28px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 2rem;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 30px 0 10px;
+      font-size: 1.18rem;
+      letter-spacing: 0;
+    }
+    p { margin: 8px 0; }
+    ul, ol { padding-left: 1.35rem; }
+    li { margin: 5px 0; }
+    code {
+      background: var(--code);
+      border-radius: 4px;
+      padding: 0.12rem 0.28rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.92em;
+    }
+    .summary {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--accent);
+      padding: 16px 18px;
+      margin: 18px 0;
+    }
+    .warning {
+      border-left-color: var(--warn);
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      margin: 12px 0 20px;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #edf3f1; }
+    @media (max-width: 760px) {
+      main { padding: 24px 16px 48px; }
+      h1 { font-size: 1.55rem; }
+      table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>ForgeXR HMD 입력 문제 구조 분석</h1>
+      <p class="meta">작성일: 2026-06-03 · 방식: 저장된 코드/로그/아티팩트 기반 오프라인 분석</p>
+      <div class="summary warning">
+        <p><strong>명시적 제한:</strong> 이 분석에서는 실제 HMD 착용 테스트, Quest/OpenXR 런타임 실행, Isaac 수집 루프 재개, 신규 trajectory collection을 수행하지 않았다.</p>
+      </div>
+    </header>
+
+    <section>
+      <h2>Implementation Update: Offline Provenance Analyzer</h2>
+      <p>같은 날짜에 PR 1 범위의 오프라인 analyzer가 구현되었다. <code>scripts/analyze_hmd_motion_mapping.py</code>는 이제 <code>provenance_timeline</code>을 출력하며, raw wrist, aligned wrist, raw wrist origin, wrist offset, desired target, executed command, actual EEF, object, peg, hole, hole target 단계 중 어느 단계에서 discontinuity가 처음 나타나는지 기록한다.</p>
+      <p>저장된 <code>traj_7f78c4bbd77e</code> 분석 결과는 <code>transition_count=179</code>, <code>event_count=23</code>, <code>first_stage_counts={'raw_wrist': 22, 'actual_eef': 1}</code>이다. 이 결과는 저장된 trajectory에서는 대부분의 discontinuity가 raw wrist 단계에서 먼저 관측된다는 뜻이다. 다만 물리적 원천은 여전히 HMD 검증 전까지 확정할 수 없다.</p>
+      <p>검증: synthetic HMD-free tests <code>6 passed</code>, 전체 diagnostic script tests <code>60 passed, 6 skipped</code>, ruff check와 py_compile 통과.</p>
+    </section>
+
+    <section>
+      <h2>1. 실제 수행 범위</h2>
+      <ul>
+        <li>입력 어댑터, Gate 0, IsaacLab teleop loop, recorder, evaluator, curator 코드 경로를 확인했다.</li>
+        <li><code>storage/trajectories/traj_7f78c4bbd77e.json</code>와 <code>storage/evaluations/eval_86f1320d7e08.json</code>를 파싱했다.</li>
+        <li>저장된 HMD motion mapping, Gate 0 report, 관련 테스트를 오프라인으로 확인했다.</li>
+        <li>선택된 HMD-free 단위 테스트를 실행했다.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>2. HMD 테스트 미수행</h2>
+      <p>실제 HMD 테스트나 신규 수집은 수행하지 않았다. <code>run_hmd_axis_debug.sh gate0-all</code>, collection loop, Quest/OpenXR 런타임이 필요한 명령도 실행하지 않았다.</p>
+    </section>
+
+    <section>
+      <h2>3. 현재 Gate 중심 구조</h2>
+      <ul>
+        <li><code>scripts/rdf_input_sources.py</code>: source-agnostic <code>WristPoseSample</code>와 Quest/OpenXR adapter.</li>
+        <li><code>scripts/run_gate0_xr_input_viability.py</code>: tracked rate, XR-valid rate, raw wrist jump, tracking loss, latency/frame drop 등을 평가.</li>
+        <li><code>scripts/run_collection_loop.sh</code>: fresh <code>gate0-all</code> 통과 없이는 Gate A collection 차단.</li>
+        <li><code>apps/api/app/services/evaluator.py</code>: task failure와 data/input/control quality failure를 분리.</li>
+        <li><code>apps/api/app/services/curator.py</code>: evaluator reject reason을 curation manifest에 보존.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4. Gate가 풀지 못하는 문제</h2>
+      <ul>
+        <li>raw wrist jump의 발생 원인이 Quest handtracking, ALVR/SteamVR, Isaac OpenXR cache, recenter/rebase, simulator boundary 중 어디인지 설명하지 못한다.</li>
+        <li><code>valid=true</code>가 timestamp freshness, confidence, velocity plausibility, control safety를 의미하지 않는다.</li>
+        <li>held frame의 zero action이 learning label로 어떤 의미인지 frame 단위로 충분히 분리하지 못한다.</li>
+        <li>구버전 artifact와 최신 schema 사이의 provenance drift를 해결하지 못한다.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>5. Raw 입력에서 Action label까지의 실제 코드 경로</h2>
+      <ol>
+        <li><code>teleop_se3_agent.py::teleop_right_wrist_pose_list()</code>가 <code>teleop_interface._previous_joint_poses_right["wrist"]</code>를 읽는다.</li>
+        <li><code>rdf_pose_is_valid()</code>가 finite/nonzero/non-anchor-fallback만 검사한다.</li>
+        <li><code>RdfRawWristDirectEeTargetController.apply()</code>가 <code>raw_offset = current_raw - raw_wrist_origin</code>을 계산한다.</li>
+        <li><code>rdf_map_position_delta_xyz()</code>가 axis/yaw mapping을 적용한다.</li>
+        <li><code>RdfOperatorFollowController.apply()</code>가 bounded direct-EE target과 native Isaac action을 만든다.</li>
+        <li><code>RdfIsaacRuntimeRecorder._action_payload()</code>가 <code>teleop_intent</code>, <code>executed_control</code>, <code>learning_action</code>, <code>retargeted_robot_action</code>을 분리 저장한다.</li>
+        <li><code>evaluator.py</code>와 <code>curator.py</code>가 training eligibility를 결정한다.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>6. 기존 코드/로그/아티팩트로 확인 가능한 사실</h2>
+      <table>
+        <thead>
+          <tr><th>항목</th><th>확인값</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>trajectory</td><td><code>traj_7f78c4bbd77e</code>, 180 frames</td></tr>
+          <tr><td>right_hand_tracked_rate</td><td><code>0.877778</code></td></tr>
+          <tr><td>xr_frame_valid_rate</td><td><code>0.855556</code></td></tr>
+          <tr><td>raw_wrist_jump_count</td><td><code>17</code></td></tr>
+          <tr><td>tracking_loss_count</td><td><code>2</code></td></tr>
+          <tr><td>max raw valid-to-valid delta</td><td><code>0.405184 m</code></td></tr>
+          <tr><td>evaluation failure</td><td><code>RETARGETING_JUMP</code>, data quality failure, task outcome unknown</td></tr>
+          <tr><td>H14 target accumulation</td><td><code>PASS</code></td></tr>
+          <tr><td>H13/H9/H15</td><td>raw wrist spike / tracking jitter / scene-state discontinuity <code>WARN</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>7. 현재 자료로 확인 불가능한 항목</h2>
+      <ul>
+        <li>현재 Isaac OpenXR interface가 실제 timestamp, confidence, location flags, measured/predicted state를 제공하는지.</li>
+        <li>raw wrist jump가 물리 센서 원본에서 발생했는지, transform/recenter 이후 발생했는지.</li>
+        <li>최신 live collection에서 모든 frame에 <code>action_hold</code>, <code>hold_reason</code>, <code>tracking_epoch_id</code>가 실제로 저장되는지.</li>
+        <li>H15 scene discontinuity가 IsaacLab reset boundary인지, task-state teleport인지, recorder boundary bug인지.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>8. Root cause 후보</h2>
+      <ol>
+        <li><strong>주 후보:</strong> input signal modeling 문제. <code>valid</code>와 <code>control_safe</code>가 분리되어 있지 않고 timestamp/confidence provenance가 부족하다.</li>
+        <li><strong>보조 후보:</strong> recenter/reacquire provenance boundary 문제. rebase와 warmup이 있지만 구버전 artifact에서는 hold/epoch metadata가 일관되게 보존되지 않았다.</li>
+        <li><strong>보조 후보:</strong> action representation 문제. held zero action이 frame-level learning eligibility와 명확히 묶여 있지 않다.</li>
+        <li><strong>별도 후보:</strong> simulator/task-state boundary 문제. H15 frame 172에서 task target과 동적 상태가 함께 점프했다.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>9. Gate 추가 없이 풀어야 하는 구조적 문제 정의</h2>
+      <p>ForgeXR은 "이 stream이 Gate 0을 통과했는가"만 묻지 말고, raw 측정값, tracking state, timestamp/age/confidence, raw continuity, transformed continuity, recenter epoch, control-safe state, action-label eligibility를 하나의 신호 모델로 분리해 기록해야 한다.</p>
+    </section>
+
+    <section>
+      <h2>10. 필요한 후보 코드 변경</h2>
+      <ul>
+        <li><code>WristPoseSample</code> 또는 별도 <code>InputSignalState</code>에 <code>sample_valid</code>, <code>tracking_valid</code>, <code>control_safe</code>를 분리한다.</li>
+        <li>raw-wrist controller가 teleop 내부 cache를 직접 읽지 않고 normalized sample/state를 소비하도록 정렬한다.</li>
+        <li>OpenXR backend에서 timestamp/confidence를 못 주면 <code>not_available</code> provenance를 명시 저장한다.</li>
+        <li>recenter/reacquire event를 before/after origin, anchor, reason, epoch와 함께 frame timeline에 기록한다.</li>
+        <li>offline provenance analyzer를 추가해 raw, aligned, origin, target, command, EEF jump를 같은 timeline에서 분해한다.</li>
+        <li>held frame의 <code>learning_action</code>을 frame/action-contract level에서 non-learning-eligible로 표시한다.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>11. 사용자가 깨어난 뒤에만 가능한 검증</h2>
+      <ul>
+        <li>provenance instrumentation 이후 static/slow/recenter/reacquire HMD 검증.</li>
+        <li>jump frame에서 raw pose, aligned pose, target, command, actual EEF를 동시 비교.</li>
+        <li>tracking loss 이후 첫 valid frame이 물리적으로 plausible한지 확인.</li>
+        <li>OpenXR/SteamVR가 더 풍부한 tracking status를 줄 수 있는지 확인.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>12. Minimal PR 계획</h2>
+      <ol>
+        <li>PR 1: offline provenance analyzer와 테스트. 새 gate 없음.</li>
+        <li>PR 2: input signal state contract. DB migration 없이 valid/control-safe/timestamp provenance 분리.</li>
+        <li>PR 3: recorder/controller provenance alignment. normalized sample 경로와 frame-level learning eligibility 저장.</li>
+        <li>PR 4: legacy artifact compatibility 정리. old report에는 legacy marker, current report에는 source/hold/epoch 보장.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>12-1. 구현 업데이트</h2>
+      <ul>
+        <li><strong>PR 1 완료:</strong> <code>scripts/analyze_hmd_motion_mapping.py</code>가 <code>provenance_timeline</code>을 출력한다. raw wrist, aligned wrist, origin, wrist offset, desired target, command, actual EEF, object/peg/hole 상태의 discontinuity를 같은 timeline에서 비교한다.</li>
+        <li><strong>PR 2 완료:</strong> <code>scripts/rdf_input_sources.py</code>에 <code>InputSignalState</code>가 추가되었다. <code>sample_valid</code>, <code>tracking_valid</code>, <code>control_safe</code>, <code>action_hold</code>, <code>hold_reason</code>, <code>tracking_epoch_id</code>, <code>learning_label_eligible</code>가 분리된다.</li>
+        <li><strong>PR 3 완료:</strong> <code>scripts/rdf_isaac_runtime_recorder.py</code>의 <code>learning_action</code>이 frame-level <code>eligible</code>와 <code>ineligible_reason</code>을 기록한다. raw-wrist held/tracking-gate held frame은 후보 action label로 저장되더라도 학습 라벨 eligible이 아니다.</li>
+        <li><strong>Live metadata 준비:</strong> <code>/home/kangrim/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py</code>에 <code>rdf_input_signal_state_from_pose()</code>가 추가되어 raw-wrist accepted/held metadata와 tracking-gate held metadata에 <code>input_signal_state</code>를 싣는다.</li>
+        <li><strong>검증 제한:</strong> 위 구현은 synthetic/unit/static 검증만 수행했다. HMD 착용, Quest/OpenXR runtime, Isaac collection loop, 신규 trajectory collection은 수행하지 않았다.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>13. 남은 불확실성</h2>
+      <p>현재 자료는 저장된 stream에 raw wrist discontinuity와 tracking loss가 있었다는 점을 보여준다. 하지만 그 discontinuity의 물리적 원천은 아직 증명하지 못했다. 이 부분은 HMD 착용 검증과 더 풍부한 input provenance 없이는 확정할 수 없다.</p>
+    </section>
+  </main>
+</body>
+</html>

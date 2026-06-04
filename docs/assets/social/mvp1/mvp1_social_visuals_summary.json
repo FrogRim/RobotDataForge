@@ -1,0 +1,40 @@
+{
+  "source_hdf5": "/home/kangrim/robot-data-forge/storage/mvp1_live_export/rdf_mvp1_live_export_smoke.hdf5",
+  "episode_id": "episode_46a0f2b49b6b",
+  "trajectory_id": "traj_82c9d1539fec",
+  "frame_count": 60,
+  "raw_xr_valid_samples": 60,
+  "path_length_m": 0.05610883980989456,
+  "span_m": [
+    0.021041452884674072,
+    0.0074012745171785355,
+    0.012153856456279755
+  ],
+  "phase_counts": {
+    "SEAT": 60
+  },
+  "data_usability_score": 0.9277962524499543,
+  "evaluation_score": 0.6118074068373558,
+  "training_readiness": {
+    "action_dim": 7,
+    "evidence_source": "mvp1a_live_export_bundle",
+    "final_loss": 0.15452821354499013,
+    "hdf5_path": "/home/kangrim/robot-data-forge/storage/mvp1_live_export/rdf_mvp1_live_export_smoke.hdf5",
+    "initial_loss": 0.162345616195607,
+    "loader_smoke_passed": true,
+    "loss_delta": -0.007817402650616867,
+    "observation_dim": 20,
+    "one_epoch_smoke_passed": true,
+    "policy_class": "linear_bc_numpy_smoke",
+    "report_path": "/home/kangrim/robot-data-forge/storage/mvp1_live_export/trainer_smoke_report.json",
+    "sample_count": 60,
+    "split_manifest_path": "/home/kangrim/robot-data-forge/storage/mvp1_live_export/split_manifest.json",
+    "trainer": "rdf_numpy_bc_trainer_smoke",
+    "trainer_dry_run_passed": true
+  },
+  "outputs": [
+    "/home/kangrim/robot-data-forge/docs/assets/social/mvp1/01_raw_xr_trajectory_saved.png",
+    "/home/kangrim/robot-data-forge/docs/assets/social/mvp1/02_mvp1_validated_dataset_pipeline.png",
+    "/home/kangrim/robot-data-forge/docs/assets/social/mvp1/03_mvp1_learning_ready_gate_summary.png"
+  ]
+}

@@ -20,8 +20,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from run_mvp1_proof_audit import build_audit
-from run_mvp1c_headless_eval_bundle import build_headless_eval_bundle
+from run_mvp1_proof_audit import build_audit  # noqa: E402
+from run_mvp1c_headless_eval_bundle import build_headless_eval_bundle  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]

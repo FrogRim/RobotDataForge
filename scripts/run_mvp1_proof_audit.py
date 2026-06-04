@@ -628,7 +628,6 @@ def build_audit(
     live_dataset = _live_dataset_evidence(live_export=live_export, live_export_path=live_export_path, learning=learning)
 
     phase_coverage = set(readiness.get("phase_coverage", [])) if readiness else set()
-    readiness_gates = readiness.get("readiness_gates", {}) if readiness else {}
     curation_rules = curation.get("curation_rules", {}) if curation else {}
     learning_measured = bool((learning or {}).get("learning_results_measured"))
     uplift = (learning or {}).get("curated_vs_uncurated_uplift")

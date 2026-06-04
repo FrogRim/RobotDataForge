@@ -31,7 +31,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from run_mvp1c_rollout_result_adapter import build_policy_eval_input, stable_json
+from run_mvp1c_rollout_result_adapter import build_policy_eval_input, stable_json  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -24,8 +24,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from export_rdf_to_hdf5 import ExportValidationError, export_hdf5, load_json
-from inspect_rdf_hdf5 import inspect_hdf5
+from export_rdf_to_hdf5 import ExportValidationError, export_hdf5, load_json  # noqa: E402
+from inspect_rdf_hdf5 import inspect_hdf5  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]

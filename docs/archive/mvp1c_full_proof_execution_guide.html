@@ -1,0 +1,1429 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Data Forge MVP-2 Policy Uplift Proof Guide</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --panel-2: #f0f4f6;
+      --ink: #182026;
+      --muted: #5d6975;
+      --line: #d8e0e6;
+      --blue: #2563eb;
+      --green: #12805c;
+      --red: #b42318;
+      --amber: #b26a00;
+      --teal: #0f766e;
+      --violet: #6d28d9;
+      --shadow: 0 10px 24px rgba(24, 32, 38, 0.08);
+      --radius: 8px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 288px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 18px;
+      border-right: 1px solid var(--line);
+      background: #fbfcfd;
+    }
+
+    .brand {
+      display: grid;
+      gap: 6px;
+      padding: 4px 2px 18px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .status-stack {
+      display: grid;
+      gap: 8px;
+      margin: 8px 0 18px;
+    }
+
+    .status-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+    }
+
+    .status-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .status-card strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+    .progress-wrap {
+      margin-top: 6px;
+      height: 8px;
+      background: #e7edf1;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      transition: width 160ms ease;
+    }
+
+    .nav-title {
+      margin: 18px 0 8px;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .step-nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .step-link {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      color: var(--ink);
+      text-decoration: none;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      padding: 7px;
+    }
+
+    .step-link:hover,
+    .step-link.active {
+      background: var(--panel);
+      border-color: var(--line);
+    }
+
+    .step-index {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--panel-2);
+      color: var(--blue);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .step-link.done .step-index {
+      background: #dff3ec;
+      color: var(--green);
+    }
+
+    .step-label {
+      min-width: 0;
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .page-title {
+      display: grid;
+      gap: 8px;
+    }
+
+    .page-title h2 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.12;
+    }
+
+    .page-title p {
+      max-width: 980px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: var(--radius);
+      min-height: 36px;
+      padding: 8px 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      border-color: #aebbc6;
+      box-shadow: 0 3px 10px rgba(24, 32, 38, 0.06);
+    }
+
+    .btn.primary {
+      background: var(--ink);
+      color: white;
+      border-color: var(--ink);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      min-height: 96px;
+    }
+
+    .metric .k {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .metric .v {
+      margin-top: 8px;
+      font-size: 20px;
+      font-weight: 750;
+      line-height: 1.2;
+    }
+
+    .metric .d {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .flow {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow h3,
+    .panel h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(96px, 1fr));
+      gap: 8px;
+      overflow: auto;
+      padding-bottom: 2px;
+    }
+
+    .flow-node {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      min-height: 70px;
+      padding: 10px;
+      background: #fbfcfd;
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .flow-node .n {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: white;
+      font-size: 12px;
+      font-weight: 800;
+      background: var(--blue);
+    }
+
+    .flow-node.user .n { background: var(--teal); }
+    .flow-node.headless .n { background: var(--violet); }
+    .flow-node.gate .n { background: var(--amber); }
+
+    .flow-node b {
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(130px, auto));
+      gap: 10px;
+      margin: 18px 0;
+      align-items: center;
+    }
+
+    .field {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 8px 10px;
+      color: var(--ink);
+      width: 100%;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .steps {
+      display: grid;
+      gap: 14px;
+    }
+
+    .step-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .step-head {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfd;
+    }
+
+    .step-num {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #e7efff;
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .step-title h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .step-title p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .tag {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      background: var(--panel);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .tag.user { color: var(--teal); border-color: #9dd8d0; }
+    .tag.codex { color: var(--blue); border-color: #b6cdfc; }
+    .tag.headless { color: var(--violet); border-color: #cbbdf4; }
+    .tag.stop { color: var(--red); border-color: #f0b8b3; }
+    .tag.gate { color: var(--amber); border-color: #edcf8f; }
+
+    .step-body {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .cols {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbfcfd;
+      padding: 12px;
+      min-width: 0;
+    }
+
+    .panel ul,
+    .panel ol {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--ink);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .panel li + li {
+      margin-top: 4px;
+    }
+
+    .command {
+      border: 1px solid #cbd5df;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #101820;
+    }
+
+    .command-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 7px 10px;
+      background: #17212b;
+      color: #c9d4df;
+      font-size: 12px;
+    }
+
+    .copy-btn {
+      border: 1px solid #3c4a57;
+      color: #dce7f0;
+      background: #25313d;
+      border-radius: 6px;
+      min-height: 26px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    pre {
+      margin: 0;
+      padding: 12px;
+      overflow: auto;
+      color: #f4f7fa;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.94em;
+    }
+
+    .side {
+      position: sticky;
+      top: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 8px;
+    }
+
+    .check-row {
+      display: grid;
+      grid-template-columns: 20px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .check-row input {
+      margin-top: 2px;
+      width: 16px;
+      height: 16px;
+    }
+
+    .gate-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .gate-item {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 10px;
+      display: grid;
+      gap: 5px;
+    }
+
+    .gate-item strong {
+      font-size: 13px;
+    }
+
+    .gate-item span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .gate-item.blocked {
+      border-color: #edc0bc;
+      background: #fff8f7;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .empty {
+      display: none;
+      background: var(--panel);
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: var(--ink);
+      color: white;
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+      z-index: 50;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1080px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .content-grid,
+      .topbar,
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        position: static;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .main {
+        padding: 14px;
+      }
+
+      .summary-grid,
+      .cols {
+        grid-template-columns: 1fr;
+      }
+
+      .step-head {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .tags {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+      }
+
+      .page-title h2 {
+        font-size: 23px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>MVP-2 Policy Uplift Proof</h1>
+        <p>MVP-1 learning-ready dataset pipeline proof 이후, policy uplift를 learning-proven evidence로 검증한다.</p>
+      </div>
+
+      <div class="status-stack">
+        <div class="status-card">
+          <span>현재 단계</span>
+          <strong>MVP-1 완료</strong>
+        </div>
+        <div class="status-card">
+          <span>다음 proof</span>
+          <strong>MVP-2 learning-proven</strong>
+        </div>
+        <div class="status-card">
+          <span>진행 상황</span>
+          <strong id="progressText">체크리스트 로딩 중</strong>
+          <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        </div>
+      </div>
+
+      <div class="nav-title">단계</div>
+      <nav class="step-nav" id="stepNav"></nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="page-title">
+          <h2>Robot Data Forge MVP-2 실행 대시보드</h2>
+          <p>MVP-1은 learning-ready Validated Dataset Pipeline Proof로 완료됐다. 이 가이드는 transition-rich accepted data, stronger trainer, held-out policy A/B로 learning-proven uplift를 검증하기 위한 후속 체크리스트다.</p>
+        </div>
+        <div class="quick-actions">
+          <button class="btn" type="button" id="expandAll">모두 펼치기</button>
+          <button class="btn" type="button" id="collapseAll">모두 접기</button>
+          <button class="btn primary" type="button" id="resetChecks">체크 초기화</button>
+        </div>
+      </header>
+
+      <section class="summary-grid" aria-label="증명 요약">
+        <div class="metric">
+          <div class="k">MVP-1 상태</div>
+          <div class="v">완료</div>
+          <div class="d">Learning-ready dataset pipeline proof 통과.</div>
+        </div>
+        <div class="metric">
+          <div class="k">최소 Rollout</div>
+          <div class="v">정책당 10회</div>
+          <div class="d">권장 기준은 정책당 50회 이상이다.</div>
+        </div>
+        <div class="metric">
+          <div class="k">필수 지표</div>
+          <div class="v">성공률</div>
+          <div class="d">action prediction proxy는 증거가 아니다.</div>
+        </div>
+        <div class="metric">
+          <div class="k">실시간 제어</div>
+          <div class="v">Adapter 켜짐</div>
+          <div class="d">Forge direct task는 hand delta를 asset-relative target으로 변환해야 한다.</div>
+        </div>
+      </section>
+
+      <section class="flow" aria-label="MVP-2 실행 흐름">
+        <h3>실행 흐름</h3>
+        <div class="flow-row" id="flowRow"></div>
+      </section>
+
+      <section class="toolbar" aria-label="필터">
+        <input class="field" id="searchInput" type="search" placeholder="단계, 명령어, 게이트 검색">
+        <select class="field" id="ownerFilter" aria-label="담당자 필터">
+          <option value="all">전체 담당</option>
+          <option value="user">사용자 / HMD</option>
+          <option value="codex">Codex</option>
+          <option value="headless">Headless</option>
+        </select>
+        <select class="field" id="typeFilter" aria-label="유형 필터">
+          <option value="all">전체 유형</option>
+          <option value="command">명령어</option>
+          <option value="gate">증명 게이트</option>
+          <option value="stop">중단 조건</option>
+        </select>
+        <button class="btn" type="button" id="clearFilters">필터 초기화</button>
+      </section>
+
+      <div class="content-grid">
+        <section class="steps" id="steps"></section>
+        <aside class="side">
+          <section class="panel">
+            <h3>실행 체크리스트</h3>
+            <div class="checklist" id="operatorChecklist"></div>
+          </section>
+
+          <section class="panel">
+            <h3>Start XR/AR 작동 판정</h3>
+            <ol>
+              <li><code>raw_xyz</code>가 변하면 OpenXR hand input은 들어온다.</li>
+              <li><code>filtered_xyz</code>가 변하면 RDF gain/filter는 통과한다.</li>
+              <li><code>step_xyz</code>가 변하면 Forge adapter는 통과한다.</li>
+              <li><code>eef_delta_norm</code>이 0보다 크면 robot fingertip이 실제로 움직인다.</li>
+            </ol>
+            <p class="note">화면 marker: green=current robot fingertip, cyan=hand delta target, yellow=applied step target, magenta=Forge hole 기준 target.</p>
+          </section>
+
+          <section class="panel">
+            <h3><code>--no-start-xr</code> 사용 기준</h3>
+            <ul>
+              <li>ALVR Dashboard와 SteamVR을 이미 PC에서 켜 둔 경우에만 사용한다.</li>
+              <li>Quest 3 안의 ALVR 앱 연결은 자동화되지 않으므로 항상 사용자가 직접 연결한다.</li>
+              <li>자동 시작을 원하면 명령 끝의 <code>--no-start-xr</code>를 제거한다.</li>
+              <li>어느 방식이든 Isaac 종료 후에 post snapshot과 진단을 실행한다.</li>
+            </ul>
+          </section>
+
+          <section class="panel">
+            <h3>증명 게이트</h3>
+            <div class="gate-list">
+              <div class="gate-item">
+                <strong>held-out policy eval이어야 함</strong>
+                <span><code>heldout_policy_eval</code> 또는 HMD 포함 시 <code>real_heldout_policy_eval</code></span>
+              </div>
+              <div class="gate-item">
+                <strong>primary 지표는 policy 성공률이어야 함</strong>
+                <span><code>policy_success_rate</code>, 보조 지표 <code>rollout_success_rate</code></span>
+              </div>
+              <div class="gate-item">
+                <strong>curated가 uncurated를 이겨야 함</strong>
+                <span><code>curated_vs_uncurated_uplift &gt; 0</code></span>
+              </div>
+              <div class="gate-item blocked">
+                <strong>audit가 MVP-1B면 완료 주장 금지</strong>
+                <span>smoke-only 증거와 proxy score는 차단된다.</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3>로봇 플랫폼 전략</h3>
+            <ul>
+              <li>Franka/Forge PegInsert는 internal smoke와 pipeline proof로 유지한다.</li>
+              <li>산업용 customer-facing profile은 UR5e/UR10e 계열 insertion task를 다음 후보로 둔다.</li>
+              <li>FANUC/ABB/Yaskawa/KUKA는 장기 후보지만 MVP-2 blocker로 삼지 않는다.</li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+
+      <div class="empty" id="emptyState">일치하는 단계가 없다. 필터를 초기화하거나 다른 검색어를 입력한다.</div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast">복사됨</div>
+
+  <script>
+    const steps = [
+      {
+        id: "step-0",
+        number: "0",
+        title: "MVP-2 ingest preflight",
+        owner: "codex",
+        type: ["command", "gate"],
+        purpose: "현재 repo가 MVP-1 learning-ready 상태이며 policy uplift가 MVP-2 evidence로 분리되어 있는지 확인한다.",
+        commandTitle: "MVP-2 policy uplift ingest preflight 실행",
+        command: `cd ~/robot-data-forge
+uv run python scripts/run_mvp1c_final_hud_ingest_preflight.py \\
+  --refresh-headless-bundle \\
+  --pretty`,
+        pass: [
+          "ready_for_mvp2_policy_uplift_ingest=true",
+          "mvp2_learning_proven_claimed=false",
+          "current_stage=MVP-1",
+          "next_stage=MVP-2",
+          "missing_required_gates=[]"
+        ],
+        outputs: [
+          "storage/mvp1c_final_hud_ingest_preflight/preflight_report.json",
+          "storage/mvp1c_final_hud_ingest_preflight/final_hud_ingest_runbook.md"
+        ],
+        stop: [
+          "ready_for_mvp2_policy_uplift_ingest=false",
+          "MVP-1 learning-ready required gate가 빠져 있음",
+          "headless bundle template이 invalid"
+        ]
+      },
+      {
+        id: "step-0a",
+        number: "0A",
+        title: "Forge Operator Follow 사전 진단",
+        owner: "codex",
+        type: ["command", "gate", "stop"],
+        purpose: "HMD를 쓰기 전에 현재 live teleop collection path인 operator_follow controller가 robot fingertip을 실제로 움직일 수 있는지 확인한다.",
+        commandTitle: "HMD 없이 operator_follow controller 확인",
+        command: `cd ~/robot-data-forge
+/home/kangrim/IsaacLab/_isaac_sim/python.sh \\
+  scripts/check_forge_direct_action_response.py \\
+  --steps 20 \\
+  --pretty`,
+        pass: [
+          "결과가 passed=true",
+          "결과에 control_mode=operator_follow가 표시됨",
+          "plus_x, plus_y, plus_z 또는 minus_z 중 하나 이상에서 fingertip_delta_norm > 0.001",
+          "live teleop에서 쓰는 operator target follower 자체가 살아 있음"
+        ],
+        outputs: [
+          "storage/logs/forge_direct_action_response.json"
+        ],
+        stop: [
+          "결과가 passed=false",
+          "모든 non-zero action에서 fingertip_delta_norm이 0에 가까움",
+          "Isaac headless task creation이 실패함"
+        ],
+        notes: [
+          "이 단계가 실패하면 Quest/SteamVR를 디버깅하기 전에 Forge env control path를 먼저 고친다.",
+          "이 단계가 통과했는데 live에서 안 움직이면 Start XR/AR 이후 raw/filter/operator_follow/motion 로그를 본다."
+        ]
+      },
+      {
+        id: "step-1",
+        number: "1",
+        title: "새 HUD/Quest Live Insertion 데이터 수집",
+        owner: "user",
+        type: ["command", "stop"],
+        purpose: "실제 Quest/SteamVR/OpenXR/Isaac insertion trajectory를 수집한다.",
+        commandTitle: "권장 live 수집 명령어",
+        command: `RDF_DEBUG_ACTION_EVERY=20 \\
+RDF_ISAAC_TASK=Isaac-Forge-PegInsert-Direct-v0 \\
+RDF_TASK_TYPE=peg_in_hole \\
+RDF_MAX_FRAMES=900 \\
+RDF_WARMUP_VALID_FRAMES=10 \\
+RDF_ACTION_POS_GAIN=0.36 \\
+RDF_ACTION_ROT_GAIN=0.22 \\
+RDF_ACTION_SMOOTHING_ALPHA=0.40 \\
+RDF_TELEOP_CONTROL_MODE=auto \\
+RDF_OPERATOR_FOLLOW_PRESET=responsive \\
+RDF_DEBUG_MOTION_EVERY=20 \\
+RDF_VISUAL_DEBUG=1 \\
+RDF_VISUAL_DEBUG_EVERY=1 \\
+RDF_VISUAL_DEBUG_INPUT_SCALE=0.25 \\
+RDF_XR_ANCHOR_YAW_OFFSET_DEG=0 \\
+./scripts/run_live_rdf_smoke_test.sh --no-start-xr`,
+        secondaryCommandTitle: "ALVR/SteamVR 자동 시작까지 스크립트에 맡길 때",
+        secondaryCommand: `RDF_DEBUG_ACTION_EVERY=20 \\
+RDF_ISAAC_TASK=Isaac-Forge-PegInsert-Direct-v0 \\
+RDF_TASK_TYPE=peg_in_hole \\
+RDF_MAX_FRAMES=900 \\
+RDF_WARMUP_VALID_FRAMES=10 \\
+RDF_ACTION_POS_GAIN=0.36 \\
+RDF_ACTION_ROT_GAIN=0.22 \\
+RDF_ACTION_SMOOTHING_ALPHA=0.40 \\
+RDF_TELEOP_CONTROL_MODE=auto \\
+RDF_OPERATOR_FOLLOW_PRESET=responsive \\
+RDF_DEBUG_MOTION_EVERY=20 \\
+RDF_VISUAL_DEBUG=1 \\
+RDF_VISUAL_DEBUG_EVERY=1 \\
+RDF_VISUAL_DEBUG_INPUT_SCALE=0.25 \\
+RDF_XR_ANCHOR_YAW_OFFSET_DEG=0 \\
+./scripts/run_live_rdf_smoke_test.sh`,
+        pass: [
+          "metadata.task_state가 존재함",
+          "frame 수가 0보다 큼",
+          "right_hand_tracked_rate가 높음",
+          "workspace_alignment_v2와 control filter metadata가 존재함",
+          "Forge PegInsert live teleop 로그에 Teleop control mode: operator_follow와 control=operator_follow가 보임",
+          "HMD/Isaac 화면에서 cyan/yellow/magenta marker가 손 움직임에 반응하고 green marker/robot arm이 움직임",
+          "N, F, R 중 하나로 명시적 finalize 수행"
+        ],
+        outputs: [
+          "storage/trajectories/<new_trajectory>.json",
+          "storage/evaluations/<new_evaluation>.json",
+          "API episodes with insertion task metadata"
+        ],
+        stop: [
+          "Start XR 이후 raw_xyz가 계속 0",
+          "Forge PegInsert task인데 Teleop control mode: operator_follow가 보이지 않음",
+          "action_debug에 control=operator_follow가 보이지 않음",
+          "raw_xyz는 변하지만 filtered_xyz가 거의 0",
+          "RDF visual marker가 전혀 보이지 않음",
+          "marker가 화면 중앙 조준점처럼 HMD 시점에만 붙어서 움직임",
+          "cyan/yellow/magenta marker는 움직이는데 green marker/robot arm이 움직이지 않음",
+          "Isaac-Forge-PegInsert-Direct-v0에서 adapter가 none",
+          "step_xyz는 변하지만 eef_delta_norm이 계속 0",
+          "trajectory frame count가 0",
+          "latest trajectory가 0-frame incomplete episode뿐임",
+          "task가 Isaac-Forge-PegInsert-Direct-v0가 아님"
+        ],
+        notes: [
+          "`--no-start-xr`를 쓰는 경우: PC에서 ALVR Dashboard와 SteamVR이 이미 실행 중이어야 한다.",
+          "`--no-start-xr`를 쓰는 경우: Quest 3 안의 ALVR 앱을 열고 PC 연결/handtracking을 먼저 안정화한다.",
+          "자동 시작을 원하면 `--no-start-xr`를 제거한다. 그래도 Quest 쪽 ALVR 앱 연결은 사용자가 직접 한다.",
+          "스크립트가 `[RDF][READY]`를 출력하면 Quest ALVR 연결과 SteamVR 상태를 확인한 뒤 Enter를 누른다.",
+          "Isaac scene setup과 `[RDF] Terminal hotkeys active`가 보인 뒤 Isaac UI에서 Start XR 또는 Start AR를 누른다.",
+          "Forge PegInsert task에서는 `[RDF] Teleop control mode: operator_follow`와 `control=operator_follow` 로그가 반드시 보여야 한다.",
+          "HMD/Isaac 화면에서 green=current robot fingertip, cyan=operator virtual target, yellow=rate-limited next target, magenta=Forge hole 기준 reference를 본다.",
+          "marker는 화면 overlay가 아니라 Isaac scene sphere여야 한다. 머리 시점에만 붙어 있으면 그 run은 판정용으로 쓰지 않는다.",
+          "cyan marker가 너무 작으면 다음 run에서 RDF_VISUAL_DEBUG_INPUT_SCALE=0.5 또는 1.0으로 키운다. 이 값은 표시 전용이다.",
+          "marker 자체가 손 움직임에 반응하지 않으면 input/filter/adapter 문제이고, marker는 움직이는데 robot이 안 움직이면 controller/action application 문제다.",
+          "Start XR/Start AR를 누른 뒤 terminal log에서 raw_xyz -> filtered_xyz -> step_xyz -> eef_delta_norm 순서로 본다.",
+          "시점이 30-60도 정도 돌아가 보이면 `P`가 아니라 `RDF_XR_ANCHOR_YAW_OFFSET_DEG=45` 또는 `-45`로 Isaac을 재실행한다.",
+          "실행 로그에 `[RDF] XR anchor config: ... yaw_offset_deg=...`가 찍히면 해당 yaw offset이 적용된 것이다.",
+          "`P/N/F/R` hotkey는 terminal focus가 있어야 안정적으로 먹는다. 조작 중 필요한 순간에는 terminal을 활성화한다.",
+          "수집을 끝낼 때는 Isaac을 먼저 닫지 말고 `N` 또는 `F`를 눌러 `[RDF] Submitted episode ...`가 나온 뒤 닫는다.",
+          "최소: train/eval 전체에서 usable insertion trajectory 10개 이상.",
+          "권장: accepted train trajectory 30-50개, policy당 held-out rollout 50회 이상."
+        ]
+      },
+      {
+        id: "step-2",
+        number: "2",
+        title: "수집 후 진단",
+        owner: "codex",
+        type: ["command", "stop"],
+        purpose: "새 data가 replay/export/trainer path에 들어갈 수 있는지 확인한다.",
+        commandTitle: "진단 실행",
+        command: `uv run python scripts/run_mvp0_offline_diagnostics.py
+uv run python scripts/verify_latest_rdf_recording.py --pretty
+uv run python scripts/analyze_teleop_calibration.py --latest --pretty`,
+        secondaryCommandTitle: "latest가 0-frame episode를 가리키는 경우",
+        secondaryCommand: `uv run python scripts/verify_latest_rdf_recording.py \\
+  --trajectory storage/trajectories/<traj_id>.json \\
+  --pretty
+uv run python scripts/analyze_teleop_calibration.py \\
+  storage/trajectories/<traj_id>.json \\
+  --pretty`,
+        pass: [
+          "frame_count > 0",
+          "recording validator passed=true",
+          "calibration analyzer issue count is 0",
+          "source task is insertion task",
+          "task_state live candidate appears in proof audit"
+        ],
+        outputs: [
+          "latest recording verification report",
+          "teleop calibration analysis",
+          "diagnostics PASS/FAIL summary"
+        ],
+        stop: [
+          "trajectory has no frames",
+          "raw/applied action unavailable",
+          "calibration metadata unavailable",
+          "task_state missing"
+        ],
+        notes: [
+          "권장 순서: live 수집 중 `N` 또는 `F`로 explicit finalize -> `[RDF] Submitted episode ...` 확인 -> Isaac Lab 창 종료 -> smoke wrapper가 post snapshot을 끝낼 때까지 대기 -> 진단 명령 실행.",
+          "`run_live_rdf_smoke_test.sh`는 Isaac process가 끝난 뒤 STEP 08 post API snapshot과 latest trajectory 확인을 수행한다.",
+          "Isaac을 닫기 전에 별도 terminal에서 진단할 수도 있지만, 최신 episode가 아직 running/incomplete일 수 있으므로 proof 판단에는 사용하지 않는다.",
+          "latest가 0-frame incomplete를 가리키면 wrapper 종료 직전에 새 episode가 열린 것이다. 이때는 바로 이전 non-empty trajectory id를 명시해서 검증한다."
+        ]
+      },
+      {
+        id: "step-3",
+        number: "3",
+        title: "Live Export와 MVP-1 Dataset Pipeline Proof 갱신",
+        owner: "codex",
+        type: ["command", "gate"],
+        purpose: "새 live trajectory가 HDF5 export와 trainer-loader dry run을 통과하는지 확인한다.",
+        commandTitle: "live export smoke 갱신",
+        command: `uv run python scripts/run_mvp1_live_export_smoke.py --clean --pretty
+uv run python scripts/run_mvp1_proof_audit.py --pretty`,
+        pass: [
+          "trainer_loader_smoke_passed=true",
+          "current_stage=MVP-1",
+          "next_stage=MVP-2",
+          "missing_required_gates=[]",
+          "policy_uplift_required_for_mvp1=false"
+        ],
+        outputs: [
+          "storage/mvp1_live_export/rdf_mvp1_live_export_smoke.hdf5",
+          "storage/mvp1_live_export/trainer_smoke_report.json"
+        ],
+        stop: [
+          "HDF5 export fails",
+          "trainer smoke fails",
+          "proof audit drops below MVP-1"
+        ],
+        notes: [
+          "이 단계는 MVP-1B 증거다.",
+          "policy uplift를 증명하지 않는다."
+        ]
+      },
+      {
+        id: "step-3a",
+        number: "3A",
+        title: "Recorded-Action Replay Gate",
+        owner: "codex",
+        type: ["command", "gate", "stop"],
+        purpose: "accepted dataset material이 같은 action/replay contract에서 실제로 재생 가능한지 확인한다.",
+        commandTitle: "replay viability와 gate 적용",
+        command: `/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/check_peg_insert_viability.py \\
+  --replay-scope raw_success \\
+  --pretty
+uv run python scripts/apply_mvp1_replay_gate.py --pretty`,
+        pass: [
+          "scripted oracle passed=true",
+          "native_direct recorded-action replay passes",
+          "accepted_replay_viability=true",
+          "pool_ready_for_policy_ab=true",
+          "pool_blockers=[]"
+        ],
+        outputs: [
+          "storage/logs/peg_insert_viability_report.json",
+          "storage/mvp1_readiness/action_replay_contract.json",
+          "storage/mvp1_readiness/replay_gate_manifest.json",
+          "storage/mvp1_readiness/split_manifest_replay_verified.json",
+          "storage/mvp1_readiness/raw_replay_verified/",
+          "storage/mvp1_readiness/curated_replay_verified/"
+        ],
+        stop: [
+          "accepted trajectory replay fails",
+          "replay-verified train/held-out split cannot be created",
+          "live HMD trajectory has no reset-state provenance for accepted promotion"
+        ],
+        notes: [
+          "open-loop recorded-action replay는 같은 초기 상태에서만 의미가 있다.",
+          "offline fixture는 summary.action_replay_contract.initial_state.seed로 이 조건을 표현한다.",
+          "HMD live trajectory는 replay gate 통과 전에는 smoke/export evidence로만 쓰고 curated accepted dataset material로 승격하지 않는다."
+        ]
+      },
+      {
+        id: "step-4",
+        number: "4",
+        title: "Curated vs Uncurated Train/Eval Bundle 생성",
+        owner: "codex",
+        type: ["command", "gate"],
+        purpose: "같은 raw/fresh dataset에서 replay-verified uncurated train view와 replay-verified curated train view를 분리한다.",
+        commandTitle: "headless eval bundle 생성",
+        command: `uv run python scripts/run_mvp1c_headless_eval_bundle.py \\
+  --clean \\
+  --pretty`,
+        pass: [
+          "baseline HDF5 inspection has no issues",
+          "candidate HDF5 inspection has no issues",
+          "policy_eval_input_template evidence_tier=heldout_policy_eval",
+          "rollout_results arrays are still empty"
+        ],
+        outputs: [
+          "storage/mvp1c_headless_eval/baseline_uncurated/mvp1c_uncurated_success_lifecycle_train.hdf5",
+          "storage/mvp1c_headless_eval/candidate_curated/mvp1c_curated_accepted_train.hdf5",
+          "storage/mvp1c_headless_eval/heldout_suite_manifest.json",
+          "storage/mvp1c_headless_eval/policy_eval_input_template.json"
+        ],
+        stop: [
+          "baseline train set empty",
+          "candidate train set empty",
+          "held-out validation/test ids empty",
+          "template uses smoke evidence tier"
+        ]
+      },
+      {
+        id: "step-5",
+        number: "5",
+        title: "Baseline/Candidate 정책 학습",
+        owner: "headless",
+        type: ["gate"],
+        purpose: "두 policy를 동일 조건에서 학습한다.",
+        pass: [
+          "same policy class",
+          "same random seed set or recorded seed metadata",
+          "same observation/action representation",
+          "same training budget",
+          "same held-out eval scenarios"
+        ],
+        outputs: [
+          "baseline policy trained from uncurated_success_lifecycle HDF5",
+          "candidate policy trained from curated_accepted HDF5",
+          "trainer metadata with policy_class and trainer name"
+        ],
+        stop: [
+          "baseline/candidate use different eval suite",
+          "candidate uses better hyperparameters only",
+          "training fails on one side",
+          "trainer does not emit rollout logs"
+        ],
+        notes: [
+          "proof-grade 경로는 ACT-style action chunking 또는 insertion 특화 stronger BC trainer를 사용해야 한다.",
+          "lightweight BC는 smoke runner로만 허용한다."
+        ]
+      },
+      {
+        id: "step-6",
+        number: "6",
+        title: "Headless Held-Out 정책 A/B 평가",
+        owner: "headless",
+        type: ["gate", "stop"],
+        purpose: "두 policy를 같은 held-out insertion scenario ids에서 평가한다.",
+        pass: [
+          "min_rollouts_per_policy >= 10",
+          "recommended rollouts_per_policy >= 50",
+          "same scenario and seed set for baseline and candidate",
+          "success is terminal insertion success, not proxy score"
+        ],
+        outputs: [
+          "baseline_heldout_rollouts.csv or JSON",
+          "candidate_heldout_rollouts.csv or JSON",
+          "rollout_id, scenario_id, seed, success, failure_reason, steps"
+        ],
+        stop: [
+          "baseline and candidate evaluated on different scenarios",
+          "aggregate has no scenario/seed tracking",
+          "success definition differs by policy",
+          "rollout count below configured minimum"
+        ],
+        notes: [
+          "이 단계에는 HUD/HMD가 필요 없다.",
+          "평가 표면은 Isaac headless rollout이다."
+        ]
+      },
+      {
+        id: "step-7",
+        number: "7",
+        title: "결과 변환, Real Eval Ingest, MVP-2 Proof Audit",
+        owner: "codex",
+        type: ["command", "gate"],
+        purpose: "rollout 결과를 MVP-2 policy-uplift proof schema로 변환하고 audit를 통과하는지 확인한다.",
+        commandTitle: "rollout log 변환",
+        command: `uv run python scripts/run_mvp1c_rollout_result_adapter.py \\
+  --template storage/mvp1c_headless_eval/policy_eval_input_template.json \\
+  --baseline-results <baseline_heldout_rollouts.csv-or-json> \\
+  --candidate-results <candidate_heldout_rollouts.csv-or-json> \\
+  --output storage/mvp1c_headless_eval/policy_eval_input.json \\
+  --policy-class <policy_class> \\
+  --trainer <trainer_name>`,
+        secondaryCommandTitle: "ingest와 audit 실행",
+        secondaryCommand: `uv run python scripts/run_mvp1c_real_policy_eval.py \\
+  --input storage/mvp1c_headless_eval/policy_eval_input.json \\
+  --min-rollouts-per-policy 10 \\
+  --pretty
+uv run python scripts/run_mvp1_proof_audit.py --pretty`,
+        pass: [
+          "learning_results_measured=true",
+          "evidence_tier=heldout_policy_eval or real_heldout_policy_eval",
+          "primary_metric is policy_success_rate",
+          "secondary metric rollout_success_rate is present",
+          "curated_vs_uncurated_uplift > 0",
+          "proof_eligible=true",
+          "proof audit current_stage=MVP-1",
+          "proof audit next_stage=MVP-2",
+          "learning_proven_policy_uplift_achieved=true"
+        ],
+        outputs: [
+          "storage/mvp1c_headless_eval/policy_eval_input.json",
+          "storage/mvp1_readiness/policy_uplift_real_eval_report.json",
+          "storage/mvp1_readiness/curated_vs_uncurated_experiment_manifest.json",
+          "storage/mvp1_proof/proof_audit.json"
+        ],
+        stop: [
+          "curated_vs_uncurated_uplift <= 0",
+          "evidence_tier is neither heldout_policy_eval nor real_heldout_policy_eval",
+          "real_heldout_policy_eval is used without HMD live accepted trajectories",
+          "learning_proven_policy_uplift_achieved=false",
+          "rollout evidence is smoke-only or offline proxy"
+        ]
+      }
+    ];
+
+    const checklistItems = [
+      "preflight가 준비됐고 MVP-2 learning-proven을 아직 주장하지 않음",
+      "HMD 없이 Forge direct action response가 passed=true",
+      "--no-start-xr 사용 시 ALVR Dashboard, SteamVR, Quest ALVR 연결을 사용자가 직접 완료",
+      "새 HUD/Quest insertion 데이터 수집 완료",
+      "N/F/R로 explicit finalize 후 Isaac 종료",
+      "최신 non-empty trajectory가 diagnostics 통과",
+      "live export smoke가 trainer-loader 경로 통과",
+      "curated/uncurated HDF5 bundle 존재",
+      "baseline/candidate policy를 동일 조건으로 학습",
+      "두 policy의 held-out rollout log 생성",
+      "positive real uplift 이후에만 learning_proven_policy_uplift_achieved=true"
+    ];
+
+    const stateKey = "rdf-mvp1c-html-guide-checks";
+
+    function loadState() {
+      try {
+        return JSON.parse(localStorage.getItem(stateKey) || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    function saveState(state) {
+      localStorage.setItem(stateKey, JSON.stringify(state));
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function tagClass(owner) {
+      if (owner === "user") return "user";
+      if (owner === "headless") return "headless";
+      return "codex";
+    }
+
+    function ownerLabel(owner) {
+      if (owner === "user") return "사용자 / HMD";
+      if (owner === "headless") return "Headless";
+      return "Codex";
+    }
+
+    function renderCommand(title, command) {
+      if (!command) return "";
+      const escaped = escapeHtml(command);
+      return `
+        <div class="command">
+          <div class="command-head">
+            <span>${escapeHtml(title || "명령어")}</span>
+            <button class="copy-btn" type="button" data-copy="${escaped}">복사</button>
+          </div>
+          <pre><code>${escaped}</code></pre>
+        </div>`;
+    }
+
+    function renderList(title, items, tag) {
+      if (!items || !items.length) return "";
+      return `
+        <div class="panel ${tag || ""}">
+          <h3>${escapeHtml(title)}</h3>
+          <ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+        </div>`;
+    }
+
+    function renderSteps() {
+      const container = document.getElementById("steps");
+      container.innerHTML = steps.map(step => `
+        <article class="step-card" id="${step.id}" data-owner="${step.owner}" data-type="${step.type.join(" ")}" data-search="${escapeHtml(JSON.stringify(step).toLowerCase())}">
+          <div class="step-head">
+            <div class="step-num">${step.number}</div>
+            <div class="step-title">
+              <h3>${escapeHtml(step.title)}</h3>
+              <p>${escapeHtml(step.purpose)}</p>
+            </div>
+            <div class="tags">
+              <span class="tag ${tagClass(step.owner)}">${ownerLabel(step.owner)}</span>
+              ${step.type.map(type => `<span class="tag ${type}">${type}</span>`).join("")}
+            </div>
+          </div>
+          <div class="step-body">
+            ${renderCommand(step.commandTitle, step.command)}
+            ${renderCommand(step.secondaryCommandTitle, step.secondaryCommand)}
+            <div class="cols">
+              ${renderList("통과 기준", step.pass, "gate")}
+              ${renderList("중단 조건", step.stop, "stop")}
+            </div>
+            <div class="cols">
+              ${renderList("산출물", step.outputs)}
+              ${renderList("메모", step.notes)}
+            </div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderNav() {
+      const nav = document.getElementById("stepNav");
+      nav.innerHTML = steps.map(step => `
+        <a class="step-link" href="#${step.id}" data-nav="${step.id}">
+          <span class="step-index">${step.number}</span>
+          <span class="step-label">${escapeHtml(step.title)}</span>
+        </a>
+      `).join("");
+    }
+
+    function renderFlow() {
+      const flow = document.getElementById("flowRow");
+      flow.innerHTML = steps.map(step => `
+        <a class="flow-node ${step.owner} ${step.type.includes("gate") ? "gate" : ""}" href="#${step.id}">
+          <span class="n">${step.number}</span>
+          <b>${escapeHtml(step.title)}</b>
+        </a>
+      `).join("");
+    }
+
+    function renderChecklist() {
+      const state = loadState();
+      const box = document.getElementById("operatorChecklist");
+      box.innerHTML = checklistItems.map((item, index) => `
+        <label class="check-row">
+          <input type="checkbox" data-check="${index}" ${state[index] ? "checked" : ""}>
+          <span>${escapeHtml(item)}</span>
+        </label>
+      `).join("");
+      box.addEventListener("change", event => {
+        if (!event.target.matches("[data-check]")) return;
+        const current = loadState();
+        current[event.target.dataset.check] = event.target.checked;
+        saveState(current);
+        updateProgress();
+      });
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const state = loadState();
+      const done = checklistItems.filter((_, index) => state[index]).length;
+      const total = checklistItems.length;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      document.getElementById("progressText").textContent = `${total}개 중 ${done}개 완료`;
+      document.getElementById("progressBar").style.width = `${pct}%`;
+      document.querySelectorAll("[data-nav]").forEach((link, index) => {
+        link.classList.toggle("done", Boolean(state[index]));
+      });
+    }
+
+    function applyFilters() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      const owner = document.getElementById("ownerFilter").value;
+      const type = document.getElementById("typeFilter").value;
+      let visible = 0;
+      document.querySelectorAll(".step-card").forEach(card => {
+        const ownerOk = owner === "all" || card.dataset.owner === owner;
+        const typeOk = type === "all" || card.dataset.type.includes(type);
+        const searchOk = !query || card.dataset.search.includes(query);
+        const show = ownerOk && typeOk && searchOk;
+        card.classList.toggle("hidden", !show);
+        if (show) visible += 1;
+      });
+      document.getElementById("emptyState").style.display = visible ? "none" : "block";
+    }
+
+    function attachHandlers() {
+      document.getElementById("searchInput").addEventListener("input", applyFilters);
+      document.getElementById("ownerFilter").addEventListener("change", applyFilters);
+      document.getElementById("typeFilter").addEventListener("change", applyFilters);
+      document.getElementById("clearFilters").addEventListener("click", () => {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("ownerFilter").value = "all";
+        document.getElementById("typeFilter").value = "all";
+        applyFilters();
+      });
+      document.getElementById("expandAll").addEventListener("click", () => {
+        document.querySelectorAll(".step-body").forEach(body => body.classList.remove("hidden"));
+      });
+      document.getElementById("collapseAll").addEventListener("click", () => {
+        document.querySelectorAll(".step-body").forEach(body => body.classList.add("hidden"));
+      });
+      document.getElementById("resetChecks").addEventListener("click", () => {
+        saveState({});
+        document.querySelectorAll("[data-check]").forEach(input => { input.checked = false; });
+        updateProgress();
+      });
+      document.addEventListener("click", async event => {
+        const button = event.target.closest("[data-copy]");
+        if (!button) return;
+        const text = button.getAttribute("data-copy");
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast("명령어 복사됨");
+        } catch {
+          showToast("클립보드를 사용할 수 없음");
+        }
+      });
+      window.addEventListener("hashchange", setActiveNav);
+      document.addEventListener("scroll", setActiveNav, { passive: true });
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.setTimeout(() => toast.classList.remove("show"), 1400);
+    }
+
+    function setActiveNav() {
+      const hash = window.location.hash.slice(1);
+      document.querySelectorAll("[data-nav]").forEach(link => {
+        link.classList.toggle("active", link.dataset.nav === hash);
+      });
+    }
+
+    renderSteps();
+    renderNav();
+    renderFlow();
+    renderChecklist();
+    attachHandlers();
+    applyFilters();
+    setActiveNav();
+  </script>
+</body>
+</html>

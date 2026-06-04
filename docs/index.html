@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Robot Data Forge 문서 허브</title>
+  <title>Robot Data Forge Docs Hub</title>
   <style>
     :root {
       --bg: #f5f6f8;
       --paper: #ffffff;
-      --ink: #151922;
-      --muted: #66707f;
-      --line: #d9dfe8;
+      --ink: #171d26;
+      --muted: #667085;
+      --line: #d9e0e8;
       --blue: #2459c9;
-      --blue-soft: #e8efff;
-      --green: #16825a;
-      --green-soft: #e5f5ed;
-      --amber: #a86612;
-      --amber-soft: #fff3dd;
-      --slate: #344054;
-      --slate-soft: #eef1f5;
-      --shadow: 0 16px 42px rgba(24, 31, 44, 0.08);
+      --green: #14745f;
+      --amber: #a15c07;
+      --red: #b42318;
+      --blue-soft: #eaf0ff;
+      --green-soft: #e7f4ef;
+      --amber-soft: #fff4df;
+      --red-soft: #fff0ee;
+      --shadow: 0 18px 46px rgba(24, 31, 44, 0.08);
     }
 
     * { box-sizing: border-box; }
@@ -30,6 +30,7 @@
       color: var(--ink);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       letter-spacing: 0;
+      line-height: 1.65;
     }
 
     a {
@@ -41,106 +42,48 @@
     .page {
       width: min(1180px, calc(100% - 36px));
       margin: 0 auto;
-      padding: 30px 0 46px;
+      padding: 30px 0 48px;
     }
 
     .shell {
-      background: var(--paper);
+      overflow: hidden;
       border: 1px solid var(--line);
       border-radius: 8px;
+      background: var(--paper);
       box-shadow: var(--shadow);
-      overflow: hidden;
     }
 
     header {
-      padding: 34px;
+      padding: 36px;
       border-bottom: 1px solid var(--line);
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 280px;
-      gap: 28px;
-      align-items: start;
+      background: #ffffff;
     }
 
     .eyebrow {
       margin: 0 0 10px;
-      color: var(--blue);
+      color: var(--green);
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 820;
       text-transform: uppercase;
     }
 
     h1 {
       margin: 0;
-      max-width: 820px;
-      font-size: clamp(34px, 5vw, 56px);
+      max-width: 860px;
+      font-size: clamp(34px, 5vw, 58px);
       line-height: 1.04;
       letter-spacing: 0;
     }
 
     .lead {
       margin: 18px 0 0;
-      max-width: 860px;
-      color: var(--slate);
-      font-size: 17px;
-      line-height: 1.7;
-    }
-
-    .status-box {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 18px;
-      background: #fbfcfe;
-    }
-
-    .status-box h2 {
-      margin: 0 0 12px;
+      max-width: 880px;
+      color: var(--muted);
       font-size: 16px;
     }
 
-    .status-list {
-      display: grid;
-      gap: 10px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      color: var(--slate);
-      font-size: 14px;
-      line-height: 1.45;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 24px;
-      padding: 3px 9px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      font-size: 12px;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .pill.green {
-      color: var(--green);
-      border-color: #b9e6cf;
-      background: var(--green-soft);
-    }
-
-    .pill.blue {
-      color: var(--blue);
-      border-color: #c6d6ff;
-      background: var(--blue-soft);
-    }
-
-    .pill.amber {
-      color: var(--amber);
-      border-color: #f0d19d;
-      background: var(--amber-soft);
-    }
-
     main {
-      padding: 30px 34px 36px;
+      padding: 32px 36px 40px;
     }
 
     section + section {
@@ -153,7 +96,7 @@
       display: flex;
       align-items: end;
       justify-content: space-between;
-      gap: 20px;
+      gap: 18px;
       margin-bottom: 16px;
     }
 
@@ -163,26 +106,21 @@
       letter-spacing: 0;
     }
 
-    .section-note {
+    .note {
       margin: 8px 0 0;
       max-width: 760px;
       color: var(--muted);
       font-size: 14px;
-      line-height: 1.65;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 14px;
     }
 
-    .grid.two {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .card {
-      min-height: 172px;
+      min-height: 184px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -193,32 +131,36 @@
       background: #ffffff;
     }
 
-    .card.primary {
-      border-color: #c6d6ff;
-      background: #fbfdff;
-    }
-
     .card h3 {
       margin: 0;
       font-size: 17px;
       line-height: 1.35;
+      letter-spacing: 0;
     }
 
     .card p {
       margin: 8px 0 0;
       color: var(--muted);
       font-size: 14px;
-      line-height: 1.58;
     }
 
-    .meta {
-      display: flex;
+    .pill {
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      color: var(--muted);
-      font-size: 13px;
+      width: fit-content;
+      min-height: 24px;
+      padding: 3px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 820;
+      white-space: nowrap;
     }
+
+    .green { color: var(--green); border-color: #b8dfd0; background: var(--green-soft); }
+    .blue { color: var(--blue); border-color: #c7d6ff; background: var(--blue-soft); }
+    .amber { color: var(--amber); border-color: #ebca95; background: var(--amber-soft); }
+    .red { color: var(--red); border-color: #f1b8b2; background: var(--red-soft); }
 
     .doc-list {
       display: grid;
@@ -229,104 +171,47 @@
       list-style: none;
     }
 
-    .doc-link {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
+    .doc-list a {
+      display: block;
       min-height: 58px;
+      padding: 12px 14px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 12px 14px;
       background: #ffffff;
       color: var(--ink);
       text-decoration: none;
     }
 
-    .doc-link strong {
+    .doc-list strong {
       display: block;
       font-size: 14px;
-      line-height: 1.35;
     }
 
-    .doc-link span {
+    .doc-list span {
       display: block;
       margin-top: 3px;
       color: var(--muted);
       font-size: 12px;
-      line-height: 1.35;
-    }
-
-    .arrow {
-      flex: 0 0 auto;
-      color: var(--blue);
-      font-weight: 900;
-    }
-
-    .roadmap {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .step {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 16px;
-      background: #ffffff;
-    }
-
-    .step strong {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
-
-    .step p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.55;
     }
 
     footer {
-      padding: 22px 34px;
+      padding: 22px 36px;
       border-top: 1px solid var(--line);
       color: var(--muted);
       font-size: 13px;
-      line-height: 1.6;
       background: #fbfcfe;
     }
 
-    @media (max-width: 900px) {
-      header {
-        grid-template-columns: 1fr;
-      }
-
-      .grid,
-      .grid.two,
-      .doc-list,
-      .roadmap {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .doc-list { grid-template-columns: 1fr; }
     }
 
-    @media (max-width: 560px) {
-      .page {
-        width: min(100% - 22px, 1180px);
-        padding: 18px 0 32px;
-      }
-
-      header,
-      main,
-      footer {
-        padding-left: 20px;
-        padding-right: 20px;
-      }
-
-      .section-head {
-        display: block;
-      }
+    @media (max-width: 620px) {
+      .page { width: min(100% - 22px, 1180px); padding: 18px 0 32px; }
+      header, main, footer { padding-left: 20px; padding-right: 20px; }
+      .grid { grid-template-columns: 1fr; }
+      .section-head { display: block; }
     }
   </style>
 </head>
@@ -334,186 +219,83 @@
   <div class="page">
     <div class="shell">
       <header>
-        <div>
-          <p class="eyebrow">Robot Data Forge Documentation</p>
-          <h1>XR teleoperation trajectory를 학습 후보 dataset artifact로 만드는 문서 허브</h1>
-          <p class="lead">
-            Robot Data Forge는 VLA나 World Foundation Model을 직접 만드는 프로젝트가 아니다.
-            RDF는 downstream BC, RL, VLA, WFM 시스템이 학습할 수 있는 replay-verified,
-            action-labelled, task-validated XR teleoperation dataset을 만드는 데이터 인프라다.
-          </p>
-        </div>
-        <aside class="status-box" aria-label="Project status">
-          <h2>현재 proof split</h2>
-          <ul class="status-list">
-            <li><span class="pill green">MVP-1 PASS</span> learning-ready dataset artifact</li>
-            <li><span class="pill amber">MVP-2 NEXT</span> learning-proven downstream value</li>
-            <li><span class="pill blue">CLAIM BOUNDARY</span> policy uplift는 아직 주장하지 않음</li>
-          </ul>
-        </aside>
+        <p class="eyebrow">Robot Data Forge Documentation</p>
+        <h1>Buyer trust first, developer detail second</h1>
+        <p class="lead">
+          This hub routes readers by purpose. Buyer-facing pages explain what RDF proves and what it does not claim.
+          Developer pages preserve contracts, validation commands, worklogs, and research references. HMD/Gate 0 material
+          is retained as experimental adapter history, not the current product entry point.
+        </p>
       </header>
 
       <main>
-        <section aria-labelledby="featured-reports">
+        <section aria-labelledby="sections">
           <div class="section-head">
             <div>
-              <h2 id="featured-reports">주요 보고서</h2>
-              <p class="section-note">
-                공개 포트폴리오에서 먼저 보여줄 문서들이다. MVP-1은 learning-ready pipeline proof,
-                MVP-2는 learning-proven proof strategy로 분리되어 있다.
-              </p>
+              <h2 id="sections">Audience sections</h2>
+              <p class="note">Start with Buyer if you are evaluating the project. Start with Developer if you are maintaining or extending it.</p>
             </div>
+            <a href="../index.html">Root portal</a>
           </div>
+
           <div class="grid">
-            <article class="card primary">
+            <article class="card">
               <div>
-                <h3><a href="RDF_MVP1_MVP2_DETAILED_REPORT_KO.html">MVP-1/MVP-2 상세 보고서</a></h3>
-                <p>프로젝트 목적, proof gate, 결과, 한계, 다음 단계를 한국어 보고서 형태로 정리한 메인 문서.</p>
+                <span class="pill green">Buyer</span>
+                <h3><a href="buyer/index.html">Buyer docs</a></h3>
+                <p>Data trust layer story, proof summary, limitations, and LinkedIn narrative flow.</p>
               </div>
-              <div class="meta"><span class="pill blue">Detailed</span><span>HTML</span></div>
+              <a href="buyer/data_trust_layer_reset.html">Recommended first read</a>
             </article>
-            <article class="card primary">
+
+            <article class="card">
               <div>
-                <h3><a href="MVP1_VALIDATED_DATASET_PIPELINE_RESULT.html">MVP-1 Validated Dataset Pipeline Result</a></h3>
-                <p>raw XR trajectory가 validated, curated, trainer-loadable artifact가 되는 과정을 한눈에 보는 결과 요약.</p>
+                <span class="pill blue">Developer</span>
+                <h3><a href="developer/index.html">Developer docs</a></h3>
+                <p>API, schema, export, validation, debugging, worklog, project instructions, and papers.</p>
               </div>
-              <div class="meta"><span class="pill green">MVP-1</span><span>HTML</span></div>
+              <a href="developer/project_instructions.md">Project instructions</a>
             </article>
-            <article class="card primary">
+
+            <article class="card">
               <div>
-                <h3><a href="MVP2_LEARNING_PROVEN_PROOF_STRATEGY_KO.html">MVP-2 Learning-Proven Proof Strategy</a></h3>
-                <p>curated vs uncurated policy uplift를 성급히 주장하지 않고 단계적으로 검증하는 전략 문서.</p>
+                <span class="pill amber">Experiment</span>
+                <h3><a href="experiments/hmd/index.html">HMD / Gate 0</a></h3>
+                <p>Quest/OpenXR/HMD adapter history, input truth, XR UI, and raw wrist lessons.</p>
               </div>
-              <div class="meta"><span class="pill amber">MVP-2</span><span>HTML</span></div>
+              <a href="experiments/hmd/hmd_input_structural_analysis_2026_06_03.html">Read structural analysis</a>
+            </article>
+
+            <article class="card">
+              <div>
+                <span class="pill red">Archive</span>
+                <h3><a href="archive/index.html">Archive</a></h3>
+                <p>Older MVP dashboards, plans, release notes, and historical project material.</p>
+              </div>
+              <a href="archive/index.html">Browse archive</a>
             </article>
           </div>
         </section>
 
-        <section aria-labelledby="technical-docs">
+        <section aria-labelledby="quick-links">
           <div class="section-head">
             <div>
-              <h2 id="technical-docs">기술 문서</h2>
-              <p class="section-note">
-                API, schema, export, task spec, validation workflow를 정의한 문서들이다.
-                Markdown 문서는 GitHub 원문으로 연결한다.
-              </p>
+              <h2 id="quick-links">Quick links</h2>
+              <p class="note">Current-facing documents that define the reset claim boundary and proof path.</p>
             </div>
-            <a href="https://github.com/FrogRim/ForgeXR/tree/main/docs">docs 디렉터리 보기</a>
           </div>
           <ul class="doc-list">
-            <li>
-              <a class="doc-link" href="https://github.com/FrogRim/ForgeXR/blob/main/docs/MVP1_TASK_SPEC.md">
-                <span><strong>MVP1_TASK_SPEC.md</strong><span>task goal, progress, efficiency, transition coverage 기준</span></span>
-                <span class="arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a class="doc-link" href="https://github.com/FrogRim/ForgeXR/blob/main/docs/API_SPEC.md">
-                <span><strong>API_SPEC.md</strong><span>episode, trajectory, evaluation, dataset API 계약</span></span>
-                <span class="arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a class="doc-link" href="https://github.com/FrogRim/ForgeXR/blob/main/docs/DATA_SCHEMA.md">
-                <span><strong>DATA_SCHEMA.md</strong><span>raw trajectory, task state, quality, curation schema</span></span>
-                <span class="arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a class="doc-link" href="https://github.com/FrogRim/ForgeXR/blob/main/docs/EXPORT_FORMAT.md">
-                <span><strong>EXPORT_FORMAT.md</strong><span>HDF5/export artifact 구조와 trainer loader 계약</span></span>
-                <span class="arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a class="doc-link" href="https://github.com/FrogRim/ForgeXR/blob/main/docs/LIVE_VALIDATION_CHECKLIST.md">
-                <span><strong>LIVE_VALIDATION_CHECKLIST.md</strong><span>XR/Isaac live collection 검증 checklist</span></span>
-                <span class="arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a class="doc-link" href="https://github.com/FrogRim/ForgeXR/blob/main/docs/DEBUGGING_GUIDE.md">
-                <span><strong>DEBUGGING_GUIDE.md</strong><span>로컬 API, XR, dataset pipeline 디버깅 가이드</span></span>
-                <span class="arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a class="doc-link" href="https://github.com/FrogRim/ForgeXR/blob/main/docs/DEMO_SCRIPT.md">
-                <span><strong>DEMO_SCRIPT.md</strong><span>portfolio/demo 설명 흐름</span></span>
-                <span class="arrow">→</span>
-              </a>
-            </li>
-            <li>
-              <a class="doc-link" href="https://github.com/FrogRim/ForgeXR/blob/main/docs/ROBOT_DATA_FORGE_PROJECT_INSTRUCTIONS.md">
-                <span><strong>PROJECT_INSTRUCTIONS.md</strong><span>RDF product boundary와 운영 원칙</span></span>
-                <span class="arrow">→</span>
-              </a>
-            </li>
+            <li><a href="buyer/data_trust_layer_reset.html"><strong>Data trust layer reset</strong><span>How LinkedIn MVP-1/Gate 0 lessons became the HMD-free proof reset.</span></a></li>
+            <li><a href="developer/hmd_free_test_execution_guide.html"><strong>HMD-free test execution</strong><span>Which tests replace the old OpenXR/ALVR/SteamVR-first workflow.</span></a></li>
+            <li><a href="buyer/social_narrative.md"><strong>LinkedIn narrative capture</strong><span>Public story flow and positioning notes.</span></a></li>
+            <li><a href="developer/worklog.md"><strong>Worklog</strong><span>Implementation history and verification evidence.</span></a></li>
+            <li><a href="developer/papers/README.md"><strong>Papers</strong><span>Research reference map for robot data, teleoperation, and dataset tooling.</span></a></li>
           </ul>
-        </section>
-
-        <section aria-labelledby="pipeline">
-          <div class="section-head">
-            <div>
-              <h2 id="pipeline">MVP-1 pipeline evidence</h2>
-              <p class="section-note">
-                MVP-1 완료 조건은 policy uplift가 아니라 validated dataset pipeline이다.
-                raw evidence는 보존하고, training eligibility는 별도 gate로 승격한다.
-              </p>
-            </div>
-          </div>
-          <div class="roadmap">
-            <div class="step">
-              <strong>1. Store raw</strong>
-              <p>XR/HMD teleoperation trajectory를 관대하게 저장하고 raw evidence를 보존한다.</p>
-            </div>
-            <div class="step">
-              <strong>2. Evaluate</strong>
-              <p>task_state, task outcome, data quality, operator/evaluator success를 분리한다.</p>
-            </div>
-            <div class="step">
-              <strong>3. Gate</strong>
-              <p>replay/action contract와 curation reason을 기록하고 accepted/rejected manifest를 만든다.</p>
-            </div>
-            <div class="step">
-              <strong>4. Export</strong>
-              <p>HDF5 export와 trainer smoke를 통과한 learning-ready dataset artifact로 만든다.</p>
-            </div>
-          </div>
-        </section>
-
-        <section aria-labelledby="future-docs">
-          <div class="section-head">
-            <div>
-              <h2 id="future-docs">추가될 문서 흐름</h2>
-              <p class="section-note">
-                앞으로 문서가 늘어나면 이 허브에서 보고서, 기술 명세, 실험 결과, 공개 글감을 분리해서 연결한다.
-                MVP-2 결과는 positive/negative 여부와 관계없이 learning-proven evidence로 별도 축적한다.
-              </p>
-            </div>
-          </div>
-          <div class="grid two">
-            <article class="card">
-              <div>
-                <h3>MVP-2 evidence reports</h3>
-                <p>transition-rich accepted dataset, stronger policy/trainer, held-out A/B, curation ablation 결과를 추가한다.</p>
-              </div>
-              <div class="meta"><span class="pill amber">Future</span><span>Learning-proven</span></div>
-            </article>
-            <article class="card">
-              <div>
-                <h3>Public writing kit</h3>
-                <p>GitHub README, LinkedIn 글, X thread, 기술 deep dive, 실패/다음 단계 회고를 분리해서 관리한다.</p>
-              </div>
-              <div class="meta"><span class="pill blue">Future</span><span>Portfolio</span></div>
-            </article>
-          </div>
         </section>
       </main>
 
       <footer>
-        <strong>Robot Data Forge</strong> · replay-verified, action-labelled, task-validated XR teleoperation dataset infrastructure.
-        Repository: <a href="https://github.com/FrogRim/ForgeXR">github.com/FrogRim/ForgeXR</a>.
+        Claim boundary: no HMD readiness, no Gate A collection readiness, no physical collection readiness, and no MVP-1 policy uplift claim.
       </footer>
     </div>
   </div>

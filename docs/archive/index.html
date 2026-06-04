@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Data Forge Archive</title>
+  <style>
+    :root { --bg:#f5f6f8; --paper:#fff; --ink:#171d26; --muted:#667085; --line:#d9e0e8; --blue:#2459c9; --red:#b42318; --shadow:0 18px 46px rgba(24,31,44,.08); }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.65; letter-spacing:0; }
+    a { color:var(--blue); text-decoration-thickness:1px; text-underline-offset:3px; }
+    .page { width:min(1060px,calc(100% - 36px)); margin:0 auto; padding:30px 0 48px; }
+    .shell { overflow:hidden; border:1px solid var(--line); border-radius:8px; background:var(--paper); box-shadow:var(--shadow); }
+    header, main, footer { padding:32px 36px; }
+    header { border-bottom:1px solid var(--line); }
+    .eyebrow { margin:0 0 10px; color:var(--red); font-size:13px; font-weight:820; text-transform:uppercase; }
+    h1 { margin:0; font-size:clamp(32px,5vw,54px); line-height:1.04; letter-spacing:0; }
+    .lead { margin:18px 0 0; max-width:860px; color:var(--muted); }
+    .list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:0; padding:0; list-style:none; }
+    .list a { display:block; min-height:58px; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); text-decoration:none; }
+    .list strong { display:block; font-size:14px; }
+    .list span { display:block; margin-top:4px; color:var(--muted); font-size:12px; }
+    footer { border-top:1px solid var(--line); color:var(--muted); font-size:13px; background:#fbfcfe; }
+    @media (max-width:760px){ .list{grid-template-columns:1fr;} }
+    @media (max-width:620px){ .page{width:min(100% - 22px,1060px);padding:18px 0 32px;} header,main,footer{padding-left:20px;padding-right:20px;} }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="shell">
+      <header>
+        <p class="eyebrow">Archive</p>
+        <h1>Historical MVP, planning, and release materials</h1>
+        <p class="lead">These files are preserved for context. They are not the current first-read path for buyers or new developers.</p>
+      </header>
+      <main>
+        <ul class="list">
+          <li><a href="mvp0_smoke_validation_report.md"><strong>MVP-0 smoke validation report</strong><span>Older smoke validation record.</span></a></li>
+          <li><a href="mvp_completion_plan.md"><strong>MVP completion plan</strong><span>Historical MVP planning notes.</span></a></li>
+          <li><a href="mvp_progress_overview.html"><strong>MVP progress overview</strong><span>Older progress report.</span></a></li>
+          <li><a href="mvp1_status_dashboard.html"><strong>MVP-1 status dashboard</strong><span>Historical status dashboard.</span></a></li>
+          <li><a href="mvp1c_full_proof_execution_guide.html"><strong>MVP-1C full proof guide</strong><span>Historical full proof execution guide.</span></a></li>
+          <li><a href="mvp1c_full_proof_execution_guide.md"><strong>MVP-1C full proof guide markdown</strong><span>Markdown source for the historical guide.</span></a></li>
+          <li><a href="robot_data_forge_mvp.md"><strong>Robot Data Forge MVP</strong><span>Older MVP framing.</span></a></li>
+          <li><a href="frontend_plan.md"><strong>Frontend plan</strong><span>Historical frontend planning notes.</span></a></li>
+          <li><a href="next_issues.md"><strong>Next issues</strong><span>Historical issue planning notes.</span></a></li>
+          <li><a href="data_collection_log.md"><strong>Data collection log</strong><span>Historical collection notes.</span></a></li>
+          <li><a href="github_release_checklist.md"><strong>GitHub release checklist</strong><span>Historical release checklist.</span></a></li>
+        </ul>
+      </main>
+      <footer><a href="../index.html">Docs hub</a> · <a href="../../index.html">Root portal</a></footer>
+    </div>
+  </div>
+</body>
+</html>

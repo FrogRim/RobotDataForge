@@ -18,7 +18,7 @@ from urllib.request import Request, urlopen
 API_ROOT = Path(__file__).resolve().parents[1] / "apps" / "api"
 sys.path.insert(0, str(API_ROOT))
 
-from app.adapters import MockSimAdapter, select_collection_adapter
+from app.adapters import MockSimAdapter, select_collection_adapter  # noqa: E402
 
 
 def post_json(api_base: str, path: str, payload: dict) -> dict:

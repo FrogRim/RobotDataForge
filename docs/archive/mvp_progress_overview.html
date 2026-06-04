@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Data Forge MVP 진행 현황 한눈에 보기</title>
+  <style>
+    :root {
+      --ink: #101720;
+      --paper: #fffaf0;
+      --paper-strong: #fff4d5;
+      --navy: #0d2338;
+      --navy-2: #153554;
+      --steel: #496273;
+      --line: rgba(13, 35, 56, 0.18);
+      --muted: #63737f;
+      --cyan: #18b8c9;
+      --cyan-soft: #e4fbfd;
+      --green: #16825a;
+      --green-soft: #e8f7ef;
+      --amber: #b66500;
+      --amber-soft: #fff0d8;
+      --red: #c63d2f;
+      --red-soft: #ffe7e3;
+      --violet: #6b54d8;
+      --shadow: 0 22px 70px rgba(13, 35, 56, 0.16);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 9% 8%, rgba(24, 184, 201, 0.24), transparent 30rem),
+        radial-gradient(circle at 88% 1%, rgba(255, 176, 65, 0.30), transparent 28rem),
+        linear-gradient(135deg, #10253b 0%, #1c3854 43%, #0d2338 100%);
+      font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
+      line-height: 1.65;
+    }
+
+    a { color: inherit; }
+
+    .blueprint {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.26;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+      background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+    }
+
+    .page {
+      position: relative;
+      width: min(1240px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 54px;
+    }
+
+    .shell {
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.36);
+      border-radius: 32px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    header.hero {
+      position: relative;
+      isolation: isolate;
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.88fr);
+      gap: 28px;
+      padding: clamp(28px, 5vw, 56px);
+      color: #f8fbff;
+      background:
+        linear-gradient(120deg, rgba(13, 35, 56, 0.96), rgba(18, 66, 88, 0.93)),
+        radial-gradient(circle at 80% 22%, rgba(24, 184, 201, 0.45), transparent 24rem);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background-image:
+        linear-gradient(135deg, transparent 0 48%, rgba(255,255,255,0.08) 48% 50%, transparent 50% 100%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 18px);
+      mix-blend-mode: screen;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 18px;
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 999px;
+      color: #bff8ff;
+      background: rgba(255,255,255,0.08);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 780px;
+      font-size: clamp(38px, 7vw, 78px);
+      line-height: 0.98;
+      letter-spacing: -0.05em;
+    }
+
+    .hero-lead {
+      margin: 24px 0 0;
+      max-width: 760px;
+      color: rgba(248, 251, 255, 0.88);
+      font-size: clamp(17px, 2.3vw, 22px);
+      line-height: 1.72;
+      word-break: keep-all;
+    }
+
+    .hero-lead strong { color: #ffffff; }
+
+    .hero-card {
+      align-self: stretch;
+      display: grid;
+      gap: 16px;
+    }
+
+    .current-box {
+      border: 1px solid rgba(255,255,255,0.26);
+      border-radius: var(--radius);
+      padding: 20px;
+      background: rgba(255,255,255,0.10);
+      backdrop-filter: blur(12px);
+    }
+
+    .current-box h2 {
+      margin: 0 0 12px;
+      color: #ffffff;
+      font-size: 18px;
+    }
+
+    .fact-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .fact-list li {
+      display: grid;
+      grid-template-columns: 112px 1fr;
+      gap: 10px;
+      color: rgba(248, 251, 255, 0.88);
+      font-size: 14px;
+    }
+
+    .fact-list b {
+      color: #ffffff;
+      font-weight: 900;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 26px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 10px 15px;
+      border: 1px solid rgba(255,255,255,0.30);
+      border-radius: 999px;
+      color: #f8fbff;
+      background: rgba(255,255,255,0.12);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 800;
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .button:hover { transform: translateY(-2px); background: rgba(255,255,255,0.18); }
+
+    main { padding: clamp(24px, 4vw, 44px); }
+
+    section + section {
+      margin-top: 34px;
+      padding-top: 34px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-kicker {
+      margin: 0 0 8px;
+      color: var(--cyan);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0;
+      color: var(--navy);
+      font-size: clamp(26px, 3.6vw, 42px);
+      line-height: 1.12;
+      letter-spacing: -0.035em;
+    }
+
+    .section-note {
+      max-width: 900px;
+      margin: 12px 0 0;
+      color: var(--steel);
+      font-size: 16px;
+      word-break: keep-all;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .pill.green { color: var(--green); border-color: rgba(22,130,90,.28); background: var(--green-soft); }
+    .pill.amber { color: var(--amber); border-color: rgba(182,101,0,.28); background: var(--amber-soft); }
+    .pill.red { color: var(--red); border-color: rgba(198,61,47,.28); background: var(--red-soft); }
+    .pill.cyan { color: #057887; border-color: rgba(24,184,201,.30); background: var(--cyan-soft); }
+    .pill.violet { color: var(--violet); border-color: rgba(107,84,216,.30); background: #eeeafd; }
+    .pill.dark { color: #f8fbff; border-color: rgba(255,255,255,.20); background: var(--navy); }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 22px;
+    }
+
+    .stage-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 260px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      background: #fffdf8;
+    }
+
+    .stage-card::before {
+      content: attr(data-step);
+      position: absolute;
+      right: 16px;
+      top: 6px;
+      color: rgba(13, 35, 56, 0.08);
+      font-size: 86px;
+      line-height: 1;
+      font-weight: 1000;
+      letter-spacing: -0.08em;
+    }
+
+    .stage-card h3 {
+      position: relative;
+      margin: 14px 0 8px;
+      color: var(--navy);
+      font-size: 22px;
+      line-height: 1.18;
+      letter-spacing: -0.02em;
+    }
+
+    .stage-card p {
+      position: relative;
+      margin: 0;
+      color: var(--steel);
+      font-size: 15px;
+      word-break: keep-all;
+    }
+
+    .progress {
+      position: relative;
+      height: 14px;
+      margin-top: 20px;
+      overflow: hidden;
+      border-radius: 999px;
+      border: 1px solid rgba(13,35,56,.12);
+      background: rgba(13,35,56,.08);
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      width: var(--value);
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--cyan));
+    }
+
+    .progress.amber > span { background: linear-gradient(90deg, #d48a1f, #f2bd5c); }
+    .progress.red > span { background: linear-gradient(90deg, var(--red), #ff897b); }
+
+    .card-list {
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 9px;
+      color: var(--steel);
+      font-size: 14px;
+    }
+
+    .card-list li {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 8px;
+    }
+
+    .signal-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .big-signal {
+      position: relative;
+      border-radius: 28px;
+      padding: 24px;
+      color: #fff;
+      background: linear-gradient(135deg, #7b2019, #c63d2f 58%, #ed7b51);
+      box-shadow: 0 20px 50px rgba(198, 61, 47, 0.22);
+    }
+
+    .big-signal h3 {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 4vw, 40px);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+
+    .big-signal p {
+      margin: 0;
+      max-width: 800px;
+      color: rgba(255,255,255,0.90);
+      word-break: keep-all;
+    }
+
+    .metric-wall {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: #fffdf8;
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--navy);
+      font-size: 28px;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 148px minmax(0, 1fr) 170px;
+      gap: 16px;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: #fffdf8;
+    }
+
+    .time-label {
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      color: #fff;
+      background: var(--navy);
+      font-size: 15px;
+      font-weight: 1000;
+      text-align: center;
+    }
+
+    .timeline-item h3 {
+      margin: 0 0 6px;
+      color: var(--navy);
+      font-size: 20px;
+      line-height: 1.22;
+    }
+
+    .timeline-item p { margin: 0; color: var(--steel); word-break: keep-all; }
+
+    .columns {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 22px;
+    }
+
+    .column-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+      background: #fffdf8;
+    }
+
+    .column-card h3 {
+      margin: 0 0 12px;
+      color: var(--navy);
+      font-size: 20px;
+    }
+
+    .plain-list {
+      margin: 0;
+      padding-left: 1.1rem;
+      color: var(--steel);
+      font-size: 15px;
+    }
+
+    .plain-list li + li { margin-top: 8px; }
+
+    .priority {
+      display: grid;
+      gap: 12px;
+      margin-top: 22px;
+      counter-reset: nextstep;
+    }
+
+    .priority-item {
+      counter-increment: nextstep;
+      display: grid;
+      grid-template-columns: 54px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: #fffdf8;
+    }
+
+    .priority-item::before {
+      content: counter(nextstep);
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      color: #fff;
+      background: var(--navy);
+      font-weight: 1000;
+      font-size: 20px;
+    }
+
+    .priority-item h3 { margin: 0 0 4px; color: var(--navy); font-size: 18px; }
+    .priority-item p { margin: 0; color: var(--steel); }
+
+    .analogy-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .analogy {
+      min-height: 160px;
+      border-radius: 22px;
+      padding: 18px;
+      color: var(--navy);
+      background: linear-gradient(180deg, #fffef9, #fff2ce);
+      border: 1px solid rgba(182,101,0,.20);
+    }
+
+    .analogy .emoji { font-size: 34px; line-height: 1; }
+    .analogy h3 { margin: 12px 0 6px; font-size: 18px; line-height: 1.15; }
+    .analogy p { margin: 0; color: var(--steel); font-size: 14px; }
+
+    details {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fffdf8;
+    }
+
+    summary {
+      cursor: pointer;
+      padding: 17px 20px;
+      color: var(--navy);
+      font-weight: 1000;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 0;
+      padding: 0 20px 20px;
+      color: #e9fbff;
+      background: transparent;
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    .command-box {
+      border-radius: 18px;
+      padding: 16px;
+      background: #0a1a2b;
+      white-space: pre;
+    }
+
+    .callout {
+      margin-top: 22px;
+      border: 1px solid rgba(198,61,47,.25);
+      border-radius: 22px;
+      padding: 20px;
+      background: var(--red-soft);
+      color: #5a1b15;
+      word-break: keep-all;
+    }
+
+    .callout strong { color: #39100d; }
+
+    footer {
+      padding: 24px clamp(24px, 4vw, 44px) 34px;
+      color: rgba(255,255,255,.80);
+      background: var(--navy);
+      font-size: 14px;
+    }
+
+    footer a { color: #bff8ff; }
+
+
+
+    .product-map {
+      display: grid;
+      grid-template-columns: 1fr 56px 1fr 56px 1fr;
+      gap: 12px;
+      align-items: stretch;
+      margin-top: 22px;
+    }
+
+    .product-node {
+      position: relative;
+      overflow: hidden;
+      min-height: 220px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 20px;
+      background:
+        linear-gradient(180deg, #fffef9, #fff7df),
+        radial-gradient(circle at 95% 8%, rgba(24,184,201,.18), transparent 16rem);
+    }
+
+    .product-node::after {
+      content: attr(data-icon);
+      position: absolute;
+      right: 14px;
+      bottom: -18px;
+      color: rgba(13,35,56,.08);
+      font-size: 96px;
+      line-height: 1;
+    }
+
+    .product-node h3 {
+      position: relative;
+      margin: 12px 0 8px;
+      color: var(--navy);
+      font-size: 21px;
+      line-height: 1.16;
+    }
+
+    .product-node p {
+      position: relative;
+      margin: 0;
+      color: var(--steel);
+      font-size: 15px;
+      word-break: keep-all;
+    }
+
+    .flow-arrow {
+      display: grid;
+      place-items: center;
+      color: var(--cyan);
+      font-size: 34px;
+      font-weight: 1000;
+    }
+
+    .release-ladder {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .release-step {
+      border: 1px dashed rgba(13,35,56,.28);
+      border-radius: 20px;
+      padding: 18px;
+      background: rgba(255,255,255,.48);
+    }
+
+    .release-step h3 {
+      margin: 10px 0 6px;
+      color: var(--navy);
+      font-size: 18px;
+      line-height: 1.22;
+    }
+
+    .release-step p { margin: 0; color: var(--steel); font-size: 14px; word-break: keep-all; }
+
+    @media (max-width: 980px) {
+      header.hero,
+      .signal-grid,
+      .columns,
+      .overview-grid,
+      .analogy-grid,
+      .product-map,
+      .release-ladder {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline-item {
+        grid-template-columns: 1fr;
+      }
+
+      .time-label { min-height: 56px; }
+      .flow-arrow { transform: rotate(90deg); min-height: 42px; }
+    }
+
+    @media (max-width: 620px) {
+      .page { width: min(100% - 18px, 1240px); padding-top: 14px; }
+      .shell { border-radius: 22px; }
+      .fact-list li { grid-template-columns: 1fr; gap: 2px; }
+      .metric-wall { grid-template-columns: 1fr; }
+      .priority-item { grid-template-columns: 1fr; }
+      .hero-actions .button { width: 100%; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .blueprint, .hero-actions { display: none; }
+      .page { width: 100%; padding: 0; }
+      .shell { border: 0; box-shadow: none; border-radius: 0; }
+      header.hero { color: var(--ink); background: #fff; border-bottom: 2px solid var(--ink); }
+      .current-box { color: var(--ink); background: #fff; border-color: #bbb; }
+      .fact-list li, .current-box h2 { color: var(--ink); }
+      footer { color: var(--ink); background: #fff; border-top: 1px solid #bbb; }
+    }
+  </style>
+</head>
+<body>
+  <div class="blueprint" aria-hidden="true"></div>
+  <div class="page">
+    <div class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Robot Data Forge · MVP 진행판 · 2026-05-28</p>
+          <h1>MVP 완성까지 어디까지 왔나?</h1>
+          <p class="hero-lead">
+            Robot Data Forge는 <strong>로봇이 배울 수 있는 “좋은 조작 데이터”를 만드는 공장</strong>이다.
+            지금은 데이터 저장과 검수 공장은 많이 완성됐고, 다음 큰 숙제는
+            <strong>Quest 3 손추적이 끊기지 않게 안정화</strong>해서 학습 가치까지 증명하는 것이다.
+          </p>
+          <div class="hero-actions" aria-label="빠른 이동">
+            <a class="button" href="#status">현재 상태 보기</a>
+            <a class="button" href="#final-product">최종 제품 그림</a>
+            <a class="button" href="../experiments/hmd/mvp_teleop_input_stream_research.html">입력 신호 리서치</a>
+            <a class="button" href="../experiments/hmd/mvp_pre_hmd_step1_input_gates.html">HMD 전 Step 1</a>
+            <a class="button" href="#remaining">남은 일 보기</a>
+            <a class="button" href="#commands">검증 명령 보기</a>
+          </div>
+        </div>
+        <aside class="hero-card" aria-label="현재 핵심 상태">
+          <div class="current-box">
+            <h2>오늘의 한 줄 결론</h2>
+            <ul class="fact-list">
+              <li><b>공장</b><span>trajectory 저장·평가·curation·export 흐름은 동작한다.</span></li>
+              <li><b>현재 막힘</b><span>손추적 loss/spike 때문에 로봇이 계속 멈추거나 다시 기준점을 잡는다.</span></li>
+              <li><b>금지</b><span>이 상태에서는 Gate A 수집과 axis/gain 튜닝을 재개하지 않는다.</span></li>
+            </ul>
+          </div>
+          <div class="current-box">
+            <h2>최신 실기기 run 증거</h2>
+            <ul class="fact-list">
+              <li><b>trajectory</b><span><code>traj_b804823e845a</code>, 180 frames 저장</span></li>
+              <li><b>평가</b><span><code>failure_reason=TRACKING_LOSS</code></span></li>
+              <li><b>손추적</b><span><code>right_hand_tracked_rate=57.8%</code>, <code>xr_frame_valid_rate=55.6%</code></span></li>
+            </ul>
+          </div>
+        </aside>
+      </header>
+
+      <main>
+        <section id="quick" aria-labelledby="quick-title">
+          <p class="section-kicker">Quick map</p>
+          <h2 id="quick-title">큰 그림: 3단계 중 2단계는 닫혔고, 마지막은 “학습 가치 증명”이다</h2>
+          <p class="section-note">
+            색깔은 신호등처럼 보면 된다. 초록은 증거가 있는 완료, 노랑은 진행 중,
+            빨강은 지금 바로 해결해야 하는 막힘이다.
+          </p>
+          <div class="legend" aria-label="상태 범례">
+            <span class="pill green">완료</span>
+            <span class="pill amber">진행 중</span>
+            <span class="pill red">현재 blocker</span>
+            <span class="pill cyan">검증 증거 있음</span>
+          </div>
+
+          <div class="overview-grid">
+            <article class="stage-card" data-step="0">
+              <span class="pill green">MVP-0 완료</span>
+              <h3>기술 파이프라인 증명</h3>
+              <p>Quest/OpenXR/Isaac Lab에서 데이터를 받고, episode와 trajectory를 저장하고, 기본 평가와 export까지 닫았다.</p>
+              <div class="progress" style="--value:100%"><span></span></div>
+              <ul class="card-list">
+                <li><span>✅</span><span>IsaacLabAdapter primary path 유지</span></li>
+                <li><span>✅</span><span>MockSimAdapter는 fallback/debug로 분리</span></li>
+                <li><span>✅</span><span>runtime metadata와 source metadata 저장</span></li>
+              </ul>
+            </article>
+
+            <article class="stage-card" data-step="1">
+              <span class="pill green">MVP-1 pipeline 완료</span>
+              <h3>Learning-ready dataset artifact</h3>
+              <p>raw XR trajectory, task_state, evaluator, curator, HDF5/export, trainer smoke 흐름이 준비됐다. Camera-conditioning은 별도 readiness gate로 다룬다.</p>
+              <div class="progress" style="--value:100%"><span></span></div>
+              <ul class="card-list">
+                <li><span>✅</span><span>task success와 data quality를 분리</span></li>
+                <li><span>✅</span><span>accepted/rejected reason을 manifest로 남김</span></li>
+                <li><span>⚠️</span><span>새 physical run은 품질 gate를 다시 통과해야 함</span></li>
+              </ul>
+            </article>
+
+            <article class="stage-card" data-step="2">
+              <span class="pill amber">MVP-2 진행 중</span>
+              <h3>Learning-proven downstream value</h3>
+              <p>데이터가 진짜 학습에 도움이 되는지, curated dataset이 uncurated보다 나은지 증명하는 단계다.</p>
+              <div class="progress amber" style="--value:35%"><span></span></div>
+              <ul class="card-list">
+                <li><span>✅</span><span>phase-conditional curation gate 설계/구현</span></li>
+                <li><span>✅</span><span>첫 Gate A pass episode 확보 이력</span></li>
+                <li><span>⛔</span><span>현재는 handtracking loss 과다로 수집 중단</span></li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+
+
+        <section id="final-product" aria-labelledby="final-product-title">
+          <p class="section-kicker">Final product direction</p>
+          <h2 id="final-product-title">최종 목표: 데이터 공장 + HMD 유저가 쓰는 Collector App/Web</h2>
+          <p class="section-note">
+            맞다. RDF가 진짜 제품이 되려면 내부 실험 코드에서 끝나면 안 된다. 최종적으로는 HMD 기기를 가진 사람이
+            복잡한 terminal 명령을 몰라도 task를 수행하고, 그 데이터가 자동 검수되어 공장으로 들어오는 구조가 필요하다.
+            단, MVP 안에서는 결제·보상·marketplace·실제 로봇 제어를 만들지 않고, 먼저 controlled pilot용 collector로 간다.
+          </p>
+
+          <div class="product-map" aria-label="최종 제품 구성도">
+            <article class="product-node" data-icon="🥽">
+              <span class="pill cyan">사용자 쪽</span>
+              <h3>HMD Operator</h3>
+              <p>Quest 3를 쓴 사람이 HMD 안내 panel을 보고 손추적 품질을 확인한 뒤 peg-in-hole 같은 task를 수행한다.</p>
+            </article>
+            <div class="flow-arrow" aria-hidden="true">→</div>
+            <article class="product-node" data-icon="🖥️">
+              <span class="pill amber">배포 껍데기</span>
+              <h3>PC Collector Launcher + Web Dashboard</h3>
+              <p>ALVR, SteamVR/OpenXR, Isaac Lab, RDF recorder를 한 번에 점검하고 실행한다. Web은 상태판과 review UI 역할을 한다.</p>
+            </article>
+            <div class="flow-arrow" aria-hidden="true">→</div>
+            <article class="product-node" data-icon="🏭">
+              <span class="pill green">공장 코어</span>
+              <h3>Data Factory Backend</h3>
+              <p>ForgeEval, ForgeCurate, export, manifest가 데이터를 채점하고 골라서 learning-ready dataset artifact로 만든다.</p>
+            </article>
+          </div>
+
+          <div class="columns">
+            <article class="column-card">
+              <span class="pill green">MVP-safe</span>
+              <h3>지금 목표로 둘 것</h3>
+              <ul class="plain-list">
+                <li>Local-first PC collector launcher.</li>
+                <li>HMD panel: <code>RECENTER OK</code>, <code>RECORDING ON</code>, tracking quality 표시.</li>
+                <li>Web dashboard: episode, quality score, accepted/rejected reason, export 상태.</li>
+                <li>실험실/팀 단위 controlled pilot 배포.</li>
+              </ul>
+            </article>
+            <article class="column-card">
+              <span class="pill amber">나중에 확장</span>
+              <h3>Post-MVP로 미룰 것</h3>
+              <ul class="plain-list">
+                <li>일반 사용자 marketplace.</li>
+                <li>보상 지급과 결제.</li>
+                <li>production auth와 운영 모니터링.</li>
+                <li>여러 task template 공개 배포.</li>
+              </ul>
+            </article>
+            <article class="column-card">
+              <span class="pill red">왜 웹만으로는 부족한가?</span>
+              <h3>PC runtime이 필요함</h3>
+              <ul class="plain-list">
+                <li>Primary path는 Isaac Lab, SteamVR/OpenXR, ALVR, NVIDIA GPU가 필요하다.</li>
+                <li>따라서 웹은 “조작판/상태판”이고, 실제 수집은 PC collector가 맡는다.</li>
+                <li>웹 mock task는 계속 fallback/debug 전용이다.</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="release-ladder" aria-label="배포 단계">
+            <article class="release-step">
+              <span class="pill green">1단계</span>
+              <h3>Local Collector</h3>
+              <p>개발자/내부 operator가 PC에서 실행한다. 목표는 tracking preflight와 안정적인 trajectory 저장.</p>
+            </article>
+            <article class="release-step">
+              <span class="pill amber">2단계</span>
+              <h3>Lab Pilot</h3>
+              <p>제한된 HMD 보유자나 연구실에 배포한다. 목표는 수집 UX와 data quality gate를 검증하는 것.</p>
+            </article>
+            <article class="release-step">
+              <span class="pill violet">3단계</span>
+              <h3>Networked Data Factory</h3>
+              <p>여러 collector가 만든 데이터를 중앙 manifest로 모은다. 결제/보상/marketplace는 별도 post-MVP 의사결정이다.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="status" aria-labelledby="status-title">
+          <p class="section-kicker">Current blocker</p>
+          <h2 id="status-title">왜 아직 손동작을 로봇이 잘 따라오지 못하나?</h2>
+          <p class="section-note">
+            최신 로그 기준으로는 “로봇 제어 코드가 아예 안 켜진 것”도 아니고,
+            “목표 위치 계산이 계속 쓰레기값을 누적하는 것”도 아니다. 로봇은 명령이 들어오면 따라간다.
+            문제는 OpenXR 오른손 wrist가 중간중간 사라지거나 갑자기 튀어서, 안전장치가 로봇을 멈추는 것이다.
+          </p>
+
+          <div class="signal-grid">
+            <article class="big-signal">
+              <span class="pill dark">#30.3 No-Go 감지</span>
+              <h3>현재 빨간불: handtracking loss 과다</h3>
+              <p>
+                전체 180 frame 중 손추적이 안정적인 구간이 부족했다. 그래서 controller가
+                <code>held=116</code> frame 동안 로봇 제어를 붙잡았고,
+                <code>accepted=54</code> frame에서만 실제 명령을 보냈다.
+              </p>
+            </article>
+            <div class="metric-wall" aria-label="최신 run 핵심 숫자">
+              <div class="metric"><strong>180</strong><span>저장된 trajectory frames</span></div>
+              <div class="metric"><strong>44.4%</strong><span>evaluation tracking loss rate</span></div>
+              <div class="metric"><strong>57.8%</strong><span>right hand tracked rate</span></div>
+              <div class="metric"><strong>27회</strong><span>valid-to-valid wrist jump &gt; 10cm</span></div>
+              <div class="metric"><strong>0.91m</strong><span>최대 wrist jump</span></div>
+              <div class="metric"><strong>H7 PASS</strong><span>명령이 들어오면 EEF는 방향을 따라감</span></div>
+            </div>
+          </div>
+
+          <div class="callout">
+            <strong>중학생 버전 설명:</strong>
+            게임 컨트롤러가 가끔 연결이 끊기고, 캐릭터 위치가 순간이동한다고 생각하면 된다.
+            캐릭터가 멍청해서 못 움직이는 것이 아니라, 입력 신호가 위험하게 튀어서 안전장치가 “잠깐 멈춰!”라고 하는 상태다.
+            자세한 리서치와 red flag 조절안은 <a href="../experiments/hmd/mvp_teleop_input_stream_research.html">입력 신호 리서치 하위 페이지</a>에 따로 정리했다.
+          </div>
+        </section>
+
+        <section aria-labelledby="timeline-title">
+          <p class="section-kicker">MVP timeline</p>
+          <h2 id="timeline-title">단계별 진행 상황</h2>
+          <p class="section-note">각 단계는 “무엇을 증명했나?” 기준으로 정리했다. 단순히 코드가 있는 것이 아니라, 검증 증거가 있는지를 본다.</p>
+
+          <div class="timeline">
+            <article class="timeline-item">
+              <div class="time-label">MVP-0</div>
+              <div>
+                <h3>기술 파이프라인 proof</h3>
+                <p>Quest/OpenXR/Isaac Lab → recorder → API/storage → evaluator → export 흐름을 닫는 단계.</p>
+              </div>
+              <span class="pill green">완료</span>
+            </article>
+
+            <article class="timeline-item">
+              <div class="time-label">MVP-1</div>
+              <div>
+                <h3>학습 후보 dataset artifact proof</h3>
+                <p>raw evidence를 저장하고, task outcome과 data quality를 분리하고, curation/export/trainer smoke까지 통과시키는 단계.</p>
+              </div>
+              <span class="pill green">완료 / claim 제한</span>
+            </article>
+
+            <article class="timeline-item">
+              <div class="time-label">MVP-1.5</div>
+              <div>
+                <h3>Camera-conditioning readiness gate</h3>
+                <p>HMD/camera geometry, transform provenance, visibility, projection smoke를 별도 readiness로 기록하는 확장 gate.</p>
+              </div>
+              <span class="pill amber">진행 중</span>
+            </article>
+
+            <article class="timeline-item">
+              <div class="time-label">현재</div>
+              <div>
+                <h3>raw-wrist physical control 안정화</h3>
+                <p>로봇이 손동작을 자연스럽게 따라오게 하려면, axis/gain보다 먼저 right-wrist tracking loss와 spike를 줄여야 한다.</p>
+              </div>
+              <span class="pill red">blocker</span>
+            </article>
+
+            <article class="timeline-item">
+              <div class="time-label">MVP-2</div>
+              <div>
+                <h3>learning-proven value proof</h3>
+                <p>curated dataset이 downstream policy 학습에서 실제로 도움이 되는지 A/B로 증명한다. Policy uplift는 여기서만 주장한다.</p>
+              </div>
+              <span class="pill amber">남음</span>
+            </article>
+          </div>
+        </section>
+
+        <section aria-labelledby="done-now-next-title">
+          <p class="section-kicker">Done · Now · Next</p>
+          <h2 id="done-now-next-title">완료 / 현재 / 남은 일</h2>
+          <div class="columns">
+            <article class="column-card">
+              <span class="pill green">완료한 것</span>
+              <h3>데이터 공장의 뼈대</h3>
+              <ul class="plain-list">
+                <li>Task, Episode, Trajectory, Evaluation, Dataset 중심 API/저장 흐름.</li>
+                <li>Quest 3 handtracking + SteamVR/OpenXR + Isaac Lab primary path.</li>
+                <li>ForgeEval success/quality/failure taxonomy.</li>
+                <li>ForgeCurate accepted/rejected reason manifest.</li>
+                <li>HDF5/export와 trainer smoke 기반 learning-ready artifact proof.</li>
+                <li>H14/H15/H13 같은 physical debug analyzer와 회귀 테스트.</li>
+              </ul>
+            </article>
+
+            <article class="column-card">
+              <span class="pill red">현재 진행</span>
+              <h3>손추적 안정화</h3>
+              <ul class="plain-list">
+                <li>최신 run은 저장 schema/action contract는 통과했지만 <code>TRACKING_LOSS</code>로 실패.</li>
+                <li>raw-wrist direct mode는 활성화됐고, 명령이 issued되면 EEF 방향 추종은 확인.</li>
+                <li>문제는 invalid right hand, wrist spike, reacquire pending이 너무 많다는 점.</li>
+                <li>따라서 Gate A collection과 axis/gain 튜닝은 현재 중단 상태.</li>
+              </ul>
+            </article>
+
+            <article class="column-card">
+              <span class="pill amber">남은 것</span>
+              <h3>MVP-2 proof</h3>
+              <ul class="plain-list">
+                <li>tracking preflight를 강화해 안정적인 right-wrist window를 확보.</li>
+                <li>Gate A pass episode를 충분히 수집.</li>
+                <li>curated vs uncurated dataset A/B 실험.</li>
+                <li>negative result가 나오면 데이터 규모, transition coverage, trainer, evaluator 병목을 분리 보고.</li>
+                <li>실제 로봇, 결제, 보상, marketplace, CloudXR, full RL은 post-MVP로 유지.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="remaining" aria-labelledby="remaining-title">
+          <p class="section-kicker">Next actions</p>
+          <h2 id="remaining-title">다음에 해야 할 일 5개</h2>
+          <p class="section-note">순서를 바꾸면 안 된다. 지금은 수집량을 늘리는 단계가 아니라, 입력 신호가 믿을 만한지 먼저 확인하는 단계다.</p>
+
+          <div class="priority">
+            <article class="priority-item">
+              <div>
+                <h3>Tracking preflight 먼저 강화</h3>
+                <p>첫 valid 3 frame으로 바로 시작하지 말고, 더 긴 stable right-wrist window가 있는지 확인한다. 1차 구현 내용은 <a href="../experiments/hmd/mvp_pre_hmd_step1_input_gates.html">HMD 전 Step 1 하위 페이지</a>에 정리했다.</p>
+              </div>
+            </article>
+            <article class="priority-item">
+              <div>
+                <h3>raw-wrist-direct를 다시 실행하되 “수집”이 아니라 “입력 품질 검사”로 본다</h3>
+                <p><code>right_hand_tracked_rate</code>, <code>xr_frame_valid_rate</code>, <code>raw_wrist_spike_reacquire_pending</code>을 먼저 본다.</p>
+              </div>
+            </article>
+            <article class="priority-item">
+              <div>
+                <h3>H9/H13이 좋아진 뒤에만 axis/gain 튜닝</h3>
+                <p>손 위치가 튀는 상태에서 축과 gain을 바꾸면 원인을 더 헷갈리게 만든다.</p>
+              </div>
+            </article>
+            <article class="priority-item">
+              <div>
+                <h3>Gate A pass episode ≥10개 수집</h3>
+                <p>tracking이 안정된 뒤 transition-rich accepted dataset을 모은다.</p>
+              </div>
+            </article>
+            <article class="priority-item">
+              <div>
+                <h3>MVP-2 A/B 학습 실험</h3>
+                <p>curated dataset이 uncurated보다 나은지 검증한다. 이때만 policy uplift를 주장한다.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section aria-labelledby="simple-title">
+          <p class="section-kicker">Middle-school explanation</p>
+          <h2 id="simple-title">아주 쉽게 비유하면</h2>
+          <div class="analogy-grid">
+            <article class="analogy">
+              <div class="emoji">📓</div>
+              <h3>Raw trajectory</h3>
+              <p>사람이 로봇을 움직인 “일기장”. 잘했든 못했든 먼저 저장한다.</p>
+            </article>
+            <article class="analogy">
+              <div class="emoji">🧑‍🏫</div>
+              <h3>ForgeEval</h3>
+              <p>숙제를 채점하는 선생님. 성공 여부와 데이터 품질을 따로 본다.</p>
+            </article>
+            <article class="analogy">
+              <div class="emoji">🧹</div>
+              <h3>ForgeCurate</h3>
+              <p>쓸 수 있는 숙제만 골라내는 정리 담당. 탈락 이유도 적어둔다.</p>
+            </article>
+            <article class="analogy">
+              <div class="emoji">📦</div>
+              <h3>Export</h3>
+              <p>로봇 학습기가 읽을 수 있게 예쁜 상자로 포장한 dataset.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="commands" aria-labelledby="commands-title">
+          <p class="section-kicker">Verification</p>
+          <h2 id="commands-title">확인할 때 쓰는 명령</h2>
+          <p class="section-note">최신 physical run이 끝난 뒤 아래 순서로 보면 “저장 문제인지, 평가 문제인지, 손추적 문제인지”를 빠르게 나눌 수 있다.</p>
+
+          <details open>
+            <summary>최신 recording과 HMD mapping 검증</summary>
+            <pre><code class="command-box">uv run python scripts/verify_latest_rdf_recording.py \
+  --include-empty-latest \
+  --storage-root storage \
+  --pretty
+
+uv run python scripts/analyze_hmd_motion_mapping.py \
+  --latest \
+  --pretty \
+  --output storage/hmd_motion_mapping/latest_mapping_report.json</code></pre>
+          </details>
+
+          <details>
+            <summary>MVP-0/MVP-1 pipeline smoke</summary>
+            <pre><code class="command-box">uv run python scripts/run_mvp0_offline_diagnostics.py
+uv run python scripts/run_mvp1_live_export_smoke.py --clean --pretty
+uv run python scripts/run_mvp1_proof_audit.py --pretty</code></pre>
+          </details>
+
+          <details>
+            <summary>현재 blocker 증거 파일</summary>
+            <pre><code class="command-box">storage/trajectories/traj_b804823e845a.json
+storage/evaluations/eval_88c6e66f9dff.json
+storage/hmd_motion_mapping/raw_wrist_direct_20260528_021619_mapping_analysis.json
+Handoff.md
+docs/WORKLOG.md
+docs/DEBUGGING_GUIDE.md</code></pre>
+          </details>
+        </section>
+      </main>
+
+      <footer>
+        <strong>Claim boundary:</strong> Robot Data Forge는 VLA/WFM을 직접 만드는 프로젝트가 아니다.
+        RDF는 replay-verified, action-labelled, task-validated, camera-conditioning-ready XR teleoperation dataset artifact를 만드는 데이터 인프라다.
+        Policy uplift는 MVP-2에서만 주장한다.
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

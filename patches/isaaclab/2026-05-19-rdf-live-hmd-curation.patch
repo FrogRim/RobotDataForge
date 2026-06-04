@@ -1,34 +1,14 @@
-diff --git a/apps/isaaclab.python.xr.openxr.kit b/apps/isaaclab.python.xr.openxr.kit
-index 8fe9980..4c65671 100644
---- a/apps/isaaclab.python.xr.openxr.kit
-+++ b/apps/isaaclab.python.xr.openxr.kit
-@@ -43,6 +43,16 @@ xr.skipInputDeviceUSDWrites = true
- "omni.kit.xr.system.openxr" = {}
- "omni.kit.xr.profile.ar" = {}
-
-+# RDF HMD collection uses IsaacLab XR text widgets for no-keyboard
-+# recenter / SUCCESS_READY guidance. Keep these explicit instead of relying
-+# only on transitive profile dependencies.
-+"omni.kit.xr.core" = {}
-+"omni.kit.xr.profile.common" = {}
-+"omni.kit.xr.ui.stage" = {}
-+"omni.kit.xr.scene_view.core" = {}
-+"omni.kit.xr.scene_view.utils" = {}
-+"omni.ui.scene" = {}
-+
- [settings.isaaclab]
- # This is used to check that this experience file is loaded when using cameras
- cameras_enabled = true
 diff --git a/scripts/environments/teleoperation/teleop_se3_agent.py b/scripts/environments/teleoperation/teleop_se3_agent.py
-index 8492ad7..5efe05a 100644
+index 8492ad7..78772df 100644
 --- a/scripts/environments/teleoperation/teleop_se3_agent.py
 +++ b/scripts/environments/teleoperation/teleop_se3_agent.py
-@@ -13,9 +13,51 @@ controllers)."""
+@@ -13,9 +13,52 @@ controllers)."""
 
  import argparse
  from collections.abc import Callable
 +import math
 +import os
++import random
 +import signal
 
  from isaaclab.app import AppLauncher
@@ -75,7 +55,7 @@ index 8492ad7..5efe05a 100644
  # add argparse arguments
  parser = argparse.ArgumentParser(description="Teleoperation for Isaac Lab environments.")
  parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
-@@ -31,6 +73,415 @@ parser.add_argument(
+@@ -31,6 +74,566 @@ parser.add_argument(
  )
  parser.add_argument("--task", type=str, default=None, help="Name of the task.")
  parser.add_argument("--sensitivity", type=float, default=1.0, help="Sensitivity factor.")
@@ -156,8 +136,11 @@ index 8492ad7..5efe05a 100644
 +parser.add_argument(
 +    "--rdf_action_pos_axis_map",
 +    type=str,
-+    default=os.environ.get("RDF_ACTION_POS_AXIS_MAP", "x,y,z"),
-+    help="RDF signed position axis map, for example 'x,y,z' or 'x,-z,y'.",
++    default=os.environ.get("RDF_ACTION_POS_AXIS_MAP", "x,z,y"),
++    help=(
++        "RDF signed position axis map. Default 'x,z,y' maps Quest/OpenXR Y-up "
++        "hand motion onto Isaac Z-up robot motion."
++    ),
 +)
 +parser.add_argument(
 +    "--rdf_action_rot_axis_map",
@@ -235,7 +218,7 @@ index 8492ad7..5efe05a 100644
 +parser.add_argument(
 +    "--rdf_task_guidance_panel_size",
 +    type=float,
-+    default=env_float("RDF_TASK_GUIDANCE_PANEL_SIZE", 1.0),
++    default=env_float("RDF_TASK_GUIDANCE_PANEL_SIZE", 1.25),
 +    help="Scale factor for the RDF in-world HMD guidance status panel.",
 +)
 +parser.add_argument(
@@ -247,8 +230,30 @@ index 8492ad7..5efe05a 100644
 +parser.add_argument(
 +    "--rdf_task_guidance_panel_translation",
 +    type=str,
-+    default=os.environ.get("RDF_TASK_GUIDANCE_PANEL_TRANSLATION", "1.05,0.25,-1.25"),
++    default=os.environ.get("RDF_TASK_GUIDANCE_PANEL_TRANSLATION", "0.00,0.10,-1.60"),
 +    help="Comma-separated x,y,z offset for the HMD task guidance text widget relative to its source prim.",
++)
++parser.add_argument(
++    "--rdf_task_guidance_panel_look_at_camera",
++    action=argparse.BooleanOptionalAction,
++    default=env_bool("RDF_TASK_GUIDANCE_PANEL_LOOK_AT_CAMERA", True),
++    help="Orient the HMD task guidance text widget toward the active XR camera.",
++)
++parser.add_argument(
++    "--rdf_task_guidance_panel_background_alpha",
++    type=float,
++    default=env_float("RDF_TASK_GUIDANCE_PANEL_BACKGROUND_ALPHA", 0.90),
++    help="Background alpha for the HMD task guidance panel, from 0.0 transparent to 1.0 opaque.",
++)
++parser.add_argument(
++    "--rdf_task_guidance_panel_anchor_mode",
++    type=str,
++    default=os.environ.get("RDF_TASK_GUIDANCE_PANEL_ANCHOR_MODE", "upstream_instruction"),
++    choices=("upstream_instruction", "copy_follow", "copy_static", "world"),
++    help=(
++        "Spatial anchor mode for the HMD task guidance panel. upstream_instruction "
++        "uses IsaacLab's built-in XR instruction widget for visibility probing."
++    ),
 +)
 +parser.add_argument(
 +    "--rdf_task_guidance_primitive_fallback",
@@ -342,6 +347,83 @@ index 8492ad7..5efe05a 100644
 +    help="Consecutive valid right-wrist frames required before automatic HMD recenter.",
 +)
 +parser.add_argument(
++    "--rdf_auto_recenter_stable_m",
++    type=float,
++    default=env_float("RDF_AUTO_RECENTER_STABLE_M", 0.03),
++    help=(
++        "Maximum right-wrist movement between consecutive valid frames allowed during "
++        "first-valid automatic HMD recenter preflight."
++    ),
++)
++parser.add_argument(
++    "--rdf_recenter_mode",
++    type=str,
++    choices=("first_valid_hand", "robot_start_box"),
++    default=os.environ.get("RDF_RECENTER_MODE", "robot_start_box"),
++    help=(
++        "Automatic recenter trigger. robot_start_box anchors recenter to a deterministic robot-space "
++        "start zone instead of the operator's first stable hand pose."
++    ),
++)
++parser.add_argument(
++    "--rdf_recenter_box_center",
++    type=str,
++    default=os.environ.get("RDF_RECENTER_BOX_CENTER", ""),
++    help=(
++        "Optional robot-space start-box center as 'x,y,z'. If unset, the robot fingertip pose immediately "
++        "after env reset is not used unless RDF_RECENTER_BOX_CENTER_SOURCE=initial_robot_pose."
++    ),
++)
++parser.add_argument(
++    "--rdf_recenter_box_center_source",
++    type=str,
++    choices=("hole_target_approach", "initial_robot_pose"),
++    default=os.environ.get("RDF_RECENTER_BOX_CENTER_SOURCE", "hole_target_approach"),
++    help=(
++        "Default start-box center source when RDF_RECENTER_BOX_CENTER is empty. "
++        "hole_target_approach uses the insertion hole target plus RDF_RECENTER_BOX_APPROACH_OFFSET."
++    ),
++)
++parser.add_argument(
++    "--rdf_recenter_box_approach_offset",
++    type=str,
++    default=os.environ.get("RDF_RECENTER_BOX_APPROACH_OFFSET", "0,0,0.08"),
++    help="World-space offset added to the insertion hole target for the recenter start box.",
++)
++parser.add_argument(
++    "--rdf_recenter_box_random_offset",
++    type=str,
++    default=os.environ.get("RDF_RECENTER_BOX_RANDOM_OFFSET", "0,0,0"),
++    help=(
++        "Per-reset uniform random offset half-range added to the recenter start-box center as 'x,y,z'. "
++        "For example 0.02,0.02,0.01 samples x/y in +/-2 cm and z in +/-1 cm once per episode/reset."
++    ),
++)
++parser.add_argument(
++    "--rdf_recenter_box_half_extents",
++    type=str,
++    default=os.environ.get("RDF_RECENTER_BOX_HALF_EXTENTS", "0.04,0.04,0.04"),
++    help="Robot-space start-box half extents in meters as 'x,y,z'. Default: 4 cm each axis.",
++)
++parser.add_argument(
++    "--rdf_recenter_box_visual",
++    action=argparse.BooleanOptionalAction,
++    default=env_bool("RDF_RECENTER_BOX_VISUAL", True),
++    help="Show the robot-space recenter start box as a visible USD wireframe in the HMD/AR scene.",
++)
++parser.add_argument(
++    "--rdf_block_teleop_until_recenter",
++    action=argparse.BooleanOptionalAction,
++    default=env_bool("RDF_BLOCK_TELEOP_UNTIL_RECENTER", True),
++    help="Hold robot teleop actions until the HMD recenter gate has completed.",
++)
++parser.add_argument(
++    "--rdf_recenter_setup_control",
++    action=argparse.BooleanOptionalAction,
++    default=env_bool("RDF_RECENTER_SETUP_CONTROL", True),
++    help="Before recenter, allow setup-only robot motion into the visible start box without recording frames.",
++)
++parser.add_argument(
 +    "--rdf_exit_after_finalize",
 +    action=argparse.BooleanOptionalAction,
 +    default=env_bool("RDF_EXIT_AFTER_FINALIZE", False),
@@ -360,11 +442,21 @@ index 8492ad7..5efe05a 100644
 +    "--rdf_teleop_control_mode",
 +    type=str,
 +    default=os.environ.get("RDF_TELEOP_CONTROL_MODE", "auto"),
-+    choices=("auto", "native", "cartesian_delta", "operator_follow", "bounded_direct_ee_target", "direct_ee_target"),
++    choices=(
++        "auto",
++        "native",
++        "cartesian_delta",
++        "operator_follow",
++        "bounded_direct_ee_target",
++        "raw_wrist_direct_ee_target",
++        "direct_ee_target",
++    ),
 +    help=(
 +        "Live teleop control mode. 'bounded_direct_ee_target' is the RDF MVP-1 collection UX path for "
 +        "Forge PegInsert: hand motion drives a bounded end-effector target servo instead of exposing "
-+        "native policy action semantics. 'operator_follow' remains as a fallback/debug legacy mode."
++        "native policy action semantics. 'raw_wrist_direct_ee_target' bypasses retargeted translation and "
++        "drives bounded EEF translation from raw OpenXR right-wrist pose. 'operator_follow' remains as a "
++        "fallback/debug legacy mode."
 +    ),
 +)
 +parser.add_argument(
@@ -408,6 +500,45 @@ index 8492ad7..5efe05a 100644
 +    type=float,
 +    default=env_float("RDF_DIRECT_EE_WORKSPACE_RADIUS_M", 0.35),
 +    help="Maximum desired EEF target distance from the recentered EEF anchor.",
++)
++parser.add_argument(
++    "--rdf_raw_wrist_position_axis_map",
++    type=str,
++    default=os.environ.get("RDF_RAW_WRIST_POS_AXIS_MAP", os.environ.get("RDF_ACTION_POS_AXIS_MAP", "x,z,y")),
++    help="Signed axis map for raw-wrist direct translation. Defaults to the RDF action position axis map.",
++)
++parser.add_argument(
++    "--rdf_raw_wrist_position_yaw_offset_deg",
++    type=float,
++    default=env_float("RDF_RAW_WRIST_POS_YAW_OFFSET_DEG", env_float("RDF_ACTION_POS_YAW_OFFSET_DEG", 0.0)),
++    help="Yaw offset applied to raw-wrist X/Z before axis mapping.",
++)
++parser.add_argument(
++    "--rdf_raw_wrist_jump_warn_m",
++    type=float,
++    default=env_float("RDF_RAW_WRIST_JUMP_WARN_M", 0.10),
++    help="Warn metadata threshold for valid-to-valid raw wrist jumps in raw_wrist_direct_ee_target mode.",
++)
++parser.add_argument(
++    "--rdf_raw_wrist_jump_reject_m",
++    type=float,
++    default=env_float("RDF_RAW_WRIST_JUMP_REJECT_M", 0.15),
++    help="Reject/rebase threshold for valid-to-valid raw wrist jumps in raw_wrist_direct_ee_target mode.",
++)
++parser.add_argument(
++    "--rdf_raw_wrist_reacquire_valid_frames",
++    type=int,
++    default=env_int("RDF_RAW_WRIST_REACQUIRE_VALID_FRAMES", 3),
++    help=(
++        "Consecutive stable valid raw-wrist frames required before rebasing after a valid-to-valid spike. "
++        "Single-frame spikes are held and ignored if the wrist returns near the previous valid pose."
++    ),
++)
++parser.add_argument(
++    "--rdf_raw_wrist_reacquire_stable_m",
++    type=float,
++    default=env_float("RDF_RAW_WRIST_REACQUIRE_STABLE_M", 0.03),
++    help="Maximum raw-wrist movement between reacquire candidate frames while confirming a valid-to-valid spike.",
 +)
 +parser.add_argument(
 +    "--rdf_operator_follow_preset",
@@ -491,7 +622,7 @@ index 8492ad7..5efe05a 100644
  parser.add_argument(
      "--enable_pinocchio",
      action="store_true",
-@@ -42,44 +493,1840 @@ AppLauncher.add_app_launcher_args(parser)
+@@ -42,44 +645,2781 @@ AppLauncher.add_app_launcher_args(parser)
  # parse the arguments
  args_cli = parser.parse_args()
 
@@ -545,6 +676,7 @@ index 8492ad7..5efe05a 100644
 +
 +RDF_ACTION_CONTRACT_VERSION = "rdf_action_contract_v0.2.0"
 +RDF_REPLAY_CONTRACT_VERSION = "rdf_replay_contract_v0.2.0"
++RDF_INPUT_SIGNAL_STATE_SCHEMA_VERSION = "rdf_input_signal_state_v0.1.0"
 +
 +RdfIsaacRuntimeRecorder = None
 +RdfTeleopActionFilter = None
@@ -839,6 +971,24 @@ index 8492ad7..5efe05a 100644
 +    }
 +
 +
++def resolved_raw_wrist_direct_ee_config() -> dict[str, float | str]:
++    config = dict(resolved_bounded_direct_ee_config())
++    config.update(
++        {
++            "preset": "raw_wrist_direct_ee_target",
++            "input_source": "raw_right_wrist_pose",
++            "position_axis_map": args_cli.rdf_raw_wrist_position_axis_map,
++            "position_yaw_offset_deg": float(args_cli.rdf_raw_wrist_position_yaw_offset_deg),
++            "raw_wrist_jump_warn_m": max(0.0, float(args_cli.rdf_raw_wrist_jump_warn_m)),
++            "raw_wrist_jump_reject_m": max(0.0, float(args_cli.rdf_raw_wrist_jump_reject_m)),
++            "raw_wrist_reacquire_valid_frames": max(1, int(args_cli.rdf_raw_wrist_reacquire_valid_frames)),
++            "raw_wrist_reacquire_stable_m": max(0.0, float(args_cli.rdf_raw_wrist_reacquire_stable_m)),
++            "control_semantics": "raw_wrist_bounded_direct_end_effector_target_servo",
++        }
++    )
++    return config
++
++
 +def teleop_right_wrist_pose_list(teleop_interface) -> list[float] | None:
 +    try:
 +        right_poses = getattr(teleop_interface, "_previous_joint_poses_right", {})
@@ -851,6 +1001,20 @@ index 8492ad7..5efe05a 100644
 +        return None
 +
 +
++def configured_xr_anchor_position() -> tuple[float, float, float]:
++    return parse_float_tuple(args_cli.rdf_xr_anchor_pos, 3, (-0.1, -0.5, -1.05))
++
++
++def rdf_pose_is_anchor_fallback(pose: list[float] | None, tolerance: float = 1.0e-4) -> bool:
++    if not pose or len(pose) < 3:
++        return False
++    anchor = configured_xr_anchor_position()
++    try:
++        return all(abs(float(pose[index]) - anchor[index]) <= tolerance for index in range(3))
++    except Exception:
++        return False
++
++
 +def rdf_pose_is_valid(pose: list[float] | None) -> bool:
 +    if not pose or len(pose) < 3:
 +        return False
@@ -860,7 +1024,276 @@ index 8492ad7..5efe05a 100644
 +        return False
 +    if any(not math.isfinite(value) for value in values):
 +        return False
-+    return any(abs(value) > 1.0e-9 for value in values[:3])
++    return any(abs(value) > 1.0e-9 for value in values[:3]) and not rdf_pose_is_anchor_fallback(values)
++
++
++def rdf_input_signal_state_from_pose(
++    pose: list[float] | None,
++    *,
++    gate_state: str | None = None,
++    gate_reason: str | None = None,
++    action_hold: bool | None = None,
++    tracking_epoch_id: int | None = None,
++    tracking_epoch_state: str | None = None,
++) -> dict:
++    sample_valid = rdf_pose_is_valid(pose)
++    tracking_valid = bool(sample_valid)
++    held = bool(action_hold if action_hold is not None else gate_state == "held")
++    control_safe = bool(sample_valid and not held and gate_state != "held")
++    control_safety_flags: list[str] = []
++    if not sample_valid:
++        control_safety_flags.append("invalid_input_sample")
++    if held:
++        control_safety_flags.append("action_hold")
++    if gate_state == "held":
++        control_safety_flags.append("raw_wrist_gate_held")
++
++    ineligible_reason = None
++    if not sample_valid:
++        ineligible_reason = "invalid_input_sample"
++    elif held:
++        ineligible_reason = gate_reason or "action_hold"
++    elif not control_safe:
++        ineligible_reason = "input_not_control_safe"
++
++    return {
++        "schema_version": RDF_INPUT_SIGNAL_STATE_SCHEMA_VERSION,
++        "source_id": "quest_openxr_handtracking",
++        "source_kind": "handtracking",
++        "runtime": "steamvr_openxr",
++        "device": "quest3",
++        "input_channel": "right_wrist",
++        "timestamp_source": "not_available_live_openxr_cache",
++        "input_latency_ms": None,
++        "input_latency_source": "not_available_live_openxr_cache",
++        "tracking_confidence": None,
++        "tracking_confidence_source": "not_available_live_openxr_cache",
++        "sample_valid": sample_valid,
++        "tracking_valid": tracking_valid,
++        "control_safe": control_safe,
++        "control_safety_flags": control_safety_flags,
++        "action_hold": held,
++        "hold_reason": gate_reason,
++        "tracking_epoch_id": tracking_epoch_id,
++        "tracking_epoch_state": tracking_epoch_state,
++        "learning_label_eligible": control_safe,
++        "learning_label_ineligible_reason": ineligible_reason,
++        "quality_flags": [] if sample_valid else ["invalid_input_sample"],
++    }
++
++
++def rdf_parse_axis_map_text(spec: str | None) -> tuple[tuple[int, float], tuple[int, float], tuple[int, float]]:
++    if spec is None or not spec.strip():
++        spec = "x,y,z"
++    axis_index = {"x": 0, "y": 1, "z": 2}
++    parsed: list[tuple[int, float]] = []
++    used: set[int] = set()
++    for part in [item.strip().lower() for item in spec.split(",")]:
++        sign = 1.0
++        axis = part
++        if axis.startswith("+"):
++            axis = axis[1:]
++        elif axis.startswith("-"):
++            sign = -1.0
++            axis = axis[1:]
++        if axis not in axis_index:
++            raise ValueError(f"unsupported axis map item {part!r}; expected x, y, or z")
++        index = axis_index[axis]
++        if index in used:
++            raise ValueError(f"axis map must use each source axis exactly once: {spec!r}")
++        used.add(index)
++        parsed.append((index, sign))
++    if len(parsed) != 3:
++        raise ValueError(f"axis map must have exactly three axes: {spec!r}")
++    return (parsed[0], parsed[1], parsed[2])
++
++
++def rdf_apply_yaw_offset_xyz(values: list[float], yaw_offset_deg: float) -> list[float]:
++    if abs(float(yaw_offset_deg)) <= 1.0e-9:
++        return list(values[:3])
++    yaw = math.radians(float(yaw_offset_deg))
++    cos_yaw = math.cos(yaw)
++    sin_yaw = math.sin(yaw)
++    return [
++        cos_yaw * float(values[0]) + sin_yaw * float(values[2]),
++        float(values[1]),
++        -sin_yaw * float(values[0]) + cos_yaw * float(values[2]),
++    ]
++
++
++def rdf_map_position_delta_xyz(delta_xyz: list[float], *, axis_map: str, yaw_offset_deg: float) -> list[float]:
++    source_vector = rdf_apply_yaw_offset_xyz(delta_xyz, yaw_offset_deg)
++    parsed = rdf_parse_axis_map_text(axis_map)
++    return [source_vector[index] * sign for index, sign in parsed]
++
++
++def _rdf_round_xyz(values: list[float] | tuple[float, ...] | None, digits: int = 4) -> list[float] | None:
++    if values is None:
++        return None
++    return [round(float(value), digits) for value in values[:3]]
++
++
++def _rdf_add_xyz(left: list[float] | tuple[float, ...], right: list[float] | tuple[float, ...]) -> list[float] | None:
++    if len(left) < 3 or len(right) < 3:
++        return None
++    return [float(left[index]) + float(right[index]) for index in range(3)]
++
++
++class RdfRobotStartRecenterGate:
++    """Robot-space recenter gate for HMD collection.
++
++    The old first-valid-hand trigger completed recenter from the operator's
++    arbitrary first stable hand pose. This gate completes recenter only when the
++    robot EEF/fingertip is inside a deterministic start box in Isaac world space.
++    """
++
++    def __init__(
++        self,
++        *,
++        center_text: str,
++        center_source: str,
++        approach_offset_text: str,
++        random_offset_text: str,
++        half_extents_text: str,
++        required_frames: int,
++        task_name: str | None,
++    ) -> None:
++        center_text = (center_text or "").strip()
++        self.configured_center = parse_float_tuple(center_text, 3, (0.0, 0.0, 0.0)) if center_text else None
++        self.requested_center_source = center_source
++        self.approach_offset = parse_float_tuple(approach_offset_text, 3, (0.0, 0.0, 0.08))
++        random_offset = parse_float_tuple(random_offset_text, 3, (0.0, 0.0, 0.0))
++        self.random_offset_half_range = tuple(max(0.0, abs(float(value))) for value in random_offset)
++        self.current_random_offset = [0.0, 0.0, 0.0]
++        self.task_name = task_name or ""
++        half_extents = parse_float_tuple(half_extents_text, 3, (0.04, 0.04, 0.04))
++        self.half_extents = tuple(max(0.001, abs(float(value))) for value in half_extents)
++        self.required_frames = max(1, int(required_frames))
++        self.center: list[float] | None = None
++        self.center_source = "configured" if self.configured_center is not None else center_source
++        self.consecutive_frames = 0
++        self.ready = False
++        self.armed = False
++        self.last_status: dict | None = None
++
++    def _sample_random_offset(self) -> list[float]:
++        sampled = []
++        for half_range in self.random_offset_half_range:
++            if half_range <= 0.0:
++                sampled.append(0.0)
++            else:
++                sampled.append(random.uniform(-half_range, half_range))
++        return sampled
++
++    def _resolve_hole_target_approach_center(self, env) -> list[float] | None:
++        if _rdf_task_state_config is None or _rdf_insertion_task_state is None:
++            return None
++        try:
++            task_type = os.environ.get("RDF_TASK_TYPE") or "peg_in_hole"
++            task_state_config = _rdf_task_state_config(task_type, self.task_name)
++            state = _rdf_insertion_task_state(env, task_state_config)
++            hole_target = state.get("hole_target_position") if isinstance(state, dict) else None
++            if not isinstance(hole_target, list) or len(hole_target) < 3:
++                return None
++            return _rdf_add_xyz(hole_target, self.approach_offset)
++        except Exception as exc:
++            logger.warning(f"[RDF] Failed to resolve hole_target_approach recenter box: {exc}")
++            return None
++
++    def reset(self, env, reason: str) -> None:
++        self.consecutive_frames = 0
++        self.ready = False
++        self.armed = False
++        if self.configured_center is not None:
++            base_center = [float(value) for value in self.configured_center]
++            self.center_source = "configured"
++        elif self.requested_center_source == "hole_target_approach":
++            base_center = self._resolve_hole_target_approach_center(env)
++            self.center_source = "hole_target_approach" if base_center is not None else "unresolved_hole_target_approach"
++        elif self.requested_center_source == "initial_robot_pose":
++            current = fingertip_position_list(env)
++            base_center = [float(value) for value in current[:3]] if current else None
++            self.center_source = "initial_robot_pose"
++        else:
++            base_center = None
++            self.center_source = "unresolved"
++        self.current_random_offset = self._sample_random_offset() if base_center is not None else [0.0, 0.0, 0.0]
++        self.center = _rdf_add_xyz(base_center, self.current_random_offset) if base_center is not None else None
++        self.last_status = None
++        print(
++            "[RDF] Robot start recenter box "
++            f"reset: reason={reason} center={_rdf_round_xyz(self.center)} "
++            f"center_source={self.center_source} half_extents={_rdf_round_xyz(self.half_extents)} "
++            f"approach_offset={_rdf_round_xyz(self.approach_offset)} "
++            f"random_offset={_rdf_round_xyz(self.current_random_offset)} "
++            f"random_half_range={_rdf_round_xyz(self.random_offset_half_range)} "
++            f"required_frames={self.required_frames}"
++        )
++
++    def evaluate(self, env, *, valid_hand: bool, active: bool, update_counter: bool = True) -> dict:
++        current = fingertip_position_list(env)
++        center = self.center
++        offset_abs = None
++        inside = False
++        reason = "OK"
++        if center is None:
++            reason = "NO_START_BOX_CENTER"
++        elif current is None:
++            reason = "NO_ROBOT_EEF_POSE"
++        else:
++            offset_abs = [abs(float(current[index]) - float(center[index])) for index in range(3)]
++            inside = all(offset_abs[index] <= self.half_extents[index] for index in range(3))
++            if not inside:
++                reason = "ROBOT_OUTSIDE_START_BOX"
++        if not valid_hand:
++            reason = "WAITING_FOR_RIGHT_HAND"
++        if not active:
++            reason = "TELEOP_INACTIVE"
++
++        if not self.armed:
++            if center is not None and current is not None and not inside:
++                self.armed = True
++            elif center is not None and current is not None and inside:
++                reason = "WAITING_ARM"
++        eligible = bool(active and valid_hand and inside and center is not None and current is not None and self.armed)
++        if update_counter and not self.ready:
++            self.consecutive_frames = self.consecutive_frames + 1 if eligible else 0
++            if self.consecutive_frames >= self.required_frames:
++                self.ready = True
++        status = {
++            "mode": "robot_start_box",
++            "ready": bool(self.ready),
++            "valid_hand": bool(valid_hand),
++            "active": bool(active),
++            "armed": bool(self.armed),
++            "inside_start_box": bool(inside),
++            "consecutive_frames": int(self.consecutive_frames),
++            "required_frames": int(self.required_frames),
++            "center": _rdf_round_xyz(center),
++            "center_source": self.center_source,
++            "approach_offset": _rdf_round_xyz(self.approach_offset),
++            "random_offset": _rdf_round_xyz(self.current_random_offset),
++            "random_half_range": _rdf_round_xyz(self.random_offset_half_range),
++            "half_extents": _rdf_round_xyz(self.half_extents),
++            "current": _rdf_round_xyz(current),
++            "offset_abs": _rdf_round_xyz(offset_abs),
++            "reason": "READY" if self.ready else reason,
++        }
++        self.last_status = status
++        return status
++
++    def format_status(self, status: dict | None = None) -> str:
++        status = status or self.last_status or {}
++        return (
++            "mode=robot_start_box "
++            f"ready={bool(status.get('ready'))} "
++            f"inside={bool(status.get('inside_start_box'))} "
++            f"valid_hand={bool(status.get('valid_hand'))} "
++            f"frames={int(status.get('consecutive_frames') or 0)}/{self.required_frames} "
++            f"current={status.get('current')} center={status.get('center')} "
++            f"offset_abs={status.get('offset_abs')} half_extents={status.get('half_extents')} "
++            f"reason={status.get('reason')}"
++        )
 +
 +
 +class RdfOperatorFollowController:
@@ -903,6 +1336,10 @@ index 8492ad7..5efe05a 100644
 +        self._previous_step = torch.zeros_like(current_pos)
 +        self._reset_reason = reason
 +
++    def hold_current_pose(self, env, reason: str = "tracking_hold", teleop_interface=None) -> None:
++        """Rebase the virtual target at the current EEF pose while teleop input is gated."""
++        self.reset(env, reason, teleop_interface)
++
 +    def apply(self, env, filtered_action: torch.Tensor, teleop_interface=None) -> tuple[torch.Tensor, dict]:
 +        refresh_intermediate_values(env)
 +        current_value = getattr(env, "fingertip_midpoint_pos", None)
@@ -933,13 +1370,28 @@ index 8492ad7..5efe05a 100644
 +        hand_delta_m = input_delta * workspace_gain
 +        if float(torch.linalg.vector_norm(hand_delta_m).item()) < float(self.config["deadzone_m"]):
 +            hand_delta_m = torch.zeros_like(hand_delta_m)
-+
-+        self._target_pos = self._target_pos + hand_delta_m
-+        target_offset = self._target_pos - self._anchor_pos
-+        unclamped_offset_norm = float(torch.linalg.vector_norm(target_offset).item())
-+        clamped_offset = clamp_vector_norm(target_offset, float(self.config["workspace_radius_m"]))
-+        workspace_clamped = unclamped_offset_norm > float(self.config["workspace_radius_m"]) + 1.0e-9
-+        self._target_pos = self._anchor_pos + clamped_offset
++            # Dead-hand: snap virtual target back to current EEF and clear step momentum.
++            # Without this, a previous large delta leaves the target far from the EEF and
++            # the controller keeps driving at max speed even after the hand stops moving.
++            self._target_pos = current_pos.clone()
++            # Rebase the absolute hand-offset anchor at the held EEF pose. Otherwise the
++            # first nonzero sample after leaving the deadzone reconstructs target from the
++            # stale original recenter anchor and can jump away from the current robot pose.
++            self._anchor_pos = current_pos.clone()
++            self._previous_step = torch.zeros_like(self._previous_step)
++            unclamped_offset_norm = 0.0
++            workspace_clamped = False
++        else:
++            # Filtered hand position is an absolute offset from the recenter anchor,
++            # not a per-frame velocity. Rebuilding the target from the anchor keeps
++            # the robot tied to the current hand pose instead of chasing accumulated
++            # stale offsets.
++            self._target_pos = self._anchor_pos + hand_delta_m
++            target_offset = self._target_pos - self._anchor_pos
++            unclamped_offset_norm = float(torch.linalg.vector_norm(target_offset).item())
++            clamped_offset = clamp_vector_norm(target_offset, float(self.config["workspace_radius_m"]))
++            workspace_clamped = unclamped_offset_norm > float(self.config["workspace_radius_m"]) + 1.0e-9
++            self._target_pos = self._anchor_pos + clamped_offset
 +
 +        error = self._target_pos - current_pos
 +        raw_step = clamp_vector_norm(error, float(self.config["max_step_m"]))
@@ -1043,6 +1495,262 @@ index 8492ad7..5efe05a 100644
 +            control_semantics="bounded_direct_end_effector_target_servo",
 +            target_env_attr="rdf_direct_ee_target_pos",
 +        )
++
++
++class RdfRawWristDirectEeTargetController(RdfOperatorFollowController):
++    """Raw OpenXR right-wrist translation to bounded EEF target servo."""
++
++    def __init__(self, config: dict[str, float | str]):
++        super().__init__(
++            config,
++            name="raw_wrist_direct_ee_target",
++            control_semantics="raw_wrist_bounded_direct_end_effector_target_servo",
++            target_env_attr="rdf_direct_ee_target_pos",
++        )
++        self._raw_wrist_origin: torch.Tensor | None = None
++        self._previous_raw_wrist_pos: torch.Tensor | None = None
++        self._reacquire_candidate: torch.Tensor | None = None
++        self._reacquire_valid_count = 0
++
++    def reset(self, env, reason: str, teleop_interface=None) -> None:
++        super().reset(env, reason, teleop_interface)
++        self._clear_reacquire()
++        pose = teleop_right_wrist_pose_list(teleop_interface) if teleop_interface is not None else None
++        if rdf_pose_is_valid(pose):
++            current = torch.tensor(pose[:3], dtype=torch.float32, device=getattr(env, "device", "cpu"))
++            self._raw_wrist_origin = current.detach().clone()
++            self._previous_raw_wrist_pos = current.detach().clone()
++        else:
++            self._raw_wrist_origin = None
++            self._previous_raw_wrist_pos = None
++
++    def _clear_reacquire(self) -> None:
++        self._reacquire_candidate = None
++        self._reacquire_valid_count = 0
++
++    def _hold_action(
++        self,
++        env,
++        filtered_action: torch.Tensor,
++        teleop_interface,
++        *,
++        reason: str,
++        raw_pose: list[float] | None,
++        raw_offset: list[float] | None = None,
++        robot_offset: list[float] | None = None,
++        valid_to_valid_jump_m: float = 0.0,
++        reacquire_valid_count: int | None = None,
++    ) -> tuple[torch.Tensor, dict]:
++        hold_action = filtered_action.clone()
++        if hold_action.ndim == 1 and hold_action.shape[0] >= 6:
++            hold_action[0:6] = 0.0
++        elif hold_action.ndim == 1 and hold_action.shape[0] >= 3:
++            hold_action[0:3] = 0.0
++        action, metadata = super().apply(env, hold_action, teleop_interface)
++        metadata["raw_wrist_direct_control"] = self._raw_wrist_metadata(
++            gate_state="held",
++            gate_reason=reason,
++            raw_pose=raw_pose,
++            raw_offset=raw_offset or [0.0, 0.0, 0.0],
++            robot_offset=robot_offset or [0.0, 0.0, 0.0],
++            valid_to_valid_jump_m=valid_to_valid_jump_m,
++            reacquire_valid_count=self._reacquire_valid_count
++            if reacquire_valid_count is None
++            else reacquire_valid_count,
++            retargeted_action=action_to_list(filtered_action),
++        )
++        return action, metadata
++
++    def _hold_for_reacquire(
++        self,
++        env,
++        filtered_action: torch.Tensor,
++        teleop_interface,
++        *,
++        reason: str,
++        raw_pose: list[float],
++        valid_to_valid_jump_m: float,
++    ) -> tuple[torch.Tensor, dict]:
++        return self._hold_action(
++            env,
++            filtered_action,
++            teleop_interface,
++            reason=reason,
++            raw_pose=raw_pose,
++            valid_to_valid_jump_m=valid_to_valid_jump_m,
++            reacquire_valid_count=self._reacquire_valid_count,
++        )
++
++    def _start_or_update_reacquire(
++        self,
++        env,
++        filtered_action: torch.Tensor,
++        teleop_interface,
++        *,
++        current_raw: torch.Tensor,
++        raw_pose: list[float],
++        valid_to_valid_jump_m: float,
++    ) -> tuple[torch.Tensor, dict]:
++        stable_m = float(self.config.get("raw_wrist_reacquire_stable_m", 0.03))
++        if self._reacquire_candidate is None:
++            self._reacquire_candidate = current_raw.detach().clone()
++            self._reacquire_valid_count = 1
++            return self._hold_for_reacquire(
++                env,
++                filtered_action,
++                teleop_interface,
++                reason="raw_wrist_spike_reacquire_pending",
++                raw_pose=raw_pose,
++                valid_to_valid_jump_m=valid_to_valid_jump_m,
++            )
++
++        self._reacquire_candidate = self._reacquire_candidate.to(
++            device=current_raw.device,
++            dtype=current_raw.dtype,
++        )
++        candidate_delta = float(torch.linalg.vector_norm(current_raw - self._reacquire_candidate).item())
++        if stable_m <= 0.0 or candidate_delta <= stable_m:
++            self._reacquire_valid_count += 1
++        else:
++            self._reacquire_candidate = current_raw.detach().clone()
++            self._reacquire_valid_count = 1
++
++        required = max(1, int(self.config.get("raw_wrist_reacquire_valid_frames", 3)))
++        if self._reacquire_valid_count < required:
++            return self._hold_for_reacquire(
++                env,
++                filtered_action,
++                teleop_interface,
++                reason="raw_wrist_spike_reacquire_pending",
++                raw_pose=raw_pose,
++                valid_to_valid_jump_m=valid_to_valid_jump_m,
++            )
++
++        reacquire_count = self._reacquire_valid_count
++        self._raw_wrist_origin = current_raw.detach().clone()
++        self._previous_raw_wrist_pos = current_raw.detach().clone()
++        self._clear_reacquire()
++        self.reset(env, "raw_wrist_spike_reacquired", teleop_interface)
++        return self._hold_action(
++            env,
++            filtered_action,
++            teleop_interface,
++            reason="raw_wrist_spike_reacquired",
++            raw_pose=raw_pose,
++            valid_to_valid_jump_m=valid_to_valid_jump_m,
++            reacquire_valid_count=reacquire_count,
++        )
++
++    def apply(self, env, filtered_action: torch.Tensor, teleop_interface=None) -> tuple[torch.Tensor, dict]:
++        pose = teleop_right_wrist_pose_list(teleop_interface) if teleop_interface is not None else None
++        if not rdf_pose_is_valid(pose):
++            self.reset(env, "raw_wrist_invalid", teleop_interface)
++            return self._hold_action(
++                env,
++                filtered_action,
++                teleop_interface,
++                reason="raw_wrist_invalid",
++                raw_pose=pose,
++            )
++
++        assert pose is not None
++        current_raw = torch.tensor(pose[:3], dtype=filtered_action.dtype, device=filtered_action.device)
++        if self._raw_wrist_origin is None or self._previous_raw_wrist_pos is None:
++            self._raw_wrist_origin = current_raw.detach().clone()
++            self._previous_raw_wrist_pos = current_raw.detach().clone()
++            return self._hold_action(
++                env,
++                filtered_action,
++                teleop_interface,
++                reason="raw_wrist_origin_initialized",
++                raw_pose=pose,
++            )
++
++        self._raw_wrist_origin = self._raw_wrist_origin.to(device=filtered_action.device, dtype=filtered_action.dtype)
++        self._previous_raw_wrist_pos = self._previous_raw_wrist_pos.to(
++            device=filtered_action.device,
++            dtype=filtered_action.dtype,
++        )
++        jump_m = float(torch.linalg.vector_norm(current_raw - self._previous_raw_wrist_pos).item())
++        reject_m = float(self.config.get("raw_wrist_jump_reject_m", 0.15))
++        if reject_m > 0.0 and jump_m > reject_m:
++            return self._start_or_update_reacquire(
++                env,
++                filtered_action,
++                teleop_interface,
++                current_raw=current_raw,
++                raw_pose=pose,
++                valid_to_valid_jump_m=jump_m,
++            )
++
++        self._clear_reacquire()
++
++        raw_offset_tensor = current_raw - self._raw_wrist_origin
++        raw_offset = tensor_xyz_to_list(raw_offset_tensor)
++        robot_offset = rdf_map_position_delta_xyz(
++            raw_offset,
++            axis_map=str(self.config.get("position_axis_map", "x,z,y")),
++            yaw_offset_deg=float(self.config.get("position_yaw_offset_deg", 0.0)),
++        )
++        raw_input_action = filtered_action.clone()
++        if raw_input_action.ndim == 1 and raw_input_action.shape[0] >= 3:
++            raw_input_action[0:3] = torch.tensor(robot_offset, dtype=filtered_action.dtype, device=filtered_action.device)
++        action, metadata = super().apply(env, raw_input_action, teleop_interface)
++        self._previous_raw_wrist_pos = current_raw.detach().clone()
++        warn_m = float(self.config.get("raw_wrist_jump_warn_m", 0.10))
++        metadata["raw_wrist_direct_control"] = self._raw_wrist_metadata(
++            gate_state="warn" if warn_m > 0.0 and jump_m > warn_m else "accepted",
++            gate_reason="raw_wrist_jump_warn" if warn_m > 0.0 and jump_m > warn_m else None,
++            raw_pose=pose,
++            raw_offset=raw_offset,
++            robot_offset=robot_offset,
++            valid_to_valid_jump_m=jump_m,
++            reacquire_valid_count=0,
++            retargeted_action=action_to_list(filtered_action),
++        )
++        return action, metadata
++
++    def _raw_wrist_metadata(
++        self,
++        *,
++        gate_state: str,
++        gate_reason: str | None,
++        raw_pose: list[float] | None,
++        raw_offset: list[float],
++        robot_offset: list[float],
++        valid_to_valid_jump_m: float,
++        reacquire_valid_count: int,
++        retargeted_action: list[float],
++    ) -> dict:
++        origin = tensor_xyz_to_list(self._raw_wrist_origin) if self._raw_wrist_origin is not None else None
++        return {
++            "input_source": "raw_right_wrist_pose",
++            "translation_mode": "absolute_wrist_offset_from_recenter_origin",
++            "rotation_source": "openxr_retargeter_filtered_action",
++            "gripper_source": "openxr_retargeter_filtered_action",
++            "gate_state": gate_state,
++            "gate_reason": gate_reason,
++            "input_signal_state": rdf_input_signal_state_from_pose(
++                raw_pose,
++                gate_state=gate_state,
++                gate_reason=gate_reason,
++                action_hold=gate_state == "held",
++                tracking_epoch_state="held" if gate_state == "held" else "valid",
++            ),
++            "raw_wrist_pose": [float(value) for value in raw_pose[:7]] if raw_pose else None,
++            "raw_wrist_origin_pose": origin,
++            "wrist_offset_raw": [round(float(value), 6) for value in raw_offset],
++            "wrist_offset_robot": [round(float(value), 6) for value in robot_offset],
++            "valid_to_valid_jump_m": round(float(valid_to_valid_jump_m), 6),
++            "raw_wrist_jump_warn_m": float(self.config.get("raw_wrist_jump_warn_m", 0.10)),
++            "raw_wrist_jump_reject_m": float(self.config.get("raw_wrist_jump_reject_m", 0.15)),
++            "raw_wrist_reacquire_valid_count": int(reacquire_valid_count),
++            "raw_wrist_reacquire_required_frames": int(self.config.get("raw_wrist_reacquire_valid_frames", 3)),
++            "raw_wrist_reacquire_stable_m": float(self.config.get("raw_wrist_reacquire_stable_m", 0.03)),
++            "position_axis_map": str(self.config.get("position_axis_map", "x,z,y")),
++            "position_yaw_offset_deg": float(self.config.get("position_yaw_offset_deg", 0.0)),
++            "retargeted_action_for_comparison": [round(float(value), 6) for value in retargeted_action],
++        }
 +
 +
 +def adapt_cartesian_delta_action(action: torch.Tensor) -> tuple[torch.Tensor, dict]:
@@ -1219,14 +1927,7 @@ index 8492ad7..5efe05a 100644
 +        success_ready = bool(
 +            distance_ok and alignment_ok and depth_ok and contact_sequence_valid and not object_drop_detected
 +        )
-
--if args_cli.enable_pinocchio:
--    # Import pinocchio before AppLauncher to force the use of the version installed by IsaacLab and
--    # not the one installed by Isaac Sim pinocchio is required by the Pink IK controllers and the
--    # GR1T2 retargeter
--    import pinocchio  # noqa: F401
--if "handtracking" in args_cli.teleop_device.lower():
--    app_launcher_args["xr"] = True
++
 +        step_dt = float(getattr(env, "step_dt", 0.0) or 0.0)
 +        if step_dt <= 0:
 +            step_dt = 1.0 / 15.0
@@ -1238,10 +1939,7 @@ index 8492ad7..5efe05a 100644
 +        status_name = "SUCCESS_READY" if success_ready else phase
 +        if hold_complete:
 +            status_name = "AUTO_FINALIZE_READY" if self.auto_finalize else "SUCCESS_READY_HELD"
-
--# launch omniverse app
--app_launcher = AppLauncher(app_launcher_args)
--simulation_app = app_launcher.app
++
 +        status = {
 +            "enabled": True,
 +            "status": status_name,
@@ -1278,18 +1976,16 @@ index 8492ad7..5efe05a 100644
 +        }
 +        self._maybe_print(status, loop_index)
 +        return status
-
--"""Rest everything follows."""
++
 +    def mark_auto_finalize_requested(self) -> None:
 +        self._auto_finalize_requested = True
-
++
 +    def reset_state(self) -> None:
 +        self.hold_elapsed_sec = 0.0
 +        self._last_status = None
 +        self._last_success_ready = False
 +        self._auto_finalize_requested = False
-
--import logging
++
 +    def _maybe_print(self, status: dict, loop_index: int) -> None:
 +        status_name = status.get("status")
 +        success_ready = bool(status.get("success_ready"))
@@ -1315,33 +2011,18 @@ index 8492ad7..5efe05a 100644
 +            f"depth={_rdf_fmt_metric(status.get('insertion_depth'))}>="
 +            f"{_rdf_fmt_metric(status.get('insertion_depth_min'))}"
 +        )
-
--import gymnasium as gym
--import torch
-
--from isaaclab.devices import Se3Gamepad, Se3GamepadCfg, Se3Keyboard, Se3KeyboardCfg, Se3SpaceMouse, Se3SpaceMouseCfg
--from isaaclab.devices.openxr import remove_camera_configs
--from isaaclab.devices.teleop_device_factory import create_teleop_device
--from isaaclab.envs import ManagerBasedRLEnvCfg
--from isaaclab.managers import TerminationTermCfg as DoneTerm
++
++
 +class RdfLiveCurationGate:
 +    """Live-checkable quality gate before HMD auto-finalize.
-
--import isaaclab_tasks  # noqa: F401
--from isaaclab_tasks.manager_based.manipulation.lift import mdp
--from isaaclab_tasks.utils import parse_env_cfg
++
 +    This intentionally excludes offline gates such as replay verification and
 +    policy uplift. It only checks data quality that can be computed from saved
 +    frames while the operator is still in the episode.
 +    """
-
--if args_cli.enable_pinocchio:
--    import isaaclab_tasks.manager_based.locomanipulation.pick_place  # noqa: F401
--    import isaaclab_tasks.manager_based.manipulation.pick_place  # noqa: F401
++
 +    RETARGETING_JUMP_WINDOW = 60
-
--# import logger
--logger = logging.getLogger(__name__)
++
 +    def __init__(
 +        self,
 +        *,
@@ -1635,18 +2316,129 @@ index 8492ad7..5efe05a 100644
 +            op.Set(self._gf.Vec3d(float(point[0]), float(point[1]), float(point[2])))
 +
 +
++class RdfUsdRecenterStartBoxVisualizer:
++    """Visible wireframe start box for robot-space HMD recentering."""
++
++    def __init__(self) -> None:
++        from pxr import Gf, Sdf, UsdGeom
++        import omni.usd
++
++        self._gf = Gf
++        self._usd_geom = UsdGeom
++        self._stage = omni.usd.get_context().get_stage()
++        self._edge_ops = []
++        self._edge_colors = []
++        self._edge_scales = []
++
++        root_path = Sdf.Path("/World/RDFRecenterStartBox")
++        if not self._stage.GetPrimAtPath(root_path):
++            UsdGeom.Xform.Define(self._stage, root_path)
++        self._root_path = root_path.pathString
++
++        for index in range(12):
++            cube = UsdGeom.Cube.Define(self._stage, f"{self._root_path}/edge_{index:02d}")
++            cube.CreateSizeAttr(1.0)
++            color_attr = cube.CreateDisplayColorAttr([(0.0, 0.65, 1.0)])
++            xformable = UsdGeom.Xformable(cube.GetPrim())
++            self._edge_ops.append(xformable.AddTranslateOp())
++            self._edge_scales.append(xformable.AddScaleOp())
++            self._edge_colors.append(color_attr)
++
++        center = UsdGeom.Sphere.Define(self._stage, f"{self._root_path}/center")
++        center.CreateRadiusAttr(0.012)
++        self._center_color = center.CreateDisplayColorAttr([(0.0, 0.65, 1.0)])
++        self._center_translate = UsdGeom.Xformable(center.GetPrim()).AddTranslateOp()
++
++    def _set_edge(
++        self,
++        index: int,
++        position: tuple[float, float, float],
++        scale: tuple[float, float, float],
++        color: tuple[float, float, float],
++    ) -> None:
++        self._edge_ops[index].Set(self._gf.Vec3d(float(position[0]), float(position[1]), float(position[2])))
++        self._edge_scales[index].Set(self._gf.Vec3f(float(scale[0]), float(scale[1]), float(scale[2])))
++        self._edge_colors[index].Set([color])
++
++    def update(self, status: dict | None) -> None:
++        status = status or {}
++        center = status.get("center")
++        half_extents = status.get("half_extents")
++        if not isinstance(center, list) or len(center) < 3 or not isinstance(half_extents, list) or len(half_extents) < 3:
++            return
++        cx, cy, cz = (float(center[0]), float(center[1]), float(center[2]))
++        hx, hy, hz = (max(0.001, float(half_extents[0])), max(0.001, float(half_extents[1])), max(0.001, float(half_extents[2])))
++        thickness = max(0.003, min(0.012, min(hx, hy, hz) * 0.18))
++        if status.get("ready"):
++            color = (0.0, 1.0, 0.25)
++        elif status.get("inside_start_box") and status.get("valid_hand"):
++            color = (0.0, 0.65, 1.0)
++        else:
++            color = (1.0, 0.65, 0.0)
++
++        index = 0
++        for y_sign in (-1.0, 1.0):
++            for z_sign in (-1.0, 1.0):
++                self._set_edge(
++                    index,
++                    (cx, cy + y_sign * hy, cz + z_sign * hz),
++                    (2.0 * hx, thickness, thickness),
++                    color,
++                )
++                index += 1
++        for x_sign in (-1.0, 1.0):
++            for z_sign in (-1.0, 1.0):
++                self._set_edge(
++                    index,
++                    (cx + x_sign * hx, cy, cz + z_sign * hz),
++                    (thickness, 2.0 * hy, thickness),
++                    color,
++                )
++                index += 1
++        for x_sign in (-1.0, 1.0):
++            for y_sign in (-1.0, 1.0):
++                self._set_edge(
++                    index,
++                    (cx + x_sign * hx, cy + y_sign * hy, cz),
++                    (thickness, thickness, 2.0 * hz),
++                    color,
++                )
++                index += 1
++        self._center_translate.Set(self._gf.Vec3d(cx, cy, cz))
++        self._center_color.Set([color])
++
+
+-if args_cli.enable_pinocchio:
+-    # Import pinocchio before AppLauncher to force the use of the version installed by IsaacLab and
+-    # not the one installed by Isaac Sim pinocchio is required by the Pink IK controllers and the
+-    # GR1T2 retargeter
+-    import pinocchio  # noqa: F401
+-if "handtracking" in args_cli.teleop_device.lower():
+-    app_launcher_args["xr"] = True
 +class RdfXrTaskGuidanceWidget:
 +    """HMD-readable XR text widget for no-keyboard collection guidance."""
-+
-+    def __init__(self, scale: float, source_prim_path: str, translation: tuple[float, float, float]):
-+        import omni.kit.commands
+
+-# launch omniverse app
+-app_launcher = AppLauncher(app_launcher_args)
+-simulation_app = app_launcher.app
++    def __init__(
++        self,
++        scale: float,
++        source_prim_path: str,
++        translation: tuple[float, float, float],
++        look_at_camera: bool = True,
++        background_alpha: float = 0.90,
++        anchor_mode: str = "upstream_instruction",
++    ):
 +        from omni import ui
 +        from omni.kit.xr.scene_view.utils import UiContainer, WidgetComponent
 +        from omni.kit.xr.scene_view.utils.spatial_source import SpatialSource
-+        from pxr import Gf
++        from pxr import Gf, Usd, UsdGeom
++        from isaaclab.ui.xr_widgets import show_instruction, update_instruction
 +        import isaaclab.sim as sim_utils
 +        import omni.usd
-+
+
+-"""Rest everything follows."""
 +        class _RdfGuidanceTextWidget(ui.Widget):
 +            def __init__(
 +                self,
@@ -1664,13 +2456,16 @@ index 8492ad7..5efe05a 100644
 +                self._label = None
 +                self._background = None
 +                self._build_ui()
-+
+
 +            def _label_style(self) -> dict:
 +                return {"font_size": self._font_size, "color": self._text_color}
-+
+
+-import logging
 +            def _background_style(self) -> dict:
 +                return {"Rectangle": {"background_color": self._background_color, "border_radius": 0.1}}
-+
+
+-import gymnasium as gym
+-import torch
 +            def _build_ui(self) -> None:
 +                with ui.ZStack():
 +                    self._background = ui.Rectangle(style=self._background_style())
@@ -1680,7 +2475,12 @@ index 8492ad7..5efe05a 100644
 +                            style=self._label_style(),
 +                            alignment=ui.Alignment.CENTER,
 +                        )
-+
+
+-from isaaclab.devices import Se3Gamepad, Se3GamepadCfg, Se3Keyboard, Se3KeyboardCfg, Se3SpaceMouse, Se3SpaceMouseCfg
+-from isaaclab.devices.openxr import remove_camera_configs
+-from isaaclab.devices.teleop_device_factory import create_teleop_device
+-from isaaclab.envs import ManagerBasedRLEnvCfg
+-from isaaclab.managers import TerminationTermCfg as DoneTerm
 +            def set_state(self, text: str, text_color: int, background_color: int) -> None:
 +                self._text = text
 +                self._text_color = text_color
@@ -1690,18 +2490,33 @@ index 8492ad7..5efe05a 100644
 +                    self._label.style = self._label_style()
 +                if self._background is not None:
 +                    self._background.style = self._background_style()
-+
-+        self._omni_kit_commands = omni.kit.commands
+
+-import isaaclab_tasks  # noqa: F401
+-from isaaclab_tasks.manager_based.manipulation.lift import mdp
+-from isaaclab_tasks.utils import parse_env_cfg
 +        self._UiContainer = UiContainer
 +        self._WidgetComponent = WidgetComponent
 +        self._SpatialSource = SpatialSource
 +        self._GuidanceTextWidget = _RdfGuidanceTextWidget
++        self._show_instruction = show_instruction
++        self._update_instruction = update_instruction
 +        self._sim_utils = sim_utils
 +        self._gf = Gf
++        self._usd = Usd
++        self._usd_geom = UsdGeom
 +        self._stage = omni.usd.get_context().get_stage()
 +        self._source_prim_path = source_prim_path.strip() if source_prim_path else ""
 +        self._translation = self._gf.Vec3f(float(translation[0]), float(translation[1]), float(translation[2]))
-+        self._target_prim_path = "/RDFTaskGuidanceWidget"
++        self._look_at_camera = bool(look_at_camera)
++        self._background_alpha = max(0.0, min(1.0, float(background_alpha)))
++        self._anchor_mode = (
++            anchor_mode
++            if anchor_mode in {"upstream_instruction", "copy_follow", "copy_static", "world"}
++            else "upstream_instruction"
++        )
++        self._root_target_prim_path = "/RDFTaskGuidanceWidget"
++        self._target_prim_path = self._root_target_prim_path
++        self._target_transform_op = None
 +        self._container = None
 +        self._widget_component = None
 +        self._text_widget = None
@@ -1709,16 +2524,26 @@ index 8492ad7..5efe05a 100644
 +        self._last_color_state = None
 +        self._widget_created = False
 +        self._waiting_logged = False
-+        self._font_size = 0.13 * max(0.75, float(scale))
++        self._copy_failed_logged = False
++        self._font_size = 0.12 * max(0.75, float(scale))
 +        self._max_width = 2.65 * max(0.75, float(scale))
-+        self._height = 0.74 * max(0.75, float(scale))
-+        self._text_color = 0xFFFFFFFF
-+        self._neutral_background_color = 0xFF454545
-+        self._not_ready_background_color = 0xFF5A1D1D
-+        self._holding_background_color = 0xFF7A240F
-+        self._ready_background_color = 0xFF0B5A28
++        self._height = 0.88 * max(0.75, float(scale))
++        self._text_color = 0xE6FFFFFF
++        self._neutral_background_color = self._color_with_alpha(0x454545, self._background_alpha)
++        self._not_ready_background_color = self._color_with_alpha(0x5A1D1D, self._background_alpha)
++        self._holding_background_color = self._color_with_alpha(0x7A240F, self._background_alpha)
++        self._ready_background_color = self._color_with_alpha(0x0B5A28, self._background_alpha)
 +        self._create_widget("RDF TELEOP\nWAITING FOR HAND TRACKING", "neutral")
-+
+
+-if args_cli.enable_pinocchio:
+-    import isaaclab_tasks.manager_based.locomanipulation.pick_place  # noqa: F401
+-    import isaaclab_tasks.manager_based.manipulation.pick_place  # noqa: F401
++    def _color_with_alpha(self, rgb: int, alpha: float) -> int:
++        alpha_byte = int(round(255.0 * max(0.0, min(1.0, alpha))))
++        return (alpha_byte << 24) | (int(rgb) & 0x00FFFFFF)
+
+-# import logger
+-logger = logging.getLogger(__name__)
 +    def _source_ready(self) -> bool:
 +        if not self._source_prim_path:
 +            return True
@@ -1755,6 +2580,9 @@ index 8492ad7..5efe05a 100644
 +            )
 +
 +    def _create_widget(self, text: str, color_state: str) -> bool:
++        if self._anchor_mode == "upstream_instruction":
++            return self._create_upstream_instruction_widget(text, color_state)
++
 +        if not self._source_ready():
 +            if not self._waiting_logged:
 +                print(
@@ -1764,26 +2592,60 @@ index 8492ad7..5efe05a 100644
 +                self._waiting_logged = True
 +            return False
 +
-+        if self._stage.GetPrimAtPath(self._target_prim_path).IsValid():
-+            self._sim_utils.delete_prim(self._target_prim_path, stage=self._stage)
++        if self._stage.GetPrimAtPath(self._root_target_prim_path).IsValid():
++            self._sim_utils.delete_prim(self._root_target_prim_path, stage=self._stage)
 +
-+        if self._source_prim_path:
-+            self._omni_kit_commands.execute(
++        space_stack = None
++        target_prim_path = self._root_target_prim_path
++        anchor_mode = "world_anchor"
++        if self._source_prim_path and self._anchor_mode != "world":
++            import omni.kit.commands
++
++            target_prim_path = self._root_target_prim_path
++            copied_prim = omni.kit.commands.execute(
 +                "CopyPrim",
 +                path_from=self._source_prim_path,
-+                path_to=self._target_prim_path,
++                path_to=target_prim_path,
 +                exclusive_select=False,
 +                copy_to_introducing_layer=False,
 +            )
-+        else:
-+            from pxr import UsdGeom
++            if copied_prim is None or not self._stage.GetPrimAtPath(target_prim_path).IsValid():
++                if not self._copy_failed_logged:
++                    logger.warning(
++                        "[RDF] HMD task guidance widget CopyPrim failed: "
++                        f"source={self._source_prim_path} target={target_prim_path} "
++                        f"anchor_mode={self._anchor_mode}"
++                    )
++                    self._copy_failed_logged = True
++                return False
++            self._target_prim_path = target_prim_path
++            if self._anchor_mode == "copy_follow":
++                if not self._prepare_target_transform_op():
++                    if not self._copy_failed_logged:
++                        logger.warning(
++                            "[RDF] HMD task guidance widget copy_follow transform setup failed: "
++                            f"source={self._source_prim_path} target={target_prim_path}"
++                        )
++                        self._copy_failed_logged = True
++                    return False
++                self._sync_target_to_source()
++            space_stack = [
++                self._SpatialSource.new_prim_path_source(target_prim_path),
++                self._SpatialSource.new_translation_source(self._translation),
++            ]
++            anchor_mode = "copy_follow_anchor" if self._anchor_mode == "copy_follow" else "copied_target_anchor"
 +
-+            UsdGeom.Xform.Define(self._stage, self._target_prim_path)
-+
-+        space_stack = [
-+            self._SpatialSource.new_prim_path_source(self._target_prim_path),
-+            self._SpatialSource.new_translation_source(self._translation),
-+        ]
++        if space_stack is None:
++            target_prim_path = self._root_target_prim_path
++            self._usd_geom.Xform.Define(self._stage, target_prim_path)
++            space_stack = [
++                self._SpatialSource.new_prim_path_source(target_prim_path),
++                self._SpatialSource.new_translation_source(self._translation),
++            ]
++            anchor_mode = "world_anchor"
++        if self._look_at_camera:
++            space_stack.append(self._SpatialSource.new_look_at_camera_source())
++        self._target_prim_path = target_prim_path
 +        self._widget_component = self._WidgetComponent(
 +            self._GuidanceTextWidget,
 +            width=self._max_width,
@@ -1811,16 +2673,101 @@ index 8492ad7..5efe05a 100644
 +                "[RDF] HMD task guidance widget created: "
 +                f"source={self._source_prim_path or 'world'} "
 +                f"translation={[round(float(self._translation[i]), 3) for i in range(3)]} "
-+                f"target={self._target_prim_path} rotation_mode=fixed"
++                f"target={self._target_prim_path} "
++                f"anchor_mode={anchor_mode} "
++                f"requested_anchor_mode={self._anchor_mode} "
++                f"rotation_mode={'look_at_camera' if self._look_at_camera else 'fixed'} "
++                f"background_alpha={self._background_alpha:.2f}"
 +            )
 +        self._widget_created = True
 +        self._last_text = text
 +        self._last_color_state = color_state
 +        return True
 +
++    def _create_upstream_instruction_widget(self, text: str, color_state: str) -> bool:
++        try:
++            self._container = self._show_instruction(
++                text,
++                self._source_prim_path or None,
++                self._translation,
++                display_duration=None,
++                max_width=self._max_width,
++                min_width=min(1.2, self._max_width),
++                font_size=max(0.14, self._font_size),
++                text_color=self._text_color,
++                target_prim_path=self._root_target_prim_path,
++            )
++        except Exception as exc:
++            logger.warning(
++                "[RDF] HMD task guidance upstream instruction widget failed: "
++                f"source={self._source_prim_path or 'world'} target={self._root_target_prim_path} "
++                f"error={exc}"
++            )
++            return False
++        if self._container is None:
++            logger.warning(
++                "[RDF] HMD task guidance upstream instruction widget returned None: "
++                f"source={self._source_prim_path or 'world'} target={self._root_target_prim_path}"
++            )
++            return False
++        if not self._widget_created:
++            print(
++                "[RDF] HMD task guidance widget created: "
++                f"source={self._source_prim_path or 'world'} "
++                f"translation={[round(float(self._translation[i]), 3) for i in range(3)]} "
++                f"target={self._root_target_prim_path} "
++                "anchor_mode=upstream_instruction_anchor "
++                f"requested_anchor_mode={self._anchor_mode} "
++                "rotation_mode=upstream_look_at_camera "
++                "visibility_probe=1 "
++                f"background_alpha={self._background_alpha:.2f}"
++            )
++        self._widget_created = True
++        self._last_text = text
++        self._last_color_state = color_state
++        return True
++
++    def _prepare_target_transform_op(self) -> bool:
++        target_prim = self._stage.GetPrimAtPath(self._target_prim_path)
++        if not target_prim.IsValid() or not target_prim.IsA(self._usd_geom.Xformable):
++            return False
++        xformable = self._usd_geom.Xformable(target_prim)
++        for prop_name in target_prim.GetPropertyNames():
++            if prop_name.startswith("xformOp:"):
++                target_prim.RemoveProperty(prop_name)
++        xformable.ClearXformOpOrder()
++        self._target_transform_op = xformable.AddTransformOp(self._usd_geom.XformOp.PrecisionDouble)
++        return self._target_transform_op is not None
++
++    def _sync_target_to_source(self) -> None:
++        if self._anchor_mode != "copy_follow" or self._target_transform_op is None:
++            return
++        source_prim = self._stage.GetPrimAtPath(self._source_prim_path)
++        if not source_prim.IsValid() or not source_prim.IsA(self._usd_geom.Xformable):
++            return
++        source_matrix = self._usd_geom.Xformable(source_prim).ComputeLocalToWorldTransform(
++            self._usd.TimeCode.Default()
++        )
++        self._target_transform_op.Set(source_matrix)
++
 +    def _set_widget_state(self, text: str, color_state: str) -> bool:
++        if self._anchor_mode == "upstream_instruction":
++            try:
++                updated = self._update_instruction(self._root_target_prim_path, text)
++            except Exception as exc:
++                logger.warning(
++                    "[RDF] HMD task guidance upstream instruction update failed: "
++                    f"target={self._root_target_prim_path} error={exc}"
++                )
++                updated = False
++            if not updated:
++                return self._create_upstream_instruction_widget(text, color_state)
++            self._last_text = text
++            self._last_color_state = color_state
++            return True
 +        if self._text_widget is None:
 +            return False
++        self._sync_target_to_source()
 +        self._text_widget.set_state(text, self._text_color, self._background_color_for_state(color_state))
 +        if self._widget_component is not None:
 +            self._widget_component.color = self._component_tint(color_state)
@@ -1830,8 +2777,19 @@ index 8492ad7..5efe05a 100644
 +        self._last_color_state = color_state
 +        return True
 +
-+    def update(self, *, recentered: bool, status: dict | None) -> None:
++    def update(
++        self,
++        *,
++        recentered: bool,
++        status: dict | None,
++        recenter_status: dict | None = None,
++        recording_active: bool = False,
++        recorded_frames: int = 0,
++        warmup_consecutive: int = 0,
++        warmup_required: int = 0,
++    ) -> None:
 +        status = status or {}
++        recenter_status = recenter_status or {}
 +        status_name = str(status.get("status") or "UNKNOWN")
 +        phase = str(status.get("phase") or "UNKNOWN")
 +        success_ready = bool(status.get("success_ready"))
@@ -1845,8 +2803,71 @@ index 8492ad7..5efe05a 100644
 +        live_reason = live_reasons[0] if live_reasons else ""
 +        if len(live_reason) > 34:
 +            live_reason = live_reason[:31] + "..."
++        hmd_motion_debug = (
++            status.get("hmd_motion_debug") if isinstance(status.get("hmd_motion_debug"), dict) else {}
++        )
 +
-+        recenter_line = "RECENTER: OK" if recentered else "RECENTER: HOLD HAND STILL"
++        def _short_panel_value(value, limit: int = 20) -> str:
++            text_value = str(value or "")
++            if len(text_value) <= limit:
++                return text_value
++            return text_value[: max(0, limit - 3)] + "..."
++
++        right_hand_valid = bool(hmd_motion_debug.get("right_hand_valid"))
++        tracking_line = "TRACKING: OK" if right_hand_valid else "TRACKING: WAIT"
++        gate_reason = _short_panel_value(hmd_motion_debug.get("raw_wrist_gate_reason"))
++        gate_state = _short_panel_value(hmd_motion_debug.get("raw_wrist_gate_state") or "unknown", 12)
++        if gate_reason:
++            control_line = f"CONTROL: HELD {gate_reason}"
++        elif hmd_motion_debug.get("apply_control_active"):
++            control_line = f"CONTROL: ACTIVE {gate_state.upper()}"
++        elif hmd_motion_debug.get("teleoperation_active"):
++            control_line = "CONTROL: WAIT"
++        else:
++            control_line = "CONTROL: OFF"
++        motion_delta_m = hmd_motion_debug.get("last_motion_delta_norm")
++        command_step_norm = hmd_motion_debug.get("command_step_norm")
++        if isinstance(motion_delta_m, (float, int)):
++            motion_state = "YES" if float(motion_delta_m) >= 0.0015 else "NO"
++            if isinstance(command_step_norm, (float, int)):
++                motion_line = (
++                    f"MOTION: {motion_state} eef={float(motion_delta_m) * 1000.0:.1f}mm "
++                    f"cmd={float(command_step_norm) * 1000.0:.1f}mm"
++                )
++            else:
++                motion_line = f"MOTION: {motion_state} eef={float(motion_delta_m) * 1000.0:.1f}mm"
++        else:
++            motion_line = "MOTION: --"
++        raw_wrist_jump_m = hmd_motion_debug.get("raw_wrist_jump_m")
++        if isinstance(raw_wrist_jump_m, (float, int)):
++            raw_jump_line = f"RAW_JUMP: {float(raw_wrist_jump_m) * 100.0:.1f}cm"
++        else:
++            raw_jump_line = "RAW_JUMP: --"
++
++        if recentered:
++            recenter_line = "RECENTER: OK"
++        elif recenter_status.get("mode") == "robot_start_box":
++            if not recenter_status.get("valid_hand"):
++                recenter_line = "RECENTER: SHOW RIGHT HAND"
++            elif not recenter_status.get("inside_start_box"):
++                recenter_line = "RECENTER: MOVE TO START BOX"
++            else:
++                recenter_line = (
++                    "RECENTER: HOLD START "
++                    f"{int(recenter_status.get('consecutive_frames') or 0)}/"
++                    f"{int(recenter_status.get('required_frames') or 1)}"
++                )
++        else:
++            recenter_line = "RECENTER: HOLD HAND STILL"
++        if recording_active:
++            recording_line = f"RECORDING: ON {max(0, int(recorded_frames))}f"
++        elif warmup_required > 0:
++            recording_line = (
++                "RECORDING: WARMUP "
++                f"{max(0, int(warmup_consecutive))}/{max(1, int(warmup_required))}"
++            )
++        else:
++            recording_line = "RECORDING: WAIT"
 +        success_line = "SUCCESS_READY: YES" if success_ready else "SUCCESS_READY: NO"
 +        if live_required and status_name == "LIVE_CURATED_READY":
 +            state_line = "LIVE_CURATED: READY"
@@ -1884,7 +2905,20 @@ index 8492ad7..5efe05a 100644
 +        else:
 +            progress_line = "[..........]"
 +
-+        text = "\n".join((success_line, recenter_line, state_line, gate_line, progress_line))
++        text = "\n".join(
++            (
++                recording_line,
++                recenter_line,
++                tracking_line,
++                control_line,
++                motion_line,
++                raw_jump_line,
++                success_line,
++                state_line,
++                gate_line,
++                progress_line,
++            )
++        )
 +        if status_name == "LIVE_CURATION_FAILED":
 +            color_state = "not_ready"
 +        elif auto_finalize_ready:
@@ -1899,6 +2933,7 @@ index 8492ad7..5efe05a 100644
 +        if not self._widget_created:
 +            self._create_widget(text, color_state)
 +            return
++        self._sync_target_to_source()
 +        if text == self._last_text and color_state == self._last_color_state:
 +            return
 +        if not self._set_widget_state(text, color_state):
@@ -1988,7 +3023,18 @@ index 8492ad7..5efe05a 100644
 +                continue
 +        return None
 +
-+    def update(self, env, *, recentered: bool, status: dict | None) -> None:
++    def update(
++        self,
++        env,
++        *,
++        recentered: bool,
++        status: dict | None,
++        recenter_status: dict | None = None,
++        recording_active: bool = False,
++        recorded_frames: int = 0,
++        warmup_consecutive: int = 0,
++        warmup_required: int = 0,
++    ) -> None:
 +        anchor = self._anchor(env)
 +        if anchor is None:
 +            return
@@ -2000,6 +3046,7 @@ index 8492ad7..5efe05a 100644
 +        ]
 +
 +        status = status or {}
++        recenter_status = recenter_status or {}
 +        status_name = str(status.get("status") or "UNKNOWN")
 +        success_ready = bool(status.get("success_ready"))
 +        auto_finalize_ready = bool(status.get("auto_finalize_ready")) or status_name == "AUTO_FINALIZE_READY"
@@ -2007,7 +3054,12 @@ index 8492ad7..5efe05a 100644
 +        hold_elapsed = float(status.get("hold_elapsed_sec") or 0.0)
 +        progress = _rdf_clamp01(hold_elapsed / hold_required) if hold_required > 0 else 0.0
 +
-+        recenter_color = (0.0, 0.65, 1.0) if recentered else (0.20, 0.20, 0.20)
++        if recentered:
++            recenter_color = (0.0, 0.65, 1.0)
++        elif recenter_status.get("inside_start_box") and recenter_status.get("valid_hand"):
++            recenter_color = (0.0, 0.38, 0.95)
++        else:
++            recenter_color = (0.20, 0.20, 0.20)
 +        if status_name == "UNKNOWN":
 +            success_color = (0.35, 0.35, 0.35)
 +        elif status_name == "LIVE_CURATION_FAILED":
@@ -2058,12 +3110,22 @@ index 8492ad7..5efe05a 100644
 +    scale: float,
 +    primitive_fallback: bool = False,
 +    source_prim_path: str = "/_xr/stage/xrCamera",
-+    translation: tuple[float, float, float] = (0.0, 0.30, -2.0),
++    translation: tuple[float, float, float] = (0.00, 0.10, -1.60),
++    look_at_camera: bool = True,
++    background_alpha: float = 0.90,
++    anchor_mode: str = "upstream_instruction",
 +):
 +    if not enabled or getattr(args_cli, "headless", False):
 +        return None
 +    try:
-+        return RdfXrTaskGuidanceWidget(scale, source_prim_path, translation)
++        return RdfXrTaskGuidanceWidget(
++            scale,
++            source_prim_path,
++            translation,
++            look_at_camera,
++            background_alpha,
++            anchor_mode,
++        )
 +    except Exception as widget_exc:
 +        logger.warning(f"[RDF] XR text guidance widget unavailable: {widget_exc}")
 +    if not primitive_fallback:
@@ -2100,6 +3162,16 @@ index 8492ad7..5efe05a 100644
 +        except Exception as draw_exc:
 +            logger.warning(f"[RDF] Visual debug disabled: unable to create marker renderer: {draw_exc}")
 +            return None
++
++
++def initialize_rdf_recenter_start_box_visual(enabled: bool):
++    if not enabled or getattr(args_cli, "headless", False):
++        return None
++    try:
++        return RdfUsdRecenterStartBoxVisualizer()
++    except Exception as exc:
++        logger.warning(f"[RDF] Recenter start-box visual disabled: {exc}")
++        return None
 +
 +
 +def compute_rdf_visual_targets(
@@ -2360,7 +3432,7 @@ index 8492ad7..5efe05a 100644
 
 
  def main() -> None:
-@@ -95,20 +2342,22 @@ def main() -> None:
+@@ -95,20 +3435,22 @@ def main() -> None:
      # parse configuration
      env_cfg = parse_env_cfg(args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs)
      env_cfg.env_name = args_cli.task
@@ -2387,7 +3459,7 @@ index 8492ad7..5efe05a 100644
          env_cfg = remove_camera_configs(env_cfg)
          env_cfg.sim.render.antialiasing_mode = "DLSS"
 
-@@ -127,22 +2376,72 @@ def main() -> None:
+@@ -127,22 +3469,82 @@ def main() -> None:
          return
 
      # Flags for controlling teleoperation flow
@@ -2401,9 +3473,19 @@ index 8492ad7..5efe05a 100644
 +    task_guidance_controller = None
 +    task_guidance_panel = None
 +    live_curation_gate = None
++    recenter_start_gate = None
++    recenter_start_box_visualizer = None
++    last_recenter_status = None
 +    auto_recenter_valid_count = 0
++    auto_recenter_last_wrist_pose = None
++    auto_recenter_wrist_jump_m = None
 +    auto_recenter_done = False
 +    hmd_recentered = False
++    tracking_reentry_pending = False
++    tracking_resume_valid_count = 0
++    tracking_resume_required_frames = max(1, args_cli.rdf_auto_recenter_valid_frames)
++    last_motion_delta_norm = None
++    last_motion_loop_index = None
 
      # Callback handlers
 +    def request_episode_finalize(
@@ -2467,7 +3549,7 @@ index 8492ad7..5efe05a 100644
 
      def start_teleoperation() -> None:
          """
-@@ -170,18 +2469,46 @@ def main() -> None:
+@@ -170,18 +3572,57 @@ def main() -> None:
          teleoperation_active = False
          print("Teleoperation deactivated")
 
@@ -2475,11 +3557,22 @@ index 8492ad7..5efe05a 100644
 +        """
 +        Request Robot Data Forge calibration/recenter on the next simulation step.
 +
-+        The recorder aligns the current raw XR right wrist pose to the current
-+        robot end-effector pose. This changes only recorded metadata, not the
-+        Isaac Lab teleoperation control behavior.
++        In robot_start_box mode, recenter can complete only after the robot
++        EEF/fingertip has held the deterministic start box long enough. The
++        recorder still aligns the current raw XR wrist to the current robot EEF,
++        but the trigger is now robot-space, not the operator's arbitrary first
++        stable hand pose.
 +        """
 +        nonlocal should_recenter_calibration, pending_recenter_reason, hmd_recentered
++        if (
++            args_cli.rdf_recenter_mode == "robot_start_box"
++            and recenter_start_gate is not None
++            and not hmd_recentered
++            and not recenter_start_gate.ready
++        ):
++            status = recenter_start_gate.last_status or {}
++            print(f"[RDF] Recenter ignored: robot_start_box not ready {recenter_start_gate.format_status(status)}")
++            return
 +        should_recenter_calibration = True
 +        pending_recenter_reason = reason
 +        if rdf_action_filter is not None:
@@ -2516,7 +3609,7 @@ index 8492ad7..5efe05a 100644
      else:
          # Always active for other devices
          teleoperation_active = True
-@@ -193,6 +2520,15 @@ def main() -> None:
+@@ -193,6 +3634,15 @@ def main() -> None:
              teleop_interface = create_teleop_device(
                  args_cli.teleop_device, env_cfg.teleop_devices.devices, teleoperation_callbacks
              )
@@ -2532,7 +3625,7 @@ index 8492ad7..5efe05a 100644
          else:
              logger.warning(
                  f"No teleop device '{args_cli.teleop_device}' found in environment config. Creating default."
-@@ -237,39 +2573,548 @@ def main() -> None:
+@@ -237,39 +3687,879 @@ def main() -> None:
          return
 
      print(f"Using teleop device: {teleop_interface}")
@@ -2568,6 +3661,37 @@ index 8492ad7..5efe05a 100644
      # reset environment
      env.reset()
      teleop_interface.reset()
++    if args_cli.rdf_recenter_mode == "robot_start_box":
++        recenter_start_gate = RdfRobotStartRecenterGate(
++            center_text=args_cli.rdf_recenter_box_center,
++            center_source=args_cli.rdf_recenter_box_center_source,
++            approach_offset_text=args_cli.rdf_recenter_box_approach_offset,
++            random_offset_text=args_cli.rdf_recenter_box_random_offset,
++            half_extents_text=args_cli.rdf_recenter_box_half_extents,
++            required_frames=args_cli.rdf_auto_recenter_valid_frames,
++            task_name=args_cli.task,
++        )
++        recenter_start_gate.reset(env, "initial_reset")
++        last_recenter_status = recenter_start_gate.evaluate(
++            env,
++            valid_hand=False,
++            active=False,
++            update_counter=False,
++        )
++        recenter_start_box_visualizer = initialize_rdf_recenter_start_box_visual(args_cli.rdf_recenter_box_visual)
++        if recenter_start_box_visualizer is not None:
++            recenter_start_box_visualizer.update(last_recenter_status)
++            print("[RDF] Recenter start-box visual enabled: target=/World/RDFRecenterStartBox")
++        print(
++            "[RDF] Auto recenter mode: robot_start_box. "
++            "Teleop is anchored to a deterministic robot-space start box, not the first user hand pose. "
++            f"center_source={args_cli.rdf_recenter_box_center_source} "
++            f"random_offset_half_range={args_cli.rdf_recenter_box_random_offset} "
++            f"setup_control={args_cli.rdf_recenter_setup_control} "
++            f"block_teleop_until_recenter={args_cli.rdf_block_teleop_until_recenter}"
++        )
++    else:
++        print("[RDF] Auto recenter mode: first_valid_hand")
 +    teleop_control_mode = resolve_teleop_control_mode(env, args_cli.task)
 +    if teleop_control_mode == "bounded_direct_ee_target":
 +        if enable_bounded_direct_ee_target_control(env):
@@ -2589,6 +3713,33 @@ index 8492ad7..5efe05a 100644
 +        else:
 +            print(
 +                "[RDF] Teleop control mode requested bounded_direct_ee_target but env is not Factory-like; "
++                "using native."
++            )
++            teleop_control_mode = "native"
++            teleop_target_controller = None
++    elif teleop_control_mode == "raw_wrist_direct_ee_target":
++        if enable_bounded_direct_ee_target_control(env):
++            raw_wrist_config = resolved_raw_wrist_direct_ee_config()
++            teleop_target_controller = RdfRawWristDirectEeTargetController(raw_wrist_config)
++            teleop_target_controller.reset(env, "initial_reset", teleop_interface)
++            print(
++                "[RDF] Teleop control mode: raw_wrist_direct_ee_target. "
++                "Raw Quest/OpenXR right-wrist translation drives a bounded end-effector target servo; "
++                "retargeted OpenXR action remains recorded for rotation/gripper comparison."
++            )
++            print(
++                "[RDF] Raw wrist direct EE config: "
++                f"position_gain={raw_wrist_config['position_gain']} "
++                f"axis_map={raw_wrist_config['position_axis_map']} "
++                f"yaw_offset_deg={raw_wrist_config['position_yaw_offset_deg']} "
++                f"max_step_m={raw_wrist_config['max_step_m']} "
++                f"smoothing_alpha={raw_wrist_config['smoothing_alpha']} "
++                f"workspace_radius_m={raw_wrist_config['workspace_radius_m']} "
++                f"jump_reject_m={raw_wrist_config['raw_wrist_jump_reject_m']}"
++            )
++        else:
++            print(
++                "[RDF] Teleop control mode requested raw_wrist_direct_ee_target but env is not Factory-like; "
 +                "using native."
 +            )
 +            teleop_control_mode = "native"
@@ -2719,16 +3870,23 @@ index 8492ad7..5efe05a 100644
 +            parse_float_tuple(
 +                args_cli.rdf_task_guidance_panel_translation,
 +                3,
-+                (0.0, 0.30, -2.0),
++                (0.00, 0.10, -1.60),
 +            ),
++            args_cli.rdf_task_guidance_panel_look_at_camera,
++            args_cli.rdf_task_guidance_panel_background_alpha,
++            args_cli.rdf_task_guidance_panel_anchor_mode,
 +        )
 +        if task_guidance_panel is not None:
 +            print(
 +                "[RDF] HMD task guidance widget enabled: "
-+                "RECENTER, phase, SUCCESS_READY hold progress, and auto-finalize state will be shown in XR "
++                "RECENTER, tracking, control, motion, raw-jump, phase, SUCCESS_READY hold progress, "
++                "and auto-finalize state will be shown in XR "
 +                "after the source prim is available. "
 +                f"source={args_cli.rdf_task_guidance_panel_source} "
-+                f"translation={args_cli.rdf_task_guidance_panel_translation}"
++                f"translation={args_cli.rdf_task_guidance_panel_translation} "
++                f"look_at_camera={args_cli.rdf_task_guidance_panel_look_at_camera} "
++                f"background_alpha={args_cli.rdf_task_guidance_panel_background_alpha} "
++                f"anchor_mode={args_cli.rdf_task_guidance_panel_anchor_mode}"
 +            )
 +
 +    print(
@@ -2736,7 +3894,7 @@ index 8492ad7..5efe05a 100644
 +        + (
 +            "Terminal hotkeys enabled: P=recenter, N=success, F=failure, R=reset."
 +            if args_cli.rdf_terminal_hotkeys
-+            else "HMD no-keyboard mode: auto recenter and SUCCESS_READY auto-finalize are preferred."
++            else "HMD no-keyboard mode: robot start-box recenter and SUCCESS_READY auto-finalize are preferred."
 +        )
 +    )
 +    restore_rdf_terminal_hotkeys = None
@@ -2800,43 +3958,210 @@ index 8492ad7..5efe05a 100644
 +                loop_index += 1
                  action = teleop_interface.advance()
 +                raw_action = action
++                right_wrist_pose = teleop_right_wrist_pose_list(teleop_interface)
++                right_hand_valid = rdf_pose_is_valid(right_wrist_pose)
++                recenter_requested_this_loop = False
 +                if args_cli.rdf_auto_recenter_on_first_valid and not auto_recenter_done:
-+                    wrist_pose = teleop_right_wrist_pose_list(teleop_interface)
-+                    if teleoperation_active and rdf_pose_is_valid(wrist_pose):
-+                        auto_recenter_valid_count += 1
-+                    else:
-+                        auto_recenter_valid_count = 0
-+                    if auto_recenter_valid_count >= max(1, args_cli.rdf_auto_recenter_valid_frames):
-+                        request_recenter_calibration("auto_first_valid_tracking")
-+                        auto_recenter_done = True
-+                        print(
-+                            "[RDF] Auto recenter applied after "
-+                            f"{auto_recenter_valid_count} consecutive valid handtracking frames"
++                    if args_cli.rdf_recenter_mode == "robot_start_box" and recenter_start_gate is not None:
++                        last_recenter_status = recenter_start_gate.evaluate(
++                            env,
++                            valid_hand=right_hand_valid,
++                            active=teleoperation_active,
 +                        )
++                        if recenter_start_box_visualizer is not None:
++                            recenter_start_box_visualizer.update(last_recenter_status)
++                        recenter_print_every = max(1, args_cli.rdf_task_guidance_every)
++                        if loop_index % recenter_print_every == 0 or last_recenter_status.get("ready"):
++                            print(f"[RDF][RECENTER] {recenter_start_gate.format_status(last_recenter_status)}")
++                        if last_recenter_status.get("ready"):
++                            request_recenter_calibration("auto_robot_start_box")
++                            auto_recenter_done = True
++                            recenter_requested_this_loop = True
++                            print(
++                                "[RDF] Auto recenter applied after robot start-box hold: "
++                                f"{last_recenter_status.get('consecutive_frames')}/"
++                                f"{last_recenter_status.get('required_frames')} frames "
++                                f"center={last_recenter_status.get('center')} "
++                                f"current={last_recenter_status.get('current')}"
++                            )
++                    else:
++                        if teleoperation_active and right_hand_valid and len(right_wrist_pose) >= 3:
++                            current_wrist_pose = [float(value) for value in right_wrist_pose[:3]]
++                            auto_recenter_wrist_jump_m = None
++                            if auto_recenter_last_wrist_pose is not None:
++                                auto_recenter_wrist_jump_m = math.sqrt(
++                                    sum(
++                                        (
++                                            current_wrist_pose[axis]
++                                            - auto_recenter_last_wrist_pose[axis]
++                                        )
++                                        ** 2
++                                        for axis in range(3)
++                                    )
++                                )
++                            stable_threshold_m = max(0.0, args_cli.rdf_auto_recenter_stable_m)
++                            if (
++                                auto_recenter_wrist_jump_m is None
++                                or auto_recenter_wrist_jump_m <= stable_threshold_m
++                            ):
++                                auto_recenter_valid_count += 1
++                            else:
++                                auto_recenter_valid_count = 1
++                                recenter_print_every = max(1, args_cli.rdf_task_guidance_every)
++                                if loop_index % recenter_print_every == 0:
++                                    print(
++                                        "[RDF][RECENTER] AUTO_RECENTER_UNSTABLE_RIGHT_WRIST "
++                                        f"jump={auto_recenter_wrist_jump_m:.4f}m>"
++                                        f"{stable_threshold_m:.4f}m "
++                                        f"valid_window=1/{max(1, args_cli.rdf_auto_recenter_valid_frames)}"
++                                    )
++                            auto_recenter_last_wrist_pose = current_wrist_pose
++                        else:
++                            auto_recenter_valid_count = 0
++                            auto_recenter_last_wrist_pose = None
++                            auto_recenter_wrist_jump_m = None
++                        if auto_recenter_valid_count >= max(1, args_cli.rdf_auto_recenter_valid_frames):
++                            request_recenter_calibration("auto_first_valid_tracking")
++                            auto_recenter_done = True
++                            recenter_requested_this_loop = True
++                            print(
++                                "[RDF] Auto recenter applied after "
++                                f"{auto_recenter_valid_count} consecutive stable right-wrist frames "
++                                f"(stable_m<={max(0.0, args_cli.rdf_auto_recenter_stable_m):.4f})"
++                            )
++                pre_recenter = bool(
++                    args_cli.rdf_auto_recenter_on_first_valid
++                    and args_cli.rdf_block_teleop_until_recenter
++                    and not hmd_recentered
++                )
++                setup_control_active = bool(
++                    pre_recenter
++                    and args_cli.rdf_recenter_mode == "robot_start_box"
++                    and args_cli.rdf_recenter_setup_control
++                    and teleoperation_active
++                )
++                teleoperation_control_active = bool(teleoperation_active)
++                if (
++                    args_cli.rdf_block_teleop_until_recenter
++                    and args_cli.rdf_auto_recenter_on_first_valid
++                    and not hmd_recentered
++                ):
++                    teleoperation_control_active = False
++                apply_control_active = bool(teleoperation_control_active or setup_control_active)
++                if recenter_requested_this_loop:
++                    teleoperation_control_active = False
++                    apply_control_active = False
++                    setup_control_active = False
++                tracking_gate_reason = None
++                if apply_control_active and not right_hand_valid:
++                    tracking_gate_reason = "invalid_right_hand"
++                    if not tracking_reentry_pending:
++                        tracking_reentry_pending = True
++                        tracking_resume_valid_count = 0
++                        if rdf_action_filter is not None:
++                            rdf_action_filter.recenter("tracking_lost")
++                        if teleop_target_controller is not None:
++                            try:
++                                teleop_target_controller.reset(env, "tracking_lost", teleop_interface)
++                            except Exception as exc:
++                                logger.warning(f"[RDF] teleop tracking-lost hold skipped: {exc}")
++                        try:
++                            teleop_interface.reset()
++                        except Exception as exc:
++                            logger.warning(f"[RDF] teleop interface tracking-lost reset skipped: {exc}")
++                elif apply_control_active and tracking_reentry_pending:
++                    tracking_resume_valid_count += 1
++                    if tracking_resume_valid_count < tracking_resume_required_frames:
++                        tracking_gate_reason = "tracking_resume_warmup"
++                    else:
++                        tracking_reentry_pending = False
++                        tracking_resume_valid_count = 0
++                        if rdf_action_filter is not None:
++                            rdf_action_filter.recenter("tracking_resumed")
++                        if teleop_target_controller is not None:
++                            try:
++                                teleop_target_controller.reset(env, "tracking_resumed", teleop_interface)
++                            except Exception as exc:
++                                logger.warning(f"[RDF] teleop tracking-resume rebase skipped: {exc}")
++                        print(
++                            "[RDF][TRACKING_RESUME] right wrist tracking stable; "
++                            "rebased direct-EE target at current robot pose "
++                            f"required_frames={tracking_resume_required_frames}"
++                        )
++                tracking_gate_blocked = tracking_gate_reason is not None
++                if tracking_gate_blocked:
++                    teleoperation_control_active = False
++                    apply_control_active = False
++                    setup_control_active = False
++                    tracking_print_every = max(1, args_cli.rdf_task_guidance_every)
++                    if loop_index % tracking_print_every == 0:
++                        print(
++                            "[RDF][TRACKING_GATE] right wrist tracking not ready; robot control held "
++                            f"reason={tracking_gate_reason} "
++                            f"pose={_rdf_round_xyz(right_wrist_pose)} "
++                            f"anchor_fallback={rdf_pose_is_anchor_fallback(right_wrist_pose)} "
++                            f"resume={tracking_resume_valid_count}/{tracking_resume_required_frames}"
++                        )
++                if not apply_control_active:
++                    action = torch.zeros_like(action)
 +                action_filter_metadata = None
 +                if rdf_action_filter is not None:
-+                    filter_result = rdf_action_filter.apply(action_to_list(raw_action))
++                    filter_result = rdf_action_filter.apply(action_to_list(action))
 +                    action = list_to_action(filter_result.applied_action, raw_action)
 +                    action_filter_metadata = filter_result.metadata
++                if tracking_gate_blocked and teleop_control_mode == "raw_wrist_direct_ee_target":
++                    tracking_gate_metadata = {
++                        "selected_teleop_control_mode": teleop_control_mode,
++                        "tracking_gate_reason": tracking_gate_reason,
++                        "input_signal_state": rdf_input_signal_state_from_pose(
++                            right_wrist_pose,
++                            gate_state="held",
++                            gate_reason=tracking_gate_reason,
++                            action_hold=True,
++                            tracking_epoch_state="invalid"
++                            if not right_hand_valid
++                            else "reacquire_warmup",
++                        ),
++                        "right_wrist_pose": right_wrist_pose,
++                        "right_wrist_anchor_fallback": rdf_pose_is_anchor_fallback(right_wrist_pose),
++                        "tracking_resume_progress": {
++                            "valid": tracking_resume_valid_count,
++                            "required": tracking_resume_required_frames,
++                        },
++                        "raw_wrist_direct_config": dict(getattr(teleop_target_controller, "config", {}) or {}),
++                        "retargeted_action_for_comparison": action_to_list(raw_action),
++                    }
++                    if isinstance(action_filter_metadata, dict):
++                        action_filter_metadata = {**action_filter_metadata, **tracking_gate_metadata}
++                    else:
++                        action_filter_metadata = tracking_gate_metadata
 +
 +                filtered_action = action
 +                forge_adapter_metadata = None
 +                control_mode_metadata = None
-+                if teleop_control_mode in {"operator_follow", "bounded_direct_ee_target"} and teleop_target_controller is not None:
++                if (
++                    apply_control_active
++                    and teleop_control_mode in {
++                        "operator_follow",
++                        "bounded_direct_ee_target",
++                        "raw_wrist_direct_ee_target",
++                    }
++                    and teleop_target_controller is not None
++                ):
 +                    action, control_mode_metadata = teleop_target_controller.apply(env, filtered_action, teleop_interface)
 +                    if isinstance(action_filter_metadata, dict):
 +                        action_filter_metadata = dict(action_filter_metadata)
 +                        action_filter_metadata["teleop_control_mode"] = control_mode_metadata
 +                    else:
 +                        action_filter_metadata = {"teleop_control_mode": control_mode_metadata}
-+                elif teleop_control_mode == "cartesian_delta":
++                elif apply_control_active and teleop_control_mode == "cartesian_delta":
 +                    action, control_mode_metadata = adapt_cartesian_delta_action(filtered_action)
 +                    if isinstance(action_filter_metadata, dict):
 +                        action_filter_metadata = dict(action_filter_metadata)
 +                        action_filter_metadata["teleop_control_mode"] = control_mode_metadata
 +                    else:
 +                        action_filter_metadata = {"teleop_control_mode": control_mode_metadata}
-+                elif forge_action_adapter_enabled:
++                elif apply_control_active and forge_action_adapter_enabled:
 +                    action, forge_adapter_metadata = adapt_forge_asset_relative_action(env, filtered_action)
 +                    if forge_adapter_metadata is not None:
 +                        if isinstance(action_filter_metadata, dict):
@@ -2845,15 +4170,34 @@ index 8492ad7..5efe05a 100644
 +                        else:
 +                            action_filter_metadata = {"action_adapter": forge_adapter_metadata}
 +
++                raw_values = action_to_list(raw_action)
++                filtered_values = action_to_list(filtered_action)
++                applied_values = action_to_list(action)
++                adapter_name = forge_adapter_metadata["name"] if forge_adapter_metadata else "none"
++                control_name = control_mode_metadata["name"] if control_mode_metadata else teleop_control_mode
++                raw_wrist_gate_state = None
++                raw_wrist_gate_reason = tracking_gate_reason if tracking_gate_blocked else None
++                raw_wrist_jump_m = None
++                command_step_norm = None
++                target_error_norm = None
++                if isinstance(control_mode_metadata, dict):
++                    command_step_norm = control_mode_metadata.get("command_step_norm")
++                    target_error_norm = control_mode_metadata.get("target_error_norm")
++                    raw_wrist_details = control_mode_metadata.get("raw_wrist_direct_control")
++                    if isinstance(raw_wrist_details, dict):
++                        raw_wrist_gate_state = raw_wrist_details.get("gate_state")
++                        raw_wrist_gate_reason = raw_wrist_details.get("gate_reason")
++                        raw_wrist_jump_m = raw_wrist_details.get("valid_to_valid_jump_m")
++                elif (
++                    isinstance(action_filter_metadata, dict)
++                    and action_filter_metadata.get("selected_teleop_control_mode") == "raw_wrist_direct_ee_target"
++                ):
++                    raw_wrist_gate_state = "held"
++
 +                if args_cli.rdf_debug_action_every > 0 and loop_index % args_cli.rdf_debug_action_every == 0:
-+                    raw_values = action_to_list(raw_action)
-+                    filtered_values = action_to_list(filtered_action)
-+                    applied_values = action_to_list(action)
-+                    adapter_name = forge_adapter_metadata["name"] if forge_adapter_metadata else "none"
-+                    control_name = control_mode_metadata["name"] if control_mode_metadata else teleop_control_mode
 +                    print(
 +                        "[RDF] action_debug "
-+                        f"loop={loop_index} active={teleoperation_active} "
++                        f"loop={loop_index} active={teleoperation_control_active} setup={setup_control_active} "
 +                        f"raw_norm={vector_norm(raw_values):.4f} "
 +                        f"applied_norm={vector_norm(applied_values):.4f} "
 +                        f"raw_xyz={[round(value, 4) for value in raw_values[:3]]} "
@@ -2861,8 +4205,11 @@ index 8492ad7..5efe05a 100644
 +                        f"step_xyz={[round(value, 4) for value in applied_values[:3]]} "
 +                        f"adapter={adapter_name} "
 +                        f"control={control_name} "
-+                        f"target_error_norm={control_mode_metadata.get('target_error_norm') if control_mode_metadata else None} "
-+                        f"command_step_norm={control_mode_metadata.get('command_step_norm') if control_mode_metadata else None}"
++                        f"target_error_norm={target_error_norm} "
++                        f"command_step_norm={command_step_norm} "
++                        f"raw_wrist_gate_state={raw_wrist_gate_state} "
++                        f"raw_wrist_gate_reason={raw_wrist_gate_reason} "
++                        f"raw_wrist_jump_m={raw_wrist_jump_m}"
 +                    )
 +
 +                if visual_debug_markers is not None and visual_debug_every > 0 and loop_index % visual_debug_every == 0:
@@ -2891,10 +4238,16 @@ index 8492ad7..5efe05a 100644
 +                    should_recenter_calibration = False
 
                  # Only apply teleop commands when active
+-                if teleoperation_active:
 +                motion_before = None
-+                if teleoperation_active and motion_debug_every > 0 and loop_index % motion_debug_every == 0:
++                env_step_result = None
++                motion_debug_due = (
++                    apply_control_active and motion_debug_every > 0 and loop_index % motion_debug_every == 0
++                )
++                motion_panel_due = apply_control_active and task_guidance_panel is not None
++                if motion_debug_due or motion_panel_due:
 +                    motion_before = fingertip_position_list(env)
-                 if teleoperation_active:
++                if apply_control_active:
                      # process actions
                      actions = action.repeat(env.num_envs, 1)
 +                    # Guard: Isaac Sim Stop button stops the timeline but keeps the app
@@ -2902,25 +4255,31 @@ index 8492ad7..5efe05a 100644
 +                    if hasattr(env, "sim") and env.sim.is_stopped():
 +                        break
                      # apply actions
-                     env.step(actions)
+-                    env.step(actions)
++                    env_step_result = env.step(actions)
 +                    if motion_before is not None:
 +                        motion_after = fingertip_position_list(env)
 +                        if motion_after is not None:
 +                            motion_delta = [
 +                                motion_after[index] - motion_before[index] for index in range(min(3, len(motion_after)))
 +                            ]
++                            last_motion_delta_norm = vector_norm(motion_delta)
++                            last_motion_loop_index = loop_index
 +                            env_action_xyz = first_tensor_row_to_list(getattr(env, "actions", None), limit=3)
 +                            step_values = action_to_list(action)
-+                            print(
-+                                "[RDF] motion_debug "
-+                                f"loop={loop_index} "
-+                                f"eef_before={[round(value, 4) for value in motion_before[:3]]} "
-+                                f"eef_after={[round(value, 4) for value in motion_after[:3]]} "
-+                                f"eef_delta_norm={vector_norm(motion_delta):.6f} "
-+                                f"env_action_xyz={None if env_action_xyz is None else [round(value, 4) for value in env_action_xyz[:3]]} "
-+                                f"step_min={min(step_values):.4f} step_max={max(step_values):.4f}"
-+                            )
++                            if motion_debug_due:
++                                print(
++                                    "[RDF] motion_debug "
++                                    f"loop={loop_index} "
++                                    f"eef_before={[round(value, 4) for value in motion_before[:3]]} "
++                                    f"eef_after={[round(value, 4) for value in motion_after[:3]]} "
++                                    f"eef_delta_norm={last_motion_delta_norm:.6f} "
++                                    f"env_action_xyz={None if env_action_xyz is None else [round(value, 4) for value in env_action_xyz[:3]]} "
++                                    f"step_min={min(step_values):.4f} step_max={max(step_values):.4f}"
++                                )
                  else:
++                    last_motion_delta_norm = None
++                    last_motion_loop_index = None
 +                    if hasattr(env, "sim") and env.sim.is_stopped():
 +                        break
                      env.sim.render()
@@ -2938,10 +4297,11 @@ index 8492ad7..5efe05a 100644
 +                    rdf_recorder.record(
 +                        env,
 +                        action,
-+                        teleoperation_active,
++                        teleoperation_control_active,
 +                        teleop_interface,
 +                        raw_action=action_to_list(raw_action) if rdf_action_filter is not None else None,
 +                        control_filter=action_filter_metadata,
++                        env_step_result=env_step_result,
 +                    )
 +
 +                live_curation_status = None
@@ -2952,13 +4312,60 @@ index 8492ad7..5efe05a 100644
 +                    live_curation_status,
 +                    required=bool(args_cli.rdf_auto_finalize_require_live_curation),
 +                )
++                task_guidance_status = dict(task_guidance_status) if isinstance(task_guidance_status, dict) else {}
++                task_guidance_status["hmd_motion_debug"] = {
++                    "right_hand_valid": bool(right_hand_valid),
++                    "teleoperation_active": bool(teleoperation_active),
++                    "teleoperation_control_active": bool(teleoperation_control_active),
++                    "apply_control_active": bool(apply_control_active),
++                    "setup_control_active": bool(setup_control_active),
++                    "tracking_gate_blocked": bool(tracking_gate_blocked),
++                    "raw_wrist_gate_state": raw_wrist_gate_state,
++                    "raw_wrist_gate_reason": raw_wrist_gate_reason,
++                    "raw_wrist_jump_m": raw_wrist_jump_m,
++                    "command_step_norm": command_step_norm,
++                    "target_error_norm": target_error_norm,
++                    "last_motion_delta_norm": last_motion_delta_norm,
++                    "last_motion_loop_index": last_motion_loop_index,
++                }
 +
 +                if task_guidance_panel is not None:
 +                    try:
++                        recording_active = bool(
++                            rdf_recorder is not None and getattr(rdf_recorder, "_recording_started", False)
++                        )
++                        recorded_frames = len(getattr(rdf_recorder, "frames", []) or []) if rdf_recorder is not None else 0
++                        warmup_consecutive = (
++                            int(getattr(rdf_recorder, "_warmup_consecutive_valid", 0) or 0)
++                            if rdf_recorder is not None
++                            else 0
++                        )
++                        warmup_required = (
++                            int(getattr(rdf_recorder, "warmup_valid_frames", 0) or 0)
++                            if rdf_recorder is not None
++                            else 0
++                        )
 +                        if isinstance(task_guidance_panel, RdfUsdTaskGuidancePanel):
-+                            task_guidance_panel.update(env, recentered=hmd_recentered, status=task_guidance_status)
++                            task_guidance_panel.update(
++                                env,
++                                recentered=hmd_recentered,
++                                status=task_guidance_status,
++                                recenter_status=last_recenter_status,
++                                recording_active=recording_active,
++                                recorded_frames=recorded_frames,
++                                warmup_consecutive=warmup_consecutive,
++                                warmup_required=warmup_required,
++                            )
 +                        else:
-+                            task_guidance_panel.update(recentered=hmd_recentered, status=task_guidance_status)
++                            task_guidance_panel.update(
++                                recentered=hmd_recentered,
++                                status=task_guidance_status,
++                                recenter_status=last_recenter_status,
++                                recording_active=recording_active,
++                                recorded_frames=recorded_frames,
++                                warmup_consecutive=warmup_consecutive,
++                                warmup_required=warmup_required,
++                            )
 +                    except Exception as panel_error:
 +                        logger.warning(f"[RDF] Task guidance panel update skipped: {panel_error}")
 +
@@ -3034,7 +4441,12 @@ index 8492ad7..5efe05a 100644
 +                        print("[RDF] Exit requested after episode finalize")
 +                        break
                      env.reset()
-+                    if teleop_control_mode in {"cartesian_delta", "operator_follow", "bounded_direct_ee_target"}:
++                    if teleop_control_mode in {
++                        "cartesian_delta",
++                        "operator_follow",
++                        "bounded_direct_ee_target",
++                        "raw_wrist_direct_ee_target",
++                    }:
 +                        reset_cartesian_delta_control_state(env)
 +                    if teleop_target_controller is not None:
 +                        teleop_target_controller.reset(env, "environment_reset", teleop_interface)
@@ -3046,8 +4458,22 @@ index 8492ad7..5efe05a 100644
 -                    should_reset_recording_instance = False
 +                    episode_finalize_request = None
 +                    auto_recenter_valid_count = 0
++                    auto_recenter_last_wrist_pose = None
++                    auto_recenter_wrist_jump_m = None
 +                    auto_recenter_done = False
 +                    hmd_recentered = False
++                    tracking_reentry_pending = False
++                    tracking_resume_valid_count = 0
++                    if recenter_start_gate is not None:
++                        recenter_start_gate.reset(env, "environment_reset")
++                        last_recenter_status = recenter_start_gate.evaluate(
++                            env,
++                            valid_hand=False,
++                            active=False,
++                            update_counter=False,
++                        )
++                        if recenter_start_box_visualizer is not None:
++                            recenter_start_box_visualizer.update(last_recenter_status)
 +                    if rdf_recorder is not None:
 +                        try:
 +                            rdf_recorder.start(env)

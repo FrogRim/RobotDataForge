@@ -8,6 +8,7 @@ Isaac Sim Python process and tested from the Robot Data Forge uv environment.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 import os
 from typing import Any
 
@@ -86,6 +87,7 @@ class RdfTeleopActionFilterConfig:
     position_deadzone: float = 0.0015
     rotation_deadzone: float = 0.01
     smoothing_alpha: float = 0.45
+    position_yaw_offset_deg: float = 0.0
     position_axis_map: AxisMap = IDENTITY_AXIS_MAP
     rotation_axis_map: AxisMap = IDENTITY_AXIS_MAP
 
@@ -116,7 +118,8 @@ class RdfTeleopActionFilterConfig:
             position_deadzone=env_float("RDF_ACTION_POS_DEADZONE", 0.0015),
             rotation_deadzone=env_float("RDF_ACTION_ROT_DEADZONE", 0.01),
             smoothing_alpha=env_float("RDF_ACTION_SMOOTHING_ALPHA", 0.45),
-            position_axis_map=parse_signed_axis_map(environ.get("RDF_ACTION_POS_AXIS_MAP", "x,y,z")),
+            position_yaw_offset_deg=env_float("RDF_ACTION_POS_YAW_OFFSET_DEG", 0.0),
+            position_axis_map=parse_signed_axis_map(environ.get("RDF_ACTION_POS_AXIS_MAP", "x,z,y")),
             rotation_axis_map=parse_signed_axis_map(environ.get("RDF_ACTION_ROT_AXIS_MAP", "x,y,z")),
         ).normalized()
 
@@ -128,6 +131,7 @@ class RdfTeleopActionFilterConfig:
             position_deadzone=max(0.0, float(self.position_deadzone)),
             rotation_deadzone=max(0.0, float(self.rotation_deadzone)),
             smoothing_alpha=_clamp(float(self.smoothing_alpha), 0.0, 1.0),
+            position_yaw_offset_deg=float(self.position_yaw_offset_deg),
             position_axis_map=self.position_axis_map,
             rotation_axis_map=self.rotation_axis_map,
         )
@@ -140,6 +144,7 @@ class RdfTeleopActionFilterConfig:
             "position_deadzone": self.position_deadzone,
             "rotation_deadzone": self.rotation_deadzone,
             "smoothing_alpha": self.smoothing_alpha,
+            "position_yaw_offset_deg": self.position_yaw_offset_deg,
             "position_axis_map": format_axis_map(self.position_axis_map),
             "rotation_axis_map": format_axis_map(self.rotation_axis_map),
         }
@@ -189,6 +194,7 @@ class RdfTeleopActionFilter:
                 position = self._process_vector(
                     position,
                     axis_map=self.config.position_axis_map,
+                    yaw_offset_deg=self.config.position_yaw_offset_deg,
                     gain=self.config.position_gain,
                     deadzone=self.config.position_deadzone,
                     previous=self._previous_position,
@@ -198,6 +204,7 @@ class RdfTeleopActionFilter:
                 rotation = self._process_vector(
                     rotation,
                     axis_map=self.config.rotation_axis_map,
+                    yaw_offset_deg=0.0,
                     gain=self.config.rotation_gain,
                     deadzone=self.config.rotation_deadzone,
                     previous=self._previous_rotation,
@@ -221,14 +228,30 @@ class RdfTeleopActionFilter:
         self,
         vector: list[float],
         axis_map: AxisMap,
+        yaw_offset_deg: float,
         gain: float,
         deadzone: float,
         previous: list[float],
     ) -> list[float]:
-        remapped = [vector[index] * sign for index, sign in axis_map]
+        source_vector = self._apply_yaw_offset(vector, yaw_offset_deg)
+        remapped = [source_vector[index] * sign for index, sign in axis_map]
         deadzoned = [0.0 if abs(value) < deadzone else value for value in remapped]
         gained = [value * gain for value in deadzoned]
         alpha = self.config.smoothing_alpha
         if alpha >= 1.0:
             return gained
         return [alpha * current + (1.0 - alpha) * previous_value for current, previous_value in zip(gained, previous)]
+
+    def _apply_yaw_offset(self, vector: list[float], yaw_offset_deg: float) -> list[float]:
+        if abs(yaw_offset_deg) <= 1.0e-9:
+            return list(vector)
+        yaw = math.radians(float(yaw_offset_deg))
+        cos_yaw = math.cos(yaw)
+        sin_yaw = math.sin(yaw)
+        # OpenXR handtracking is Y-up. Rotate only the horizontal X/Z plane
+        # before mapping into Isaac robot X/Y/Z.
+        return [
+            cos_yaw * vector[0] + sin_yaw * vector[2],
+            vector[1],
+            -sin_yaw * vector[0] + cos_yaw * vector[2],
+        ]

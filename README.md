@@ -1,16 +1,25 @@
 # Robot Data Forge
 
-Robot Data Forge turns XR teleoperation trajectories into replay-verified, action-labelled, task-validated, trainer-loadable dataset artifacts for downstream robotics learning systems.
+Robot Data Forge is a robot data trust layer for turning raw robot-action
+trajectories into replay-verified, action-labelled, task-validated,
+trainer-loadable dataset artifacts with reproducible provenance and curation
+evidence.
 
-It is not a VLA, World Foundation Model, RL framework, or robot policy benchmark. RDF is data infrastructure: it records raw XR/HMD teleoperation, validates task state and data quality, gates replay/action contracts, curates accepted/rejected trajectories, exports HDF5 datasets, and checks that a trainer can load the result.
+It is not a VLA, World Foundation Model, RL framework, robot policy benchmark,
+or HMD product. RDF is data infrastructure: it records raw trajectory evidence,
+validates task state and data quality, gates replay/action contracts, curates
+accepted/rejected examples, exports HDF5 datasets, writes buyer-facing trust
+records, and checks that a trainer can load the result.
 
 ## MVP-1 Status
 
-MVP-1 is complete as a **learning-ready dataset pipeline proof**.
+MVP-1 is complete as a **learning-ready dataset pipeline proof**. The current
+reset proof is a **HMD-free data trust layer proof**; HMD/OpenXR collection is
+preserved as an experimental input adapter, not the primary product identity.
 
 What MVP-1 proves:
 
-- raw Quest/OpenXR/Isaac teleoperation trajectories can be stored with source/runtime metadata
+- raw robot-action trajectories can be stored with source/runtime metadata
 - peg-in-hole task state can be extracted from recorded frames
 - task outcome is recorded separately from data quality
 - operator success is separated from evaluator task success
@@ -20,6 +29,8 @@ What MVP-1 proves:
 - HDF5/export artifacts are generated
 - trainer loader smoke checks pass
 - dataset cards and proof reports are generated
+
+2026-05-27 update: `camera-conditioning-ready` is now part of the ForgeXR dataset contract. The current MVP-1 proof remains valid as a learning-ready robot/action pipeline, but camera-conditioning recorder/export fields are pending implementation before any customer-grade visual-policy conditioning claim.
 
 What MVP-1 does **not** claim:
 
@@ -33,16 +44,16 @@ Policy uplift and downstream learning performance are MVP-2 work.
 ## Pipeline
 
 ```text
-Quest 3 handtracking
-  -> ALVR + SteamVR/OpenXR
-  -> Isaac Lab teleoperation
-  -> trajectory recorder
+HMD-free scripted/synthetic replay fixtures
+  -> trajectory + source provenance
+  -> action semantics normalization
   -> task_state extraction
   -> task outcome + data quality evaluation
   -> replay/action contract gate
   -> accepted/rejected curation manifest
-  -> HDF5 export + dataset card
+  -> HDF5 export + buyer dataset card
   -> trainer loader smoke
+  -> trust_record.json + proof_report.json
 ```
 
 ## Data Pipeline Principles
@@ -55,6 +66,7 @@ Quest 3 handtracking
 6. Record transition coverage as well as episode-level outcome.
 7. Produce dataset artifacts that pass HDF5/export and trainer smoke checks.
 8. Move policy uplift claims to MVP-2.
+9. Preserve camera/HMD geometry and view-transform provenance separately from raw action labels when an experimental HMD adapter is used.
 
 ## Repository Layout
 
@@ -64,6 +76,7 @@ apps/web/       Minimal dashboard/prototype frontend
 packages/       Shared dataset and trajectory schemas
 scripts/        Offline proof scripts, live smoke scripts, export/trainer checks
 docs/           Specs, reports, task definitions, debugging guides
+index.html      Root documentation portal
 ```
 
 Generated runtime data is intentionally not committed:
@@ -80,13 +93,16 @@ output.txt
 
 Key project reports:
 
-- [Detailed MVP-1/MVP-2 report](docs/RDF_MVP1_MVP2_DETAILED_REPORT_KO.html)
-- [MVP-1 one-screen proof result](docs/MVP1_VALIDATED_DATASET_PIPELINE_RESULT.html)
-- [MVP-2 learning-proven strategy](docs/MVP2_LEARNING_PROVEN_PROOF_STRATEGY_KO.html)
-- [MVP-1 task spec](docs/MVP1_TASK_SPEC.md)
-- [Project instructions](docs/ROBOT_DATA_FORGE_PROJECT_INSTRUCTIONS.md)
-- [API spec](docs/API_SPEC.md)
-- [Data schema](docs/DATA_SCHEMA.md)
+- [Documentation portal](index.html)
+- [Buyer docs](docs/buyer/index.html)
+- [Data trust layer reset summary](docs/buyer/data_trust_layer_reset.html)
+- [Detailed MVP-1/MVP-2 report](docs/buyer/rdf_mvp1_mvp2_detailed_report_ko.html)
+- [MVP-1 one-screen proof result](docs/buyer/mvp1_validated_dataset_pipeline_result.html)
+- [MVP-2 learning-proven strategy](docs/buyer/mvp2_learning_proven_strategy_ko.html)
+- [MVP-1 task spec](docs/developer/task_spec.md)
+- [Project instructions](docs/developer/project_instructions.md)
+- [API spec](docs/developer/api_spec.md)
+- [Data schema](docs/developer/data_schema.md)
 
 The HTML reports are self-contained local reports. If hosted on GitHub Pages, they can be used as the portfolio-facing visual summary.
 
@@ -120,6 +136,12 @@ uv run uvicorn app.main:app --app-dir apps/api --reload
 
 ## Proof Commands
 
+Data trust layer reset proof:
+
+```bash
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+```
+
 MVP-1 dataset pipeline proof audit:
 
 ```bash
@@ -138,7 +160,13 @@ Current interpretation:
 - MVP-2 learning-proven proof is pending.
 - The latest live artifact passes trainer overfit sanity but is not policy-A/B-ready because accepted transition coverage is currently SEAT-heavy and lacks APPROACH/CONTACT/INSERT coverage.
 
-## Live XR Smoke Test
+## Experimental Input Adapters
+
+Quest/OpenXR/HMD collection remains available as an experimental input adapter.
+It is not required for the first data trust layer proof, and it must not be used
+to claim Gate A readiness until physical Gate 0 passes.
+
+## Experimental Live XR Smoke Test
 
 The live path expects Quest 3, ALVR, SteamVR/OpenXR, Isaac Lab, and the local RDF API.
 

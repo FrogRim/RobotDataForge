@@ -1,103 +1,213 @@
-# Robot Data Forge — Task Tracker
+# ForgeXR / RDF Data Trust Layer Reset - 2026-06-04
 
-## MVP-2 Phase-Conditional Saturation Gate — 2026-05-19
+## Plan
 
-### 완료
+Goal: implement the approved ralplan consensus in
+`.omx/plans/ralplan-forgexr-data-trust-layer-reset-consensus.md`.
 
-- [x] MVP-2 offline curation diagnostic 스크립트 작성
-  - `scripts/run_mvp2_curation_diagnostic.py` — read-only, 40 tests passed
-  - commit: `74e5754 feat: add MVP-2 curation diagnostic`
-  - 결과: 48 episodes 중 2개가 Gate A pass이지만 old gate로 거부됨, gate_match_failure_count=0
+Primary product reset:
 
-- [x] Phase-conditional saturation gate 구현 (offline evaluator)
-  - `apps/api/app/services/evaluator.py`: INSERT saturation → soft metric, SEAT > 0.30 → hard fail
-  - `apps/api/tests/test_evaluator.py`: 8개 테스트 추가, 전체 152 passed
-  - commit: `978d8cd feat: add phase-conditional saturation gate`
+- RDF / ForgeXR is a buyer-trustable robot data trust layer first.
+- The first reset proof is HMD-free.
+- Quest/OpenXR/HMD remains preserved as an experimental input adapter.
+- This task must not claim HMD readiness, Gate A readiness, physical collection
+  readiness, or policy uplift.
 
-- [x] Phase-conditional saturation gate 구현 (live HMD curation)
-  - `IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py`
-  - 새 env var: `RDF_LIVE_CURATION_MAX_SEAT_ACTION_SATURATION_RATIO=0.30`
-  - live log: `sat_agg=... sat_seat=...` 출력
-  - IsaacLab repo에 미커밋 변경 다수 있어 별도 commit 보류
-  - RDF repo patch artifact로 캡처: `patches/isaaclab/2026-05-19-rdf-live-hmd-curation.patch`
-  - smoke 검증: `sat_agg=0.70+`에서도 INSERT saturation으로 reset 없음 ✅
+## Ultragoal Stories
 
-- [x] RETARGETING_JUMP trailing window 수정
-  - `IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py`
-  - `RdfLiveCurationGate.RETARGETING_JUMP_WINDOW = 60`
-  - gate 판정: cumulative max → 최근 60프레임 max (`retargeting_jump_recent_max`)
-  - all-time max는 `retargeting_jump_max`로 result dict에 유지 (observability)
-  - log: `jump=<recent_max><={limit}(all=<all_time_max>)` 형식으로 변경
-  - smoke 검증: jump 이후 ~60프레임 만에 gate pass 복귀 확인 ✅
+- [x] G001: Map existing HMD-free proof/export/trainer surfaces and set the
+  active checklist.
+- [x] G002: Implement `scripts/run_data_trust_layer_proof.py` with HMD-free
+  accepted/rejected fixtures and generated buyer-trust artifacts.
+- [x] G003: Add acceptance and guard tests for trust record, action semantics,
+  no-HMD claims, export, trainer smoke, and governance docs.
+- [x] G004: Reposition README, AGENTS.md, project instructions, Handoff, and
+  WORKLOG around the data trust layer reset.
+- [x] G005: Run final acceptance, cleanup, and independent review gate.
 
-- [x] `insertion_depth` metric 버그 수정
-  - `scripts/rdf_isaac_runtime_recorder.py:531`: `_vec_sub(peg_tip, hole_position)` → `_vec_sub(peg_tip, hole_target)`
-  - `scripts/run_live_rdf_smoke_test.sh`: `RDF_HOLE_TARGET_LOCAL_OFFSET=0,0,0.025` 기본값 추가
-  - 원인: `hole_position`은 hole body CoM(바닥)이므로 항상 depth=0
-         수정 후 `hole_target`(입구 = CoM + height)을 기준으로 계산 → RL success 기준과 일치
-  - 수식: `depth = max(0, hole_entry_z - peg_CoM_z)`, threshold 0.025 = 완전 삽입
+## G001 Findings
 
-- [x] SUCCESS_READY threshold 완화 (라이브 + 오프라인 동기화)
-  - `scripts/run_live_rdf_smoke_test.sh` 기본값 변경:
-    - `RDF_LIVE_CURATION_MAX_RETARGETING_JUMP`: 1.50 → **3.50** (실측 최대 3.453 관측)
-    - `RDF_GUIDANCE_PEG_TIP_DISTANCE_MAX`: (없음) → **0.030**
-    - `RDF_GUIDANCE_PEG_AXIS_ALIGNMENT_MAX_RAD`: (없음) → **0.40**
-    - `RDF_GUIDANCE_INSERTION_DEPTH_MIN`: (없음) → **0.010** (depth 노이즈 대응)
-    - `RDF_SUCCESS_READY_HOLD_SEC`: 1.5 → **0.5** (depth 노이즈로 hold 끊기는 문제 해결)
-  - `apps/api/app/services/evaluator.py`: `depth_min` default 0.025 → **0.010** (라이브 gate와 동기화)
-  - 테스트: 20 passed ✅
-  - 검증: `episode_1a3521e94409` — depth=0.0184, SUCCESS_READY hold=0.53/0.50s 통과, auto-finalize 성공 ✅
+- Existing reusable proof surface:
+  `scripts/run_mvp1_offline_readiness.py`.
+- Existing trainer-loader smoke:
+  `scripts/run_mvp1_trainer_smoke.py`.
+- Existing export/inspection helpers:
+  `scripts/export_rdf_to_hdf5.py` and `scripts/inspect_rdf_hdf5.py`.
+- Existing service surfaces:
+  `app.services.evaluator`, `app.services.curator`,
+  `app.services.dataset_card`.
+- Current risk to fix in the new proof lane:
+  `run_mvp1_offline_readiness.py` still uses Quest/OpenXR-like source metadata
+  and action representations even though the fixtures are synthetic/offline.
+  The reset proof must normalize primary source and buyer-visible action
+  semantics separately rather than reusing those labels directly.
 
-- [x] Isaac Sim Stop 버튼 crash 수정
-  - `IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py`
-  - `env.step()` 직전, `env.sim.render()` 직전에 `env.sim.is_stopped()` 가드 추가
-  - 원인: Stop 버튼이 timeline을 멈추지만 `is_running()=True` 유지 → stopped 상태에서 physics 접근 → segfault
-  - IsaacLab external repo commit은 보류, RDF patch artifact에 포함
+## Verification Plan
 
-### 대기 중
+Targeted:
 
-- [ ] **Gate A pass episode 수집** ≥10개
-  - 현재 첫 성공 에피소드 수집됨: `episode_1a3521e94409` (depth=0.0184, score=0.563)
-  - 연속 수집 루프 command (`scripts/run_mvp2_curation_diagnostic.py`의 Gate A count 기준):
-    ```bash
-    RDF_ISAAC_TASK=Isaac-Forge-PegInsert-Direct-v0 \
-        RDF_TASK_TYPE=peg_in_hole \
-        RDF_MAX_FRAMES=600 \
-        RDF_WARMUP_VALID_FRAMES=10 \
-        RDF_TELEOP_CONTROL_MODE=bounded_direct_ee_target \
-        RDF_AUTO_SUCCESS_FINALIZE=1 \
-        RDF_AUTO_FINALIZE_REQUIRE_LIVE_CURATION=1 \
-        RDF_LIVE_CURATION_MAX_SEAT_ACTION_SATURATION_RATIO=0.30 \
-        RDF_LIVE_CURATION_ON_FAIL=reset \
-        RDF_EXIT_AFTER_FINALIZE=1 \
-        GATE_A_TARGET=10 \
-        ./scripts/run_collection_loop.sh
-    ```
-  - 수집 후: `uv run python scripts/run_mvp2_curation_diagnostic.py --pretty`로 gate_A_pass_count 증가 확인
+```text
+uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+uv run pytest apps/api/tests/test_mvp1_trainer_smoke_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+```
 
-- [ ] **IsaacLab runtime patch 승격**
-  - 현재 RDF repo patch artifact: `patches/isaaclab/2026-05-19-rdf-live-hmd-curation.patch`
-  - 다음 단계: IsaacLab external repo 전용 commit 또는 dependency pin으로 승격
+Static:
 
-- [ ] **MVP-2 policy training** (Gate A 에피소드 충분히 쌓인 후)
-  - curated vs uncurated 데이터로 policy uplift 실험
+```text
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+uvx ruff check scripts/run_data_trust_layer_proof.py apps/api/tests/test_data_trust_layer_proof_script.py
+git diff -- scripts/run_hmd_axis_debug.sh scripts/run_live_rdf_smoke_test.sh scripts/run_gate0_xr_input_viability.py
+```
 
----
+Expected HMD runtime default guard: no diff in live/HMD runtime scripts unless
+only documentation comments changed.
 
-## 현재 기본값 (run_live_rdf_smoke_test.sh)
+## Review
 
-| 변수 | 값 |
-|---|---|
-| `RDF_GUIDANCE_INSERTION_DEPTH_MIN` | 0.010 |
-| `RDF_SUCCESS_READY_HOLD_SEC` | 0.5s |
-| `RDF_GUIDANCE_PEG_TIP_DISTANCE_MAX` | 0.030 |
-| `RDF_GUIDANCE_PEG_AXIS_ALIGNMENT_MAX_RAD` | 0.40 |
-| `RDF_LIVE_CURATION_MAX_RETARGETING_JUMP` | 3.50 |
-| `RDF_LIVE_CURATION_MAX_SEAT_ACTION_SATURATION_RATIO` | 0.30 (env var으로 전달) |
+Implemented:
 
-## 참고
+- Added `scripts/run_data_trust_layer_proof.py`.
+- Added `apps/api/tests/test_data_trust_layer_proof_script.py`.
+- Updated README, AGENTS.md, project instructions, Handoff, and WORKLOG to make
+  data trust layer the primary proof path and keep Quest/OpenXR/HMD as an
+  experimental input adapter.
+- Generated proof artifacts in `storage/data_trust_layer_proof`.
+- Addressed final review blockers:
+  - Removed inherited `Isaac/Quest synthetic teleoperation` wording from the
+    generated data trust dataset card.
+  - Switched default generated artifact paths to repo-relative paths.
+  - Added `legacy_schema_field_mapping` so `raw_xr_*` HDF5/trainer field names
+    are explicitly compatibility observation fields, not HMD/Gate A evidence.
 
-- 진단 스펙: `docs/superpowers/specs/2026-05-19-mvp2-curation-diagnostic-design.md`
-- 진단 플랜: `docs/superpowers/plans/2026-05-19-mvp2-curation-diagnostic.md`
-- Gate 변경 플랜: `docs/superpowers/plans/2026-05-19-phase-conditional-saturation-gate.md`
-- 진단 리포트: `storage/mvp2_curation_diagnostic/mvp2_curation_diagnostic_report.json`
+Current verification:
+
+```text
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+  passed=true, accepted_count=4, rejected_count=4
+
+uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1_trainer_smoke_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q
+  7 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_data_trust_layer_proof.py apps/api/tests/test_data_trust_layer_proof_script.py
+  All checks passed
+
+claim inspection
+  data_trust_claim_inspection_ok
+
+git diff --check on task-owned files
+  PASS
+
+independent code review
+  code-reviewer: APPROVE
+  architect: CLEAR
+```
+
+Known verification gap:
+
+- HMD runtime default diff guard is not empty because the worktree already had
+  live/HMD script modifications before this reset task. This task did not edit
+  those scripts.
+- `.omx/ultragoal` CLI checkpoint state remains stale at G001 because the
+  Codex goal tool still exposes a previous completed aggregate goal and cannot
+  clear it from this session. Implementation evidence is preserved in repo
+  files, generated artifacts, tests, review results, and ultragoal ledger notes.
+
+## Documentation Addendum - LinkedIn/docs reset summary
+
+Goal: create a buyer-facing HTML document explaining how the LinkedIn MVP-1 and
+Gate 0 lessons changed the repo narrative and proof path.
+
+- [x] Use `docs/buyer/social_narrative.md`, README, project instructions,
+  WORKLOG, and Handoff as evidence.
+- [x] Add `docs/buyer/data_trust_layer_reset.html`.
+- [x] Link the new reset summary from `docs/index.html`.
+- [x] Validate HTML links/content and update the final verification record.
+
+Verification:
+
+```text
+python3 HTML parser/link/content validation
+  docs/buyer/data_trust_layer_reset.html: ok, links=15
+  docs/index.html: ok, links=14
+
+git diff --check -- docs/buyer/data_trust_layer_reset.html docs/index.html docs/developer/worklog.md Handoff.md tasks/todo.md
+  PASS
+```
+
+## Documentation Reorganization - portal and physical file move
+
+Goal: make root `index.html` the public portal and physically classify docs into
+buyer, developer, HMD experiment, and archive sections.
+
+- [x] Write design spec at
+  `docs/superpowers/specs/2026-06-04-docs-portal-reorganization-design.md`.
+- [x] Write implementation plan at
+  `docs/superpowers/plans/2026-06-04-docs-portal-reorganization.md`.
+- [x] Add root `index.html`.
+- [x] Replace `docs/index.html` with an audience-routed docs hub.
+- [x] Move buyer-facing docs to `docs/buyer/`.
+- [x] Move developer contracts, worklog, and papers to `docs/developer/`.
+- [x] Move HMD/Gate 0 adapter history to `docs/experiments/hmd/`.
+- [x] Move older MVP/planning/release material to `docs/archive/`.
+- [x] Validate all HTML repo-local links and stale references.
+- [x] Record final verification in worklog and Handoff.
+
+Verification:
+
+```text
+HTML local link validation
+  validated_html_files=18
+
+Markdown link validation for README/tasks/Handoff/current docs
+  validated_markdown_files=6
+
+Papers relocation check
+  docs/papers absent
+  docs/developer/papers/README.md present
+
+Stale current-facing reference scan
+  no stale reset/social/project/papers paths in current-facing docs
+
+git diff --check -- index.html docs Handoff.md README.md tasks/todo.md
+  PASS
+```
+
+## Documentation Addendum - HMD-free test execution guide
+
+Goal: explain to the user how tests should be run now that the default proof no
+longer depends on OpenXR, ALVR, SteamVR, Quest handtracking, or Isaac Sim GUI.
+
+- [x] Add `docs/developer/hmd_free_test_execution_guide.html`.
+- [x] Explain when to use HMD-free proof tests, API tests, web tests, and HMD
+  adapter physical validation.
+- [x] State that Isaac/HMD is not the default proof path and Gate A collection
+  remains blocked until physical HMD Gate 0 passes.
+- [x] Link the guide from `docs/index.html` and `docs/developer/index.html`.
+- [x] Validate HTML/Markdown links and whitespace after this addendum.
+
+Verification:
+
+```text
+HTML local link validation
+  validated_html_files=19
+
+Markdown link validation for README/tasks/Handoff/current docs/HMD experiment docs
+  validated_markdown_files=20
+
+Stale moved-path scan
+  no stale docs-link script placeholder, old buyer storage href, or old recenter local-link references
+
+git diff --check -- index.html docs Handoff.md README.md tasks/todo.md
+  PASS
+
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+  passed=true, accepted_count=4, rejected_count=4
+  trainer_smoke_passed=true, hdf5_inspection_clean=true
+```

@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RDF Teleop 입력 신호 리서치 노트</title>
+  <style>
+    :root {
+      --ink: #12202c;
+      --paper: #fff8e6;
+      --cream: #ffefd1;
+      --navy: #082235;
+      --navy-2: #123c5b;
+      --cyan: #17bfd2;
+      --cyan-soft: #dffbff;
+      --green: #1a8f61;
+      --green-soft: #e2f8ec;
+      --amber: #c06b00;
+      --amber-soft: #fff0d5;
+      --red: #d14535;
+      --red-soft: #ffe4df;
+      --violet: #7156d9;
+      --line: rgba(8, 34, 53, 0.18);
+      --shadow: 0 24px 80px rgba(8, 34, 53, 0.18);
+      --radius: 24px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(23, 191, 210, 0.28), transparent 28rem),
+        radial-gradient(circle at 88% 8%, rgba(255, 187, 80, 0.30), transparent 30rem),
+        linear-gradient(135deg, #071c2b 0%, #143956 50%, #071c2b 100%);
+      font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
+      line-height: 1.68;
+    }
+
+    a { color: inherit; }
+    code {
+      padding: 0.12rem 0.35rem;
+      border-radius: 8px;
+      background: rgba(8, 34, 53, 0.08);
+      color: #062538;
+      font-size: 0.92em;
+    }
+
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.22;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.14) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.14) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 112px 112px, 112px 112px, 28px 28px, 28px 28px;
+    }
+
+    .page {
+      position: relative;
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 56px;
+    }
+
+    .shell {
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.34);
+      border-radius: 34px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    header {
+      position: relative;
+      isolation: isolate;
+      padding: clamp(28px, 5vw, 58px);
+      color: #f7fbff;
+      background:
+        linear-gradient(120deg, rgba(8, 34, 53, 0.96), rgba(11, 67, 86, 0.92)),
+        radial-gradient(circle at 80% 20%, rgba(23, 191, 210, 0.42), transparent 22rem);
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background-image:
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 22px),
+        radial-gradient(circle at 78% 24%, rgba(255,255,255,0.16), transparent 12rem);
+      mix-blend-mode: screen;
+    }
+
+    .top-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 9px 15px;
+      border: 1px solid rgba(255,255,255,0.34);
+      border-radius: 999px;
+      color: #f7fbff;
+      background: rgba(255,255,255,0.12);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 900;
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .button:hover { transform: translateY(-2px); background: rgba(255,255,255,0.20); }
+    .button.dark { color: var(--navy); background: #ffffff; }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      margin: 0 0 16px;
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 999px;
+      color: #bdf8ff;
+      background: rgba(255,255,255,0.08);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 900px;
+      font-size: clamp(38px, 7vw, 74px);
+      line-height: 1.02;
+      letter-spacing: -0.055em;
+    }
+
+    .lead {
+      max-width: 860px;
+      margin: 24px 0 0;
+      color: rgba(247,251,255,0.88);
+      font-size: clamp(17px, 2.2vw, 22px);
+      word-break: keep-all;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .hero-metric {
+      min-height: 124px;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,0.26);
+      border-radius: 22px;
+      background: rgba(255,255,255,0.10);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-metric strong {
+      display: block;
+      color: #ffffff;
+      font-size: clamp(26px, 4.2vw, 44px);
+      line-height: 1;
+    }
+
+    .hero-metric span { display: block; margin-top: 10px; color: rgba(247,251,255,0.80); font-size: 14px; }
+
+    main { padding: clamp(24px, 4vw, 44px); }
+    section + section { margin-top: 34px; padding-top: 34px; border-top: 1px solid var(--line); }
+
+    .kicker {
+      margin: 0 0 8px;
+      color: var(--cyan);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0;
+      color: var(--navy);
+      font-size: clamp(26px, 3.6vw, 42px);
+      line-height: 1.14;
+      letter-spacing: -0.035em;
+    }
+
+    h3 { margin: 0 0 8px; color: var(--navy); font-size: 20px; line-height: 1.25; }
+    p { margin: 10px 0 0; }
+    .note { max-width: 880px; color: #536978; word-break: keep-all; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 950;
+    }
+    .green { color: var(--green); background: var(--green-soft); }
+    .amber { color: var(--amber); background: var(--amber-soft); }
+    .red { color: var(--red); background: var(--red-soft); }
+    .violet { color: var(--violet); background: #eee9ff; }
+    .dark { color: #fff; background: var(--navy); }
+
+    .diagnosis {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .panel, .card, .rule, .source-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.62);
+      box-shadow: 0 14px 36px rgba(8, 34, 53, 0.08);
+    }
+
+    .panel { padding: 24px; }
+    .panel.redline { background: linear-gradient(135deg, var(--red-soft), #fffaf0); }
+    .panel.cyanline { background: linear-gradient(135deg, var(--cyan-soft), #fffaf0); }
+
+    .traffic {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .traffic .card { padding: 18px; }
+    .traffic .light {
+      display: inline-grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      margin-bottom: 12px;
+      border-radius: 50%;
+      color: #fff;
+      font-weight: 950;
+      box-shadow: inset 0 -8px 18px rgba(0,0,0,0.18);
+    }
+    .traffic .stop .light { background: var(--red); }
+    .traffic .wait .light { background: var(--amber); }
+    .traffic .go .light { background: var(--green); }
+
+    .steps {
+      display: grid;
+      gap: 12px;
+      margin-top: 22px;
+      counter-reset: safe-step;
+    }
+
+    .rule {
+      position: relative;
+      padding: 18px 18px 18px 72px;
+      background: #fffdf7;
+    }
+
+    .rule::before {
+      counter-increment: safe-step;
+      content: counter(safe-step);
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 13px;
+      color: #fff;
+      background: var(--navy);
+      font-weight: 950;
+    }
+
+    .source-grid, .work-grid, .next-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .source-card, .work-card, .next-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: #fffdf7;
+    }
+
+    .source-card ul, .work-card ul, .next-card ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+      color: #526a7a;
+    }
+
+    .analogy {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 18px;
+      align-items: start;
+      margin-top: 20px;
+      padding: 22px;
+      border-radius: var(--radius);
+      background:
+        linear-gradient(135deg, rgba(23,191,210,0.16), transparent),
+        #fffdf7;
+      border: 1px solid var(--line);
+    }
+
+    .emoji {
+      display: grid;
+      place-items: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 22px;
+      background: var(--navy);
+      color: #fff;
+      font-size: 34px;
+    }
+
+    .data-table {
+      width: 100%;
+      margin-top: 18px;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 18px;
+      background: #fffdf7;
+      box-shadow: 0 12px 30px rgba(8, 34, 53, 0.07);
+    }
+
+    .data-table th, .data-table td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+    .data-table th { color: var(--navy); background: #ffecc5; font-weight: 950; }
+    .data-table tr:last-child td { border-bottom: 0; }
+
+    .warning-box {
+      margin-top: 20px;
+      padding: 18px;
+      border: 1px solid rgba(209, 69, 53, 0.28);
+      border-radius: 22px;
+      background: var(--red-soft);
+      color: #7b281f;
+      font-weight: 800;
+    }
+
+    .command-box {
+      overflow: auto;
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 20px;
+      color: #d9f7ff;
+      background: #071c2b;
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    footer {
+      padding: 24px clamp(24px, 4vw, 44px);
+      color: rgba(247,251,255,0.84);
+      background: var(--navy);
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-metrics, .diagnosis, .traffic, .source-grid, .work-grid, .next-grid { grid-template-columns: 1fr; }
+      .analogy { grid-template-columns: 1fr; }
+      h1 { letter-spacing: -0.04em; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .grid-bg, .top-nav { display: none; }
+      .page { width: 100%; padding: 0; }
+      .shell { box-shadow: none; border-radius: 0; }
+      header, footer { color: var(--ink); background: #fff; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="page">
+    <div class="shell">
+      <header>
+        <nav class="top-nav" aria-label="문서 이동">
+          <a class="button dark" href="../../archive/mvp_progress_overview.html">← MVP 진행판으로 돌아가기</a>
+          <a class="button" href="../../developer/papers/2026_teleop_input_stream_accuracy.md">원문 리서치 노트</a>
+          <a class="button" href="#redflag">red flag 조절안</a>
+          <a class="button" href="#next">다음 구현 후보</a>
+        </nav>
+        <p class="eyebrow">Robot Data Forge · Teleop Input Stream Research · 2026-05-28</p>
+        <h1>손목 입력이 왜 튀고, 어떻게 막을까?</h1>
+        <p class="lead">
+          이 페이지는 최신 <code>raw-wrist-direct</code> 실행 로그와 teleoperation 입력 정확도 리서치를
+          <strong>중학생도 이해할 수 있게</strong> 정리한 하위 페이지다. 결론은 간단하다.
+          빨간불을 느슨하게 해서 위험한 데이터를 받아들이지 말고, 먼저 입력 신호가 믿을 만한지 검사해야 한다.
+        </p>
+        <div class="hero-metrics" aria-label="최신 run 핵심 숫자">
+          <div class="hero-metric"><strong>44.4%</strong><span>tracking loss rate</span></div>
+          <div class="hero-metric"><strong>57.8%</strong><span>right hand tracked rate</span></div>
+          <div class="hero-metric"><strong>27회</strong><span>10cm 초과 valid-to-valid wrist jump</span></div>
+          <div class="hero-metric"><strong>0.91m</strong><span>최대 wrist jump</span></div>
+        </div>
+      </header>
+
+      <main>
+        <section id="summary" aria-labelledby="summary-title">
+          <p class="kicker">One page answer</p>
+          <h2 id="summary-title">한 줄 결론</h2>
+          <div class="diagnosis">
+            <article class="panel redline">
+              <span class="pill red">현재 빨간불</span>
+              <h3>로봇이 못 따라오는 핵심 이유</h3>
+              <p>
+                최신 증거로는 로봇 제어가 완전히 꺼진 것도 아니고, 목표 위치 계산식이 계속 쓰레기값을 누적하는 것도 아니다.
+                문제는 오른손 wrist 입력이 사라지거나 갑자기 멀리 튀어서 controller가 안전하게 멈추는 것이다.
+              </p>
+            </article>
+            <article class="panel cyanline">
+              <span class="pill green">해야 할 방향</span>
+              <h3>조절 순서</h3>
+              <p>
+                <code>invalid sample</code>을 버리고, 10cm 이상 튀는 값을 hold하고,
+                안정적으로 다시 잡힌 뒤에만 rebase한다. 그 다음에 One Euro Filter 같은 smoothing을 붙인다.
+              </p>
+            </article>
+          </div>
+
+          <div class="analogy">
+            <div class="emoji">🎮</div>
+            <div>
+              <h3>아주 쉽게 말하면</h3>
+              <p>
+                게임 컨트롤러가 가끔 끊기고 캐릭터 위치가 순간이동한다고 생각하면 된다.
+                캐릭터가 멍청한 게 아니라, 입력 장치가 “지금 손이 여기야!”라고 말하는 값이 믿기 어려운 상태다.
+                이럴 때 감도를 키우면 더 위험하고, 먼저 “이 신호가 진짜인가?”를 검사해야 한다.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="evidence" aria-labelledby="evidence-title">
+          <p class="kicker">Latest evidence</p>
+          <h2 id="evidence-title">이번에 확인한 실제 증거</h2>
+          <p class="note">
+            최신 physical run은 trajectory 저장 형식과 action contract는 통과했다. 하지만 학습 후보로 쓰기에는
+            tracking loss와 wrist spike가 너무 많았다.
+          </p>
+          <table class="data-table">
+            <thead>
+              <tr><th>항목</th><th>값</th><th>쉬운 해석</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>trajectory</td><td><code>traj_b804823e845a</code></td><td>실제 저장된 최신 손추적 실행 파일</td></tr>
+              <tr><td>evaluation</td><td><code>eval_88c6e66f9dff</code></td><td>평가 결과는 실패</td></tr>
+              <tr><td>failure reason</td><td><code>TRACKING_LOSS</code></td><td>손 입력이 충분히 안정적이지 않음</td></tr>
+              <tr><td>held / accepted / warn</td><td><code>116 / 54 / 10</code></td><td>180 frame 중 대부분을 안전장치가 붙잡음</td></tr>
+              <tr><td>H14</td><td><code>PASS</code></td><td>목표 위치 누적 오류 가설은 최신 run에서 지지되지 않음</td></tr>
+              <tr><td>H15</td><td><code>PASS</code></td><td>이번 run은 simulator/task-state 순간이동 문제는 깨끗함</td></tr>
+            </tbody>
+          </table>
+          <div class="warning-box">
+            0.91m wrist jump는 사람 손의 자연스러운 작은 떨림이 아니다. smoothing으로 예쁘게 만들 값이 아니라,
+            먼저 outlier로 hold/reject해야 하는 빨간불이다.
+          </div>
+        </section>
+
+        <section id="wifi" aria-labelledby="wifi-title">
+          <p class="kicker">Wi-Fi question</p>
+          <h2 id="wifi-title">이게 HMD와 Wi-Fi 연결 때문인가?</h2>
+          <div class="traffic">
+            <article class="card stop">
+              <div class="light">!</div>
+              <span class="pill red">단정 금지</span>
+              <h3>Wi-Fi만 범인이라고 말하면 안 된다</h3>
+              <p>ALVR/Wi-Fi는 latency, freeze, stale pose를 만들 수 있다. 하지만 지금 로그는 invalid hand와 0.9m jump까지 포함한다.</p>
+            </article>
+            <article class="card wait">
+              <div class="light">?</div>
+              <span class="pill amber">추가 계측 필요</span>
+              <h3>같은 run에서 같이 봐야 한다</h3>
+              <p><code>ALVR latency</code>, packet loss, OpenXR sample timestamp, location flags, RDF input latency를 함께 저장해야 원인을 나눌 수 있다.</p>
+            </article>
+            <article class="card go">
+              <div class="light">✓</div>
+              <span class="pill green">현재 결론</span>
+              <h3>입력스트림 전체 문제</h3>
+              <p>Wi-Fi는 후보 중 하나다. 그러나 RDF의 직접 조치 대상은 validity gate, spike gate, stable reacquire다.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="sources" aria-labelledby="sources-title">
+          <p class="kicker">Research digest</p>
+          <h2 id="sources-title">논문과 공식 문서가 알려준 것</h2>
+          <p class="note">전체 원문은 <a href="../../developer/papers/2026_teleop_input_stream_accuracy.md">연구 노트</a>에 정리했다. 여기서는 의사결정에 필요한 핵심만 뽑았다.</p>
+          <div class="source-grid">
+            <article class="source-card">
+              <span class="pill violet">OpenXR / Unity</span>
+              <h3>숫자보다 valid flag가 먼저</h3>
+              <ul>
+                <li><code>pose</code>가 있다고 항상 믿으면 안 된다.</li>
+                <li><code>locationFlags</code>, <code>isTracked</code>, <code>trackingState</code>를 보존해야 한다.</li>
+                <li>raw는 저장하되 training eligibility는 별도 판단한다.</li>
+              </ul>
+            </article>
+            <article class="source-card">
+              <span class="pill amber">Quest handtracking</span>
+              <h3>cm급 jitter와 큰 spike는 다르다</h3>
+              <ul>
+                <li>정상 handtracking도 cm급 오차와 latency 변동이 있다.</li>
+                <li>mm급 deadzone은 너무 민감할 수 있다.</li>
+                <li>하지만 90cm급 jump는 filter 대상이 아니라 gate 대상이다.</li>
+              </ul>
+            </article>
+            <article class="source-card">
+              <span class="pill green">Filter / assist</span>
+              <h3>부드럽게 만들기 전 먼저 걸러라</h3>
+              <ul>
+                <li>One Euro Filter는 jitter와 lag 균형에 좋다.</li>
+                <li>Kalman류도 outlier가 먼저 들어오면 state가 오염된다.</li>
+                <li>motion scaling과 virtual fixture는 assist provenance로 따로 남긴다.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="redflag" aria-labelledby="redflag-title">
+          <p class="kicker">Red flag policy</p>
+          <h2 id="redflag-title">red flag는 어떻게 조절해야 하나?</h2>
+          <p class="note">
+            핵심은 threshold를 느슨하게 만드는 것이 아니라, 빨간불의 종류를 더 정확히 나누는 것이다.
+            raw evidence는 넉넉히 저장하되, training eligible 판정은 엄격하게 유지한다.
+          </p>
+          <div class="steps">
+            <article class="rule">
+              <span class="pill red">Stop</span>
+              <h3><code>right_hand_tracked=false</code> 또는 <code>xr_frame_valid=false</code>면 제어 hold</h3>
+              <p>pose 숫자가 있어도 추적 flag가 invalid이면 robot control에 쓰지 않는다. raw frame은 저장한다.</p>
+            </article>
+            <article class="rule">
+              <span class="pill red">Reject candidate</span>
+              <h3>valid-to-valid wrist jump가 10cm를 넘으면 training gate에서 탈락</h3>
+              <p>기본값은 <code>&gt;10cm</code>를 빨간불로 유지한다. 최신 run의 27회 jump는 완화 대상이 아니다.</p>
+            </article>
+            <article class="rule">
+              <span class="pill amber">Hold</span>
+              <h3>spike 직후 즉시 rebase하지 말고 stable reacquire를 기다림</h3>
+              <p>연속 1~2초 또는 최소 몇 frame 이상 안정된 right-wrist window를 확인한 뒤 기준점을 다시 잡는다.</p>
+            </article>
+            <article class="rule">
+              <span class="pill green">Smooth</span>
+              <h3>outlier 제거 후 One Euro Filter A/B</h3>
+              <p>작은 jitter에는 adaptive smoothing을 적용할 수 있다. 단, smoothing 설정은 trajectory metadata에 남긴다.</p>
+            </article>
+            <article class="rule">
+              <span class="pill violet">Assist</span>
+              <h3>motion scaling / virtual fixture는 raw action과 분리</h3>
+              <p>보조가 들어간 데이터는 <code>assist_policy</code>, <code>fixture_id</code>, <code>assist_ratio</code>를 따로 기록한다.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="work" aria-labelledby="work-title">
+          <p class="kicker">Work summary</p>
+          <h2 id="work-title">이번 작업에서 정리한 것</h2>
+          <div class="work-grid">
+            <article class="work-card">
+              <span class="pill green">완료</span>
+              <h3>실행 로그 재분석</h3>
+              <ul>
+                <li>최신 run의 핵심 blocker를 <code>TRACKING_LOSS</code>와 H13 wrist spike로 정리.</li>
+                <li>H14 accumulation / H15 scene discontinuity는 최신 run에서 핵심 원인이 아님을 분리.</li>
+              </ul>
+            </article>
+            <article class="work-card">
+              <span class="pill green">완료</span>
+              <h3>공식 문서·논문 리서치</h3>
+              <ul>
+                <li>OpenXR, Unity XR Hands, ALVR 공식 자료 확인.</li>
+                <li>Quest handtracking 정확도, One Euro Filter, teleop tremor/assist 논문 정리.</li>
+              </ul>
+            </article>
+            <article class="work-card">
+              <span class="pill green">완료</span>
+              <h3>의사결정 정리</h3>
+              <ul>
+                <li>red flag 완화 금지.</li>
+                <li>preflight hardening과 provenance 저장을 다음 안전 branch로 지정.</li>
+                <li>1차 pre-HMD 구현 결과는 <a href="mvp_pre_hmd_step1_input_gates.html">HMD 전 Step 1 하위 페이지</a>에 연결.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="next" aria-labelledby="next-title">
+          <p class="kicker">Next implementation candidates</p>
+          <h2 id="next-title">다음에 구현할 후보</h2>
+          <div class="next-grid">
+            <article class="next-card">
+              <span class="pill red">1순위</span>
+              <h3>Collection preflight hardening</h3>
+              <ul>
+                <li>녹화 시작 전 안정적인 right-hand tracking window 요구.</li>
+                <li>HMD panel에 <code>TRACKING_OK</code>, <code>SPIKE_HOLD</code> 표시.</li>
+                <li>현재 1차 방어선은 <a href="mvp_pre_hmd_step1_input_gates.html">HMD 전 Step 1</a>에서 완료.</li>
+              </ul>
+            </article>
+            <article class="next-card">
+              <span class="pill amber">2순위</span>
+              <h3>OpenXR provenance 저장</h3>
+              <ul>
+                <li><code>locationFlags</code> 또는 equivalent tracking state 기록.</li>
+                <li>sample timestamp와 RDF frame timestamp를 같이 저장.</li>
+              </ul>
+            </article>
+            <article class="next-card">
+              <span class="pill green">3순위</span>
+              <h3>Filter A/B는 gate 이후</h3>
+              <ul>
+                <li>outlier reject가 검증된 뒤 One Euro Filter와 gain/deadzone을 비교.</li>
+                <li>filter 설정을 export metadata에 남김.</li>
+              </ul>
+            </article>
+          </div>
+
+          <pre class="command-box"><code>다음 검증 순서
+1. 최신 physical run 후 verify_latest_rdf_recording.py 실행
+2. analyze_hmd_motion_mapping.py로 H9/H13 확인
+3. tracking_loss_rate <= 0.05, right_hand_tracked_rate >= 0.95 확인
+4. valid-to-valid wrist jump > 10cm가 0회인지 확인
+5. 그 뒤에만 Gate A collection 또는 axis/gain tuning 재개</code></pre>
+        </section>
+      </main>
+
+      <footer>
+        <strong>Claim boundary:</strong> 이 하위 페이지는 입력스트림 안정화 연구와 다음 구현 후보를 정리한다.
+        실제 결제, 보상, marketplace, production auth, 실제 로봇 제어, CloudXR는 MVP 범위가 아니다.
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

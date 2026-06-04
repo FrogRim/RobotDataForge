@@ -161,26 +161,26 @@ RDF_MAX_FRAMES=300 ./scripts/run_live_rdf_smoke_test.sh
 RDF_WARMUP_VALID_FRAMES=10 ./scripts/run_live_rdf_smoke_test.sh
 RDF_DISABLE_AUTO_CALIBRATE=0 ./scripts/run_live_rdf_smoke_test.sh
 RDF_ACTION_FILTER=1 ./scripts/run_live_rdf_smoke_test.sh
-RDF_ACTION_POS_GAIN=0.45 ./scripts/run_live_rdf_smoke_test.sh
+RDF_ACTION_POS_GAIN=0.40 ./scripts/run_live_rdf_smoke_test.sh
 RDF_ACTION_ROT_GAIN=0.35 ./scripts/run_live_rdf_smoke_test.sh
-RDF_ACTION_POS_AXIS_MAP=x,y,z ./scripts/run_live_rdf_smoke_test.sh
+RDF_ACTION_POS_AXIS_MAP=x,z,y ./scripts/run_live_rdf_smoke_test.sh
 RDF_CONTRIBUTOR_ID=user_001 ./scripts/run_live_rdf_smoke_test.sh
 API_BASE=http://127.0.0.1:8001 ./scripts/run_live_rdf_smoke_test.sh
 ```
 
 `RDF_WARMUP_VALID_FRAMES`는 recorder가 trajectory frame 저장을 시작하기 전에 요구하는 연속 valid handtracking frame 수다. 기본값은 `10`이다. Quest 3 연결 직후 초반 handtracking false frame이 많이 저장되면 `30`까지 올려서 다시 테스트한다.
 
-`RDF_DISABLE_AUTO_CALIBRATE=1`을 지정하면 첫 valid handtracking frame에서 자동 calibration을 만들지 않는다. 기본값은 `0`이며, recorder는 첫 valid frame에서 raw XR right wrist pose를 현재 robot end-effector pose에 맞추는 `workspace_alignment_v2` calibration metadata를 저장한다. 기존 reader 호환을 위해 `translation_offset`도 계속 저장한다.
+`RDF_DISABLE_AUTO_CALIBRATE=1`을 지정하면 자동 calibration을 만들지 않는다. 기본값은 `0`이다. 현재 HMD primary flow에서는 첫 valid hand frame만으로 recenter하지 않고, `RDF_RECENTER_MODE=robot_start_box`에서 robot이 visible start box 안에 들어간 뒤 `workspace_alignment_v2` calibration metadata를 저장한다. 기존 reader 호환을 위해 `translation_offset`도 계속 저장한다.
 
 `RDF_ACTION_FILTER=1`은 Isaac에 적용하기 전 teleop action을 완만하게 보정한다. 기본값은 다음과 같다.
 
 ```text
-RDF_ACTION_POS_GAIN=0.45
+RDF_ACTION_POS_GAIN=0.40
 RDF_ACTION_ROT_GAIN=0.35
 RDF_ACTION_POS_DEADZONE=0.0015
 RDF_ACTION_ROT_DEADZONE=0.01
 RDF_ACTION_SMOOTHING_ALPHA=0.45
-RDF_ACTION_POS_AXIS_MAP=x,y,z
+RDF_ACTION_POS_AXIS_MAP=x,z,y
 RDF_ACTION_ROT_AXIS_MAP=x,y,z
 RDF_DEBUG_ACTION_EVERY=0
 RDF_DEBUG_MOTION_EVERY=0
@@ -193,7 +193,7 @@ RDF_OPERATOR_FOLLOW_DEADZONE_M=-1
 RDF_OPERATOR_FOLLOW_WORKSPACE_RADIUS_M=-1
 ```
 
-좌표 방향이 맞지 않으면 axis map을 바꿔서 짧게 테스트한다.
+Quest/OpenXR handtracking은 Y-up이고 Isaac robot workspace는 Z-up이다. 그래서 live 기본값은 `RDF_ACTION_POS_AXIS_MAP=x,z,y`다. 이 값이면 손을 아래로 내릴 때 robot `z`도 내려간다. 좌우나 전후 방향이 맞지 않으면 axis map을 바꿔서 짧게 테스트한다.
 
 ```bash
 RDF_ACTION_POS_AXIS_MAP=x,-z,y RDF_RECORD=1 RDF_MAX_FRAMES=300 ~/run_isaac_handtracking.sh
@@ -263,7 +263,133 @@ handtracking delta
 
 이 로그가 없고 `adapter=forge_asset_relative_delta_adapter`만 보이면 아직 native Forge path라서 사람이 보기에는 로봇팔이 손을 따라오지 않는 것이 정상에 가깝다. `operator_follow`와 `cartesian_delta`는 fallback/debug path이고, MVP-1 live collection의 기본 통과 기준은 `bounded_direct_ee_target`이다.
 
-시점이 몸 정면과 30-60도 정도 어긋나면 Isaac OpenXR anchor yaw를 조정한다. `P` recenter는 recorder/action-filter 기준만 다시 잡고 XR camera anchor는 돌리지 않는다.
+### HMD six-direction motion mapping debug
+
+손 움직임과 robot EEF 움직임이 맞지 않는다고 느껴지면 Gate A 수집을 멈추고 짧은 six-direction debug run을 먼저 실행한다. 목표는 성공 삽입이 아니라 raw input -> filtered input -> desired target -> applied command -> actual EEF movement를 축별로 증명하는 것이다.
+
+실행 중 operator 동작:
+
+```text
+1. recenter start box 안으로 robot을 넣고 RECENTER OK까지 기다린다.
+2. 손을 1초 멈춘다.
+3. 오른쪽, 왼쪽, 앞으로, 뒤로, 위로, 아래로를 각각 1-2초씩 천천히 움직인다.
+4. 마지막에 손을 다시 1초 멈춘다.
+```
+
+Debug command:
+
+```bash
+cd ~/robot-data-forge
+RDF_ISAAC_TASK=Isaac-Forge-PegInsert-Direct-v0 \
+RDF_TASK_TYPE=peg_in_hole \
+RDF_MAX_FRAMES=240 \
+RDF_WARMUP_VALID_FRAMES=10 \
+RDF_ACTION_POS_AXIS_MAP=x,y,z \
+RDF_ACTION_POS_YAW_OFFSET_DEG=0 \
+RDF_ACTION_POS_GAIN=0.40 \
+RDF_ACTION_ROT_GAIN=0.35 \
+RDF_TELEOP_CONTROL_MODE=bounded_direct_ee_target \
+RDF_DIRECT_EE_POS_GAIN=0.18 \
+RDF_DIRECT_EE_ROT_GAIN=0.25 \
+RDF_DIRECT_EE_MAX_STEP_M=0.04 \
+RDF_DIRECT_EE_MAX_ROT_STEP_RAD=0.12 \
+RDF_DIRECT_EE_SMOOTHING_ALPHA=0.50 \
+RDF_DIRECT_EE_DEADZONE_M=0.003 \
+RDF_DIRECT_EE_WORKSPACE_RADIUS_M=0.35 \
+RDF_RECENTER_MODE=robot_start_box \
+RDF_RECENTER_BOX_CENTER_SOURCE=hole_target_approach \
+RDF_RECENTER_BOX_APPROACH_OFFSET=0,0,0.08 \
+RDF_RECENTER_BOX_RANDOM_OFFSET=0,0,0 \
+RDF_RECENTER_BOX_HALF_EXTENTS=0.07,0.07,0.07 \
+RDF_RECENTER_BOX_VISUAL=0 \
+RDF_BLOCK_TELEOP_UNTIL_RECENTER=1 \
+RDF_RECENTER_SETUP_CONTROL=1 \
+RDF_VISUAL_DEBUG=1 \
+RDF_VISUAL_DEBUG_EVERY=1 \
+RDF_VISUAL_DEBUG_SIZE=30 \
+RDF_VISUAL_DEBUG_INPUT_SCALE=0.35 \
+RDF_DEBUG_ACTION_EVERY=10 \
+RDF_DEBUG_MOTION_EVERY=10 \
+RDF_TASK_GUIDANCE=1 \
+RDF_TERMINAL_HOTKEYS=0 \
+RDF_AUTO_SUCCESS_FINALIZE=0 \
+RDF_EXIT_AFTER_FINALIZE=0 \
+./scripts/run_live_rdf_smoke_test.sh --no-start-xr
+```
+
+Run 직후 per-axis mapping report를 저장한다.
+
+```bash
+uv run python scripts/analyze_hmd_motion_mapping.py \
+  --latest \
+  --pretty \
+  --output storage/hmd_motion_mapping/latest_mapping_report.json
+```
+
+판정 기준:
+
+```text
+H1 PASS: raw wrist/input delta가 six directions에서 기대 축과 부호를 가진다.
+H2 PASS: trajectory config의 position_axis_map이 실행 command와 같다.
+H4 PASS: 손을 멈춘 구간에서 command_nonzero_ratio가 0에 가깝다.
+H6 PASS: workspace_clamped_ratio가 debug run에서 0에 가깝다.
+H7 PASS: command_to_next_eef_delta sign agreement가 축별로 높다.
+H8 PASS: HMD/operator camera frame, robot/world frame, task frame이 기록되어 perceived direction mismatch를 camera geometry로 설명할 수 있다.
+H5 UNKNOWN/WARN: intentional motion sample 수가 부족하거나 deadzone보다 작은 손 움직임만 기록됐다.
+H11 PASS: deadzone boundary에서 desired target이 hand movement보다 훨씬 크게 점프하지 않는다.
+H12 PASS: raw right-wrist pose가 configured XR anchor position으로 collapse되는 fallback frame이 없다.
+H13 PASS: valid로 표시된 연속 wrist pose 사이에 10cm 이상 spike가 반복되지 않는다.
+H14 PASS: stable control segment 안에서 `desired_ee_target - hand_delta_m` residual이 cm 단위로 누적 drift하지 않는다.
+H15 PASS: 하나의 recorded trajectory 안에서 EEF/object/peg/hole target이 동시에 큰 폭으로 순간 이동하지 않는다.
+```
+
+`H11 WARN`이면 deadzone 내부에서는 drift가 멈춰도 deadzone을 벗어나는 첫 nonzero sample에서
+오래된 anchor 기준 `target=anchor+hand_delta`가 복원되고 있을 가능성이 높다. 이 경우
+bounded direct-EE controller는 deadzone branch에서 `target=current_eef`, `previous_step=0`뿐 아니라
+`anchor=current_eef`로 rebase되어야 한다.
+
+`H12 WARN`이면 OpenXR/Isaac handtracking stream이 실제 hand pose 대신 configured XR anchor pose
+(`RDF_XR_ANCHOR_POS`, 기본 `-0.1,-0.5,-1.05`)를 right wrist로 내보낸 frame이 기록된 것이다. 이 pose는
+손 위치가 아니라 XR stage anchor fallback이므로 handtracking valid로 취급하면 안 된다. Runtime recorder와
+live controller는 해당 frame을 invalid tracking으로 표시하고, robot control은 fake target을 따라가지 말고
+held/frozen 상태를 유지해야 한다.
+
+`H13 WARN`이면 OpenXR stream이 `right_hand_tracked=true`, `xr_frame_valid=true`인 상태에서도 raw wrist pose가
+10cm 이상 순간 이동한 것이다. 이 경우 axis map/gain을 바꾸기 전에 raw-wrist gate의
+`raw_wrist_gate_state`, `raw_wrist_gate_reason`, `raw_wrist_jump_m` 로그를 먼저 확인한다.
+신규 raw-wrist debounce/reacquire 정책이 적용된 run에서는 단일 spike가 `raw_wrist_spike_reacquire_pending`
+으로 held 처리되고, stable 후보가 `raw_wrist_reacquire_required_frames`만큼 유지될 때만
+`raw_wrist_spike_reacquired`로 rebase된다. 따라서 다음 실증 run에서 H13을 볼 때는
+`raw_wrist_jump_rebase` 반복 여부보다 `raw_wrist_spike_reacquire_pending`,
+`raw_wrist_spike_reacquired`, `raw_wrist_reacquire_valid_count` 분포를 우선 확인한다.
+
+`H14 WARN`이면 사용자의 "처음엔 맞다가 점점 position 계산이 누적 drift한다" 가설을 지지한다.
+이 지표는 stable segment에서 `desired_ee_target_xyz - hand_delta_m`이 거의 상수로 유지되는지 본다.
+정상 raw-wrist/direct-EE controller는 `target = anchor + current_absolute_hand_offset`이어야 하며,
+`target += current_hand_offset`처럼 누적하면 H14 residual이 커진다.
+
+`H15 WARN`이면 controller target 계산이 아니라 simulator/task-state boundary를 먼저 의심한다.
+특히 같은 frame에서 EEF, held object/peg, hole 또는 hole target이 같이 점프하면 hidden env reset,
+task-state teleport, 또는 recorder가 reset boundary를 episode 안에 섞어 저장했을 가능성이 높다.
+이 frame은 학습 trajectory boundary로 분리하거나 reset evidence를 별도로 기록해야 한다.
+신규 recorder metadata가 있는 run에서는 해당 frame의 `metadata.sim_step_boundary.reset_boundary`,
+`terminated`, `truncated`, `done`, `reset_boundary_reason`, `info_keys`를 먼저 확인한다.
+`sim_step_boundary.reset_boundary=true`이면 IsaacLab auto-reset/done boundary 가능성이 높고,
+`false`인데 static task target이 순간 이동했다면 recorder가 아직 잡지 못한 task-state teleport 또는
+다른 reset path를 의심한다.
+
+2026-05-26 live observation: `RDF_ACTION_POS_YAW_OFFSET_DEG=90` caused an axis swap in HMD -- hand up/down moved sideways and hand sideways moved up/down. Do not continue the yaw-offset branch until a new trajectory proves otherwise. The next diagnostic uses identity position mapping and no yaw offset:
+
+```bash
+RDF_ACTION_POS_AXIS_MAP=x,y,z \
+RDF_ACTION_POS_YAW_OFFSET_DEG=0 \
+RDF_RECENTER_BOX_VISUAL=0 \
+./scripts/run_live_rdf_smoke_test.sh --no-start-xr
+```
+
+If identity mapping fixes vertical but leaves only one horizontal sign wrong, change one axis sign at a time (`x,-y,z` for forward/back inversion, `-x,y,z` for left/right inversion) and analyze the trajectory before further tuning.
+
+시점이 몸 정면과 30-60도 정도 어긋나면 Isaac OpenXR anchor yaw를 조정한다. `robot_start_box` recenter와 fallback `P` recenter는 recorder/action-filter 기준을 다시 잡는 기능이며 XR camera anchor 자체를 돌리지 않는다. 이 branch는 단순 UX 문제가 아니라 `camera-conditioning-ready` gate의 증거 수집 branch이기도 하다. 방향이 시점 때문에 달라 보이면 axis map을 감으로 바꾸기 전에 HMD/operator camera pose와 world/robot/task transform provenance가 trajectory에 남는지 확인한다.
 
 ```bash
 RDF_XR_ANCHOR_YAW_OFFSET_DEG=45 RDF_RECORD=1 RDF_MAX_FRAMES=300 ~/run_isaac_handtracking.sh
@@ -413,8 +539,9 @@ latest trajectory에 frame이 없음:
   Isaac을 너무 빨리 닫았거나 handtracking frame extraction이 실패한 것이다.
 
 TRACKING_LOSS가 초반 frame 때문에 크게 나옴:
-  live smoke 로그에서 `[RDF] Waiting for ... consecutive valid handtracking frames`와
+  developer는 live smoke 로그에서 `[RDF] Waiting for ... consecutive valid handtracking frames`와
   `[RDF] Recording frames started after dropping ... warm-up frames`를 확인한다.
+  HMD operator는 terminal 대신 in-HMD panel의 `RECORDING: WARMUP n/N` -> `RECORDING: ON`을 본다.
   계속 높으면 Quest 3에서 손을 HMD 카메라 시야 안에 둔 상태로 연결하고,
   `RDF_WARMUP_VALID_FRAMES=30 ./scripts/run_live_rdf_smoke_test.sh`로 재시도한다.
 
@@ -475,9 +602,9 @@ RDF_MAX_FRAMES=300
 RDF_WARMUP_VALID_FRAMES=10
 RDF_DISABLE_AUTO_CALIBRATE=0
 RDF_ACTION_FILTER=1
-RDF_ACTION_POS_GAIN=0.45
+RDF_ACTION_POS_GAIN=0.40
 RDF_ACTION_ROT_GAIN=0.35
-RDF_ACTION_POS_AXIS_MAP=x,y,z
+RDF_ACTION_POS_AXIS_MAP=x,z,y
 RDF_ACTION_ROT_AXIS_MAP=x,y,z
 ```
 
@@ -616,60 +743,78 @@ Quest 3에서 Isaac AR 화면은 따라오지만, 사용자의 실제 시점/손
 ```text
 OpenXR/SteamVR 연결 자체는 정상이어도 XR anchor, HMD 시작 위치, Franka/table 위치, hand retargeting 기준 좌표가 서로 어긋나면 조작 UX가 나빠진다.
 이 문제는 trajectory 품질에도 영향을 주므로 MVP-0의 단순 편의 문제가 아니라 collection quality issue로 취급한다.
+또한 camera/HMD geometry가 빠지면 downstream visual policy나 view-conditioned loader가 같은 action을 어떤 시점 조건에서 해석해야 하는지 알 수 없으므로 dataset readiness issue로 취급한다.
+```
+
+현재 primary 운영 절차는 robot-space start box recenter다. 세부 계약은 [`docs/experiments/hmd/hmd_recenter_start_box.md`](../experiments/hmd/hmd_recenter_start_box.md)를 기준으로 한다.
+
+Camera-conditioning-ready debug 판정:
+
+```text
+PASS:
+  - raw HMD/operator camera pose가 frame timestamp와 함께 저장된다.
+  - world, robot_base, end_effector, task/object, camera/operator_view transform chain을 복원할 수 있다.
+  - task target, held object, EEF/fingertip visibility 또는 projection smoke 결과가 summary에 남는다.
+  - robot/world action과 camera/operator-view derived action이 raw label을 덮어쓰지 않고 별도 field로 남는다.
+
+FAIL:
+  - HMD에서 방향이 틀려 보이는데 camera pose/anchor/yaw provenance가 trajectory에 없다.
+  - camera extrinsics/intrinsics/time alignment가 없어 visual-policy conditioning이 불가능하다.
+  - task object가 HMD/camera view 밖에 있었는지 알 수 없다.
 ```
 
 즉시 시도할 운영 절차:
 
 ```text
-1. Quest 3에서 ALVR 연결 후 SteamVR home view가 안정될 때까지 기다린다.
-2. Isaac에서 Start AR를 누르기 전에 실제 몸 방향을 모니터/작업공간 정면으로 맞춘다.
-3. 손이 HMD 카메라 시야 안에 들어온 상태에서 Start AR를 누른다.
-4. Start AR 직후 3~5초 동안 손을 정면에 두고 tracking이 안정된 뒤 조작한다.
-5. RDF recorder는 첫 valid frame에서 자동 calibration metadata를 만든다.
-6. 조작 중 기준점이 틀어졌다고 느껴지면 terminal에 focus를 두고 P를 눌러 RDF calibration/recenter를 다시 요청한다.
+1. Quest 3에서 ALVR 연결 후 SteamVR/handtracking이 안정될 때까지 기다린다.
+2. Isaac/AR session이 열리면 HMD 안에서 /World/RDFRecenterStartBox가 보이는지 확인한다.
+3. 손을 HMD camera 시야 안에 둔다.
+4. setup-only control로 robot EEF/fingertip을 start box 안에 넣는다.
+5. box가 blue 상태가 되면 움직이지 말고 hold한다.
+6. box가 green 또는 HMD text가 RECENTER: OK가 되면 실제 task 조작을 시작한다.
 7. view yaw 자체가 크게 어긋나면 Isaac/AR session을 닫고 `RDF_XR_ANCHOR_YAW_OFFSET_DEG=45` 또는 `-45`로 재실행한다.
 8. SteamVR room forward 자체가 틀어진 느낌이면 Quest/SteamVR recenter 후 다시 시작한다.
 ```
 
-Recenter command:
+필수 env:
 
 ```text
-P command는 recorded metadata의 raw/aligned XR pose를 다시 맞추고,
-RDF action filter의 smoothing state를 reset한다.
-또한 recenter 직후 1 frame은 position/rotation command를 0으로 suppress해
-operator가 새 기준점에서 다시 움직이기 시작할 수 있게 한다.
-단, P command는 Isaac OpenXR anchor rotation을 바꾸지 않는다.
+RDF_RECENTER_MODE=robot_start_box
+RDF_RECENTER_BOX_CENTER_SOURCE=hole_target_approach
+RDF_RECENTER_BOX_APPROACH_OFFSET=0,0,0.08
+RDF_RECENTER_BOX_RANDOM_OFFSET=0.02,0.02,0.01
+RDF_RECENTER_BOX_VISUAL=0
+RDF_BLOCK_TELEOP_UNTIL_RECENTER=1
+RDF_RECENTER_SETUP_CONTROL=1
 ```
 
-개선 구현 후보:
+정상 로그:
 
 ```text
-1. XR calibration step
-   - episode 시작 전에 HMD pose와 hand pose를 읽어 robot workspace 기준 transform을 저장한다.
-   - session metadata에 xr_anchor_pose, hmd_start_pose, retargeting_offset을 남긴다.
-
-2. Retargeter anchor correction
-   - 현재 PR은 action filter post-process다.
-   - 그래도 view 자체가 맞지 않으면 Isaac OpenXR anchor를 Franka table 중심에 맞추는 별도 변경이 필요하다.
-
-3. Workspace ghost visual
-   - end-effector target sphere, hand ray, gripper state indicator를 Isaac scene에 표시한다.
-   - 사용자가 "내 손 입력이 robot target으로 어디에 매핑되는지" 즉시 볼 수 있게 한다.
-
-4. Precision mode
-   - position gain, rotation gain, smoothing, deadzone을 분리한다.
-   - pinch 중에는 이동 gain을 낮추는 fine-control mode를 둔다.
-
-5. Recording quality gate
-   - warm-up 이후에도 tracking loss, retargeting jump, input latency가 일정 기준을 넘으면 episode를 invalid 처리한다.
+[RDF] Robot start recenter box reset: center_source=hole_target_approach ... random_offset=[...]
+[RDF][RECENTER] mode=robot_start_box ... inside=True valid_hand=True ready=True ...
+[RDF] Auto recenter applied after robot start-box hold ...
+[RDF] Calibration/recenter requested: reason=auto_robot_start_box
 ```
 
-MVP 판단:
+문제 해석:
 
 ```text
-XR 시점 불일치가 계속되면 많은 trajectory를 수집해도 사람이 조작하기 어렵고 evaluator 실패가 늘어난다.
-따라서 100 episode 수집 전에 최소 calibration/recenter/ghost visual 중 하나는 구현하는 것이 좋다.
+start box가 HMD/AR에서 보이지 않음:
+  wireframe이 필요하면 RDF_RECENTER_BOX_VISUAL=1, IsaacLab patch 적용 여부를 확인한다.
+
+시작하자마자 바로 recenter됨:
+  box center가 reset robot pose로 잡힌 상태일 가능성이 크다.
+  기본 center source는 hole_target_approach여야 한다.
+
+box 안에 들어갔는데 recenter가 안 됨:
+  right-hand tracking validity, RDF_AUTO_RECENTER_VALID_FRAMES, box half extents를 확인한다.
+
+recenter 전부터 recording frame이 저장됨:
+  RDF_BLOCK_TELEOP_UNTIL_RECENTER=1 계약이 깨진 것이다.
 ```
+
+Terminal `P` command는 fallback/debug command다. Recorded metadata의 raw/aligned XR pose와 RDF action filter smoothing state를 다시 맞추지만, primary HMD collection flow에서는 start-box recenter를 사용한다. `P` command도 Isaac OpenXR anchor rotation을 바꾸지는 않는다.
 
 ---
 
@@ -705,6 +850,12 @@ TRACKING_LOSS:
 RETARGETING_JUMP:
   retargeted action 또는 aligned/raw right wrist pose의 frame-to-frame jump가 threshold를 넘었다.
 
+SCENE_STATE_DISCONTINUITY:
+  하나의 recorded trajectory 안에서 `metadata.task_state.hole_position` 또는
+  `hole_target_position` 같은 static task target이 2cm 이상 순간 이동했다.
+  이 경우 controller target 계산 문제가 아니라 hidden env reset, task-state teleport,
+  또는 recorder reset-boundary 누락으로 보고 training eligible에서 제외한다.
+
 INPUT_LATENCY:
   metadata.input_latency_ms의 평균 또는 최대값이 threshold를 넘었다.
 
@@ -718,6 +869,8 @@ Backward compatibility:
 retargeting_jump, latency, jitter는 threshold가 있을 때만 실패 gate로 적용된다.
 따라서 예전 trajectory에 latency metadata가 없거나 timestamp 간격이 거칠어도 기존 success 판정을 깨지 않는다.
 tracking_loss_after_warmup은 기존 tracking_loss_rate > 0.3 동작을 보존하기 위해 기본 threshold 0.3을 사용한다.
+scene_state_discontinuity는 peg-in-hole evaluator에서만 적용되며, dynamic EEF/object/peg jump는
+진단 event로 기록하되 static task target jump가 있을 때만 hard reject한다.
 ```
 
 Targeted test:
@@ -1145,6 +1298,13 @@ RDF_DEBUG_MOTION_EVERY=20 \
 RDF_VISUAL_DEBUG=1 \
 RDF_VISUAL_DEBUG_EVERY=1 \
 RDF_VISUAL_DEBUG_INPUT_SCALE=0.25 \
+RDF_RECENTER_MODE=robot_start_box \
+RDF_RECENTER_BOX_CENTER_SOURCE=hole_target_approach \
+RDF_RECENTER_BOX_APPROACH_OFFSET=0,0,0.08 \
+RDF_RECENTER_BOX_RANDOM_OFFSET=0.02,0.02,0.01 \
+RDF_RECENTER_BOX_VISUAL=0 \
+RDF_BLOCK_TELEOP_UNTIL_RECENTER=1 \
+RDF_RECENTER_SETUP_CONTROL=1 \
 ~/run_isaac_handtracking.sh
 ```
 
@@ -1172,11 +1332,12 @@ RDF_INSERTION_AXIS_WORLD=0,0,-1
 2. 위 명령으로 Isaac을 실행한다.
 3. Isaac이 뜨면 `Start XR` 또는 `Start AR`을 누른다.
 4. Quest 3를 착용하고 손 추적이 안정될 때까지 몇 초 기다린다.
-5. HMD/Isaac 화면에서 visual marker가 보이는지 확인한다. green은 현재 robot fingertip, cyan은 hand delta target, yellow는 이번 step robot target, magenta는 Forge hole 기준 target이다.
-6. 터미널에서 `action_debug`의 `raw_xyz`, `filtered_xyz`, `step_xyz`와 `motion_debug`의 `eef_delta_norm`이 변하는지 확인한다.
-7. 손이 정상적으로 움직이는 것을 확인한 뒤 terminal에 focus를 두고 `P`를 한 번 눌러 recenter한다.
-8. 최소 수십 초 조작한 뒤 `N` 또는 `F`로 explicit finalize한다.
-9. Isaac을 닫은 뒤 아래 검증을 실행한다.
+5. HMD/Isaac 화면에서 `/World/RDFRecenterStartBox`와 visual marker가 보이는지 확인한다. green은 현재 robot fingertip, cyan은 hand delta target, yellow는 이번 step robot target, magenta는 Forge hole 기준 target이다.
+6. setup-only control로 robot EEF/fingertip을 start box 안에 넣고, box가 blue인 상태에서 hold한다.
+7. `RECENTER: OK` 또는 green box를 확인한 뒤 실제 insertion 조작을 시작한다.
+8. 터미널에서 `action_debug`의 `raw_xyz`, `filtered_xyz`, `step_xyz`와 `motion_debug`의 `eef_delta_norm`이 변하는지 확인한다.
+9. 최소 수십 초 조작한 뒤 `N` 또는 `F`로 explicit finalize한다.
+10. Isaac을 닫은 뒤 아래 검증을 실행한다.
 
 ```bash
 uv run python scripts/verify_latest_rdf_recording.py --pretty
@@ -1202,7 +1363,7 @@ summary.task_state_frame_count > 0
 - `trainer_dry_run_passed=false`면 아직 MVP-1B가 아니다.
 - `curated_vs_uncurated_policy_uplift_measured=false`면 아직 MVP-1C가 아니다.
 - Direct insertion task는 기존 ManagerBased stack task와 control semantics가 다르므로, 조작감 gain/axis map은 live run 후 계속 조정해야 한다.
-- `P` recenter는 RDF recording metadata/action-filter 상태를 갱신한다. 현재 Isaac OpenXR control anchor 자체를 바꾸는 기능은 아니므로, `P`를 눌렀다고 로봇이 손의 절대 위치를 따라오지는 않는다.
+- Primary HMD collection에서는 `P` recenter에 의존하지 않는다. `P`는 RDF recording metadata/action-filter 상태를 갱신하는 fallback/debug command이며, Isaac OpenXR control anchor 자체를 바꾸지 않는다.
 - `Isaac-Forge-PegInsert-Direct-v0` / `Isaac-Factory-PegInsert-Direct-v0`는 6D relative delta action을 쓰며, gripper action 없이 fingertip target을 작은 범위에서 움직인다. 손 위치 mirror가 아니라 손목 움직임의 변화량이 action으로 들어간다고 해석해야 한다.
 - visual marker는 진단용 표시이며 trajectory action 값이나 evaluator 결과를 바꾸지 않는다. 화면이 복잡하면 `RDF_VISUAL_DEBUG=0`으로 끌 수 있다.
 
@@ -1603,3 +1764,294 @@ uv run python scripts/run_mvp1_proof_audit.py --pretty
 - 이 preflight가 `true`여도 full MVP-1C proof는 아니다.
 - 실제 pass 조건은 `run_mvp1c_real_policy_eval.py`가 real held-out input을 받아 positive curated-minus-uncurated success-rate delta를 기록하는 것이다.
 - minimum은 policy당 10 rollout이고, 고객/투자자 proof로는 policy당 50회 이상 rollout이 더 방어 가능하다.
+
+
+## HMD axis debug short wrapper
+
+When the operator reports direction mismatch, prefer the short wrapper over a long env command so `RDF_ISAAC_TASK`, axis map, yaw offset, and recenter-box visibility cannot drift silently. The HMD operator should watch the in-HMD guidance panel, not terminal text.
+
+Latest observed symptom under the current attempts: hand-right appears to drive robot-down. The next controlled hypothesis is:
+
+```bash
+cd ~/robot-data-forge
+./scripts/run_hmd_axis_debug.sh right-down-fix
+```
+
+This forces:
+
+```text
+RDF_ISAAC_TASK=Isaac-Forge-PegInsert-Direct-v0
+RDF_ACTION_POS_AXIS_MAP=-z,y,x
+RDF_ACTION_POS_YAW_OFFSET_DEG=0
+RDF_RECENTER_BOX_VISUAL=0
+```
+
+If the latest file is zero-frame, inspect it explicitly:
+
+```bash
+uv run python scripts/verify_latest_rdf_recording.py --include-empty-latest --pretty
+```
+
+Then analyze the latest non-empty trajectory:
+
+```bash
+uv run python scripts/analyze_hmd_motion_mapping.py --latest --pretty --output storage/hmd_motion_mapping/latest_mapping_report.json
+```
+
+
+### HMD free-motion branch for start-box deadlock
+
+If the operator cannot move the robot into the start box, do not continue axis-map testing. First bypass the start-box gate and prove hand input can move the robot at all:
+
+```bash
+cd ~/robot-data-forge
+./scripts/run_hmd_axis_debug.sh free-motion
+```
+
+This is diagnostic only, not Gate A collection. It forces `RDF_RECENTER_MODE=first_valid_hand`, `RDF_BLOCK_TELEOP_UNTIL_RECENTER=0`, `RDF_RECENTER_SETUP_CONTROL=0`, and `RDF_RECENTER_BOX_VISUAL=0`. If the robot still does not move in this mode, inspect `action_debug` and `motion_debug` logs before changing axes again.
+
+## 25. raw-wrist-direct가 여전히 로봇을 따라오지 않는 경우
+
+`./scripts/run_hmd_axis_debug.sh raw-wrist-direct` 실행 후 operator가 “손동작을 로봇이 따라오지 않는다”고 보고하면, 먼저 controller/mapping보다 tracking gate를 확인한다.
+
+최근 physical run `traj_b804823e845a`의 판정은 다음과 같다.
+
+```text
+recording schema/action contract: PASS
+control_mode: raw_wrist_direct_ee_target
+H7 Isaac EEF follows command direction: PASS
+H9 handtracking loss/jitter: WARN
+H13 valid wrist pose spikes: WARN
+H14 controller target accumulation drift: PASS
+H15 scene-state discontinuity: PASS
+failure_reason: TRACKING_LOSS
+```
+
+핵심 해석:
+
+- `raw_wrist_direct_ee_target` path는 활성화되어 있다.
+- EEF는 명령이 실제로 들어간 구간에서는 대체로 명령 방향을 따른다.
+- 그러나 많은 frame이 `invalid_right_hand`, `tracking_resume_warmup`, `raw_wrist_spike_reacquire_pending` 때문에 hold된다.
+- 이 상태에서 axis/gain을 바꾸면 tracking 문제를 mapping 문제처럼 오진할 수 있다.
+
+확인 명령:
+
+```bash
+cd ~/robot-data-forge
+uv run python scripts/verify_latest_rdf_recording.py \
+  --include-empty-latest \
+  --storage-root storage \
+  --pretty
+
+uv run python scripts/analyze_hmd_motion_mapping.py \
+  --latest \
+  --pretty \
+  --output storage/hmd_motion_mapping/latest_mapping_report.json
+```
+
+판정 기준:
+
+- `failure_reason=TRACKING_LOSS` 또는 `H9 WARN`이면 Gate A collection을 중단한다.
+- `H13 WARN`이면 raw wrist pose spike가 남아 있다는 뜻이므로 axis/gain 튜닝을 중단한다.
+- `H14 PASS`이면 target accumulation 가설은 우선 배제한다.
+- `H15 PASS`이면 이번 run에서 sim reset/teleport가 주 원인은 아니다.
+
+운영자 조치:
+
+1. Quest handtracking이 HMD 내부에서 안정적으로 보이는지 먼저 확인한다.
+2. 손을 카메라 시야 중앙에 두고 강한 backlight/가림/빠른 flick motion을 피한다.
+3. HMD panel의 `RECENTER`/tracking 상태가 안정된 뒤 움직임을 판단한다.
+4. `raw_wrist_spike_reacquire_pending`이 반복되면 손동작을 줄이는 것이 아니라 tracking 환경을 먼저 안정화한다.
+
+HMD 실증 전 코드상 방어선:
+
+- `./scripts/run_hmd_axis_debug.sh raw-wrist-direct`는 기본 `RDF_WARMUP_VALID_FRAMES=15`, `RDF_AUTO_RECENTER_VALID_FRAMES=15`, `RDF_AUTO_RECENTER_STABLE_M=0.03`을 사용한다.
+- `first_valid_hand` recenter는 valid frame 개수만 보지 않고 연속 right-wrist jump가 `RDF_AUTO_RECENTER_STABLE_M` 이하인지 확인한다.
+- 불안정하면 terminal에 `AUTO_RECENTER_UNSTABLE_RIGHT_WRIST`를 남기고 recenter window를 다시 쌓는다.
+- evaluator는 저장된 trajectory의 `action.raw_wrist_direct.valid_to_valid_jump_m`가 `max_raw_wrist_valid_to_valid_jump_m` 기본 `0.10m`를 넘으면 `RAW_WRIST_JUMP`로 `training_eligible=false`를 기록한다.
+
+현재 상태에서는 `handtracking loss 과다`가 #30.3 No-Go 신호이므로, 이 문제가 사라지기 전에는 accepted trajectory collection이나 axis/gain 결론을 내리지 않는다.
+
+## 26. Frontend lint/build가 interactive prompt에서 멈추는 경우
+
+증상:
+
+```bash
+npm --prefix apps/web run lint
+```
+
+위 명령이 실제 lint error를 내기 전에 Next.js ESLint setup prompt에서 멈추면, `apps/web`에 명시적 ESLint CLI 구성이 없는 상태다.
+
+현재 정상 경로:
+
+```bash
+cd ~/robot-data-forge
+npm --prefix apps/web ci
+npm --prefix apps/web run lint
+npm --prefix apps/web run build
+npm --prefix apps/web audit --audit-level=moderate
+```
+
+현재 기대값:
+
+```text
+lint: eslint .
+build: Next.js production build PASS
+audit: found 0 vulnerabilities
+```
+
+판정 기준:
+
+- `next lint`가 다시 script에 들어오면 non-interactive agent/CI 환경에서 실패할 수 있다.
+- 내부 route 이동은 raw `<a href="/path">` 대신 `next/link`의 `Link`를 사용한다.
+- `postcss` advisory가 재발하면 먼저 `apps/web/package.json`의 `overrides.postcss`가 유지되는지 확인한다.
+- `npm audit fix --force`는 Next major downgrade/upgrade를 유발할 수 있으므로 바로 실행하지 않는다.
+
+## 27. HMD 로그를 복붙하지 않고 수집/판정하는 방법
+
+`./scripts/run_hmd_axis_debug.sh raw-wrist-direct`는 이제 실행 전체 stdout/stderr를 자동으로 저장한다.
+
+기본 저장 위치:
+
+```text
+storage/logs/hmd_axis_debug/hmd_axis_debug_<timestamp>_<mode>.log
+storage/logs/hmd_axis_debug/hmd_axis_debug_<timestamp>_<mode>.log.summary.json
+```
+
+수동으로 최신 artifact를 다시 요약하려면:
+
+```bash
+cd ~/robot-data-forge
+uv run python scripts/summarize_hmd_run_log.py \
+  --pretty \
+  --output storage/logs/latest_hmd_run_summary.json
+```
+
+특정 로그 파일을 기준으로 요약하려면:
+
+```bash
+uv run python scripts/summarize_hmd_run_log.py \
+  --log-file storage/logs/hmd_axis_debug/<log-file>.log \
+  --pretty \
+  --output storage/logs/hmd_axis_debug/<log-file>.summary.json
+```
+
+판정 규칙:
+
+- `AUTO_RECENTER_UNSTABLE_RIGHT_WRIST > 0`: 아직 수집 금지.
+- `failure_reason=RAW_WRIST_JUMP`: task 실패가 아니라 입력 품질 실패. 수집 금지.
+- `failure_reason=TRACKING_LOSS`: axis/gain 튜닝 보류. handtracking 환경 먼저 개선.
+- `H13_status != PASS`: valid-to-valid wrist spike가 남아 있음. Gate A collection 금지.
+- `right_hand_tracked_rate < 0.95` 또는 `xr_frame_valid_rate < 0.95`: tracking 품질 부족. Gate A collection 금지.
+
+요약 출력에서 바로 볼 값:
+
+```text
+failure_reason
+tracking_loss_rate
+right_hand_tracked_rate
+xr_frame_valid_rate
+H13_status
+raw_wrist_jump_max_m
+gate_a_collection_allowed
+axis_gain_tuning_allowed
+reasons
+```
+
+## 28. Gate 0 XR Input Stream Viability 실행 절차
+
+Gate A collection은 이제 손 추적 입력 스트림이 먼저 Gate 0을 통과해야 재개할 수 있다. Gate 0은 task success를 보지 않고, Quest/OpenXR right-wrist pose stream이 로봇 action label을 만들 만큼 안정적인지만 본다.
+
+실행 모드:
+
+```bash
+cd ~/robot-data-forge
+./scripts/run_hmd_axis_debug.sh gate0-all
+```
+
+`gate0-all`은 HMD를 한 번 착용한 상태에서 네 가지 Gate 0 diagnostic을 순서대로 실행한다. 단일 명령으로 다음 순서를 돈다.
+
+```text
+gate0-static
+→ gate0-slow-motion
+→ gate0-recenter
+→ gate0-reacquire
+```
+
+개별 단계만 다시 돌릴 때는 아래 명령을 사용한다.
+
+```bash
+./scripts/run_hmd_axis_debug.sh gate0-static
+./scripts/run_hmd_axis_debug.sh gate0-slow-motion
+./scripts/run_hmd_axis_debug.sh gate0-recenter
+./scripts/run_hmd_axis_debug.sh gate0-reacquire
+```
+
+각 모드 의미:
+
+| mode | 목적 |
+|---|---|
+| `gate0-static` | 손을 거의 움직이지 않을 때 wrist pose가 튀지 않는지 확인 |
+| `gate0-slow-motion` | 작은 slow motion에서 tracking loss / raw wrist jump가 없는지 확인 |
+| `gate0-recenter` | recenter가 stable-window 후에만 허용되는지 확인 |
+| `gate0-reacquire` | 손 추적 loss 후 reacquire/resume이 stable-window를 거치는지 확인 |
+| `gate0-all` | 위 네 가지 diagnostic을 순서대로 실행하고 aggregate report를 생성 |
+
+출력 artifact:
+
+```text
+storage/logs/hmd_axis_debug/hmd_axis_debug_<timestamp>_<mode>.log
+storage/logs/hmd_axis_debug/hmd_axis_debug_<timestamp>_<mode>.log.summary.json
+storage/logs/hmd_axis_debug/hmd_axis_debug_<timestamp>_<mode>.log.gate0.json
+storage/logs/hmd_axis_debug/hmd_axis_debug_<timestamp>_gate0-all.log.gate0_all.json
+```
+
+수동 재판정:
+
+```bash
+uv run python scripts/run_gate0_xr_input_viability.py \
+  --latest \
+  --test-type static \
+  --log-file storage/logs/hmd_axis_debug/<log-file>.log \
+  --output storage/logs/hmd_axis_debug/<log-file>.gate0.json \
+  --pretty
+```
+
+Gate 0에서 확인하는 핵심 값:
+
+```text
+right_hand_tracked_rate
+xr_frame_valid_rate
+raw_wrist_jump_count
+tracking_loss_count
+tracking_loss_duration_ms
+auto_recenter_unstable_count
+wrist_position_delta_p95
+wrist_position_delta_max
+frame_drop_rate
+input_latency_ms
+H13 PASS/FAIL
+```
+
+판정 규칙:
+
+- `gate0_pass=false`이면 Gate A collection은 계속 금지한다.
+- `RAW_WRIST_JUMP`는 task failure가 아니라 input quality failure다.
+- `TRACKING_LOSS`가 반복되면 axis/gain 튜닝을 중단하고 handtracking 환경을 먼저 수정한다.
+- `AUTO_RECENTER_UNSTABLE_RIGHT_WRIST`가 반복되면 recenter 전에 손 pose가 안정되지 않은 것이다.
+- `H13=FAIL`이면 valid-to-valid raw wrist jump가 남아 있으므로 training data로 승격하지 않는다.
+- invalid/unstable tracking frame은 interpolation하지 않는다. recorder는 robot action을 hold하고 `metadata.action_hold` / `metadata.hold_reason`으로 남긴다.
+
+Gate A 재개 조건:
+
+```text
+gate0_pass=true
+H13=PASS
+right_hand_tracked_rate >= 0.95
+xr_frame_valid_rate >= 0.95
+raw_wrist_jump_count == 0
+tracking_loss_count == 0
+auto_recenter_unstable_count == 0
+```
+
+`scripts/run_collection_loop.sh`는 명시적 Gate A collection entrypoint이므로 최신 `*.gate0_all.json` aggregate report가 없거나 `gate0_all_pass=true` / `gate_a_collection_allowed=true`가 아니면 시작 전에 종료한다. 또한 aggregate schema, 네 개 stage 순서/개수, stage별 pass/allow/failure reason, matched input source, 단일 source id, report freshness를 검증한다. Smoke/debug/proof/audit script는 이 hard block 대상이 아니며, Gate 0 evidence를 만들거나 기존 artifact를 검증하는 용도로 계속 실행할 수 있다.

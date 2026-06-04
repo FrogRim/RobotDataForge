@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HMD-free Test Execution Guide</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --paper: #ffffff;
+      --ink: #171d26;
+      --muted: #667085;
+      --line: #d9e0e8;
+      --blue: #2459c9;
+      --green: #14745f;
+      --amber: #a15c07;
+      --red: #b42318;
+      --slate: #344054;
+      --blue-soft: #eaf0ff;
+      --green-soft: #e7f4ef;
+      --amber-soft: #fff4df;
+      --red-soft: #fff0ee;
+      --code: #111827;
+      --code-bg: #eef2f6;
+      --shadow: 0 18px 46px rgba(24, 31, 44, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: var(--code-bg);
+      color: var(--code);
+      font-size: 0.92em;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 30px 0 48px;
+    }
+
+    .shell {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    header {
+      padding: 38px;
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 820;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 960px;
+      font-size: clamp(34px, 5vw, 60px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 20px 0 0;
+      max-width: 920px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    main {
+      padding: 34px 38px 42px;
+    }
+
+    section + section {
+      margin-top: 36px;
+      padding-top: 32px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 28px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    p { margin: 0; }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .status {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--line);
+    }
+
+    .status-item {
+      min-height: 140px;
+      padding: 18px;
+      background: #ffffff;
+    }
+
+    .status-item strong {
+      display: block;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+
+    .status-item span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 820;
+      white-space: nowrap;
+    }
+
+    .green { color: var(--green); border-color: #b8dfd0; background: var(--green-soft); }
+    .blue { color: var(--blue); border-color: #c7d6ff; background: var(--blue-soft); }
+    .amber { color: var(--amber); border-color: #ebca95; background: var(--amber-soft); }
+    .red { color: var(--red); border-color: #f1b8b2; background: var(--red-soft); }
+
+    .decision-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      font-size: 14px;
+    }
+
+    .decision-table th,
+    .decision-table td {
+      vertical-align: top;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .decision-table th {
+      color: var(--slate);
+      background: #eef1f5;
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    .decision-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .command {
+      margin-top: 12px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: #111827;
+      color: #f9fafb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .callout {
+      padding: 18px 20px;
+      border: 1px solid #ebca95;
+      border-left: 5px solid var(--amber);
+      border-radius: 8px;
+      background: var(--amber-soft);
+      color: #5c3b05;
+    }
+
+    .callout strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #4a2f03;
+    }
+
+    .flow {
+      display: grid;
+      gap: 10px;
+    }
+
+    .flow-item {
+      display: grid;
+      grid-template-columns: 160px minmax(0, 1fr);
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .label {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 820;
+      text-transform: uppercase;
+    }
+
+    .link-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .link-list a {
+      display: block;
+      min-height: 58px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .link-list strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .link-list span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    footer {
+      padding: 22px 38px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      background: #fbfcfe;
+    }
+
+    @media (max-width: 980px) {
+      .status { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .section-head,
+      .flow-item {
+        grid-template-columns: 1fr;
+      }
+      .link-list {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .page {
+        width: min(100% - 22px, 1180px);
+        padding: 18px 0 32px;
+      }
+      header, main, footer {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+      .status {
+        grid-template-columns: 1fr;
+      }
+      .decision-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="shell">
+      <header>
+        <p class="eyebrow">Developer test guide</p>
+        <h1>이제 기본 테스트는 HMD가 아니라 HMD-free data trust proof다</h1>
+        <p class="lead">
+          OpenXR, ALVR, SteamVR, Quest handtracking, Isaac Sim GUI는 더 이상 현재 1차 proof의
+          기본 의존성이 아니다. 기본 검증은 repo-local synthetic/scripted fixture와 API/test/export
+          경로로 끝나야 한다. HMD와 Isaac live 경로는 실험 adapter를 다시 검증할 때만 별도로 실행한다.
+        </p>
+      </header>
+
+      <main>
+        <section aria-labelledby="answer">
+          <div class="status" aria-label="Current test status">
+            <div class="status-item">
+              <span class="pill green">Default</span>
+              <strong>HMD-free proof</strong>
+              <span>커밋 전 기본 acceptance. OpenXR/ALVR/SteamVR 불필요.</span>
+            </div>
+            <div class="status-item">
+              <span class="pill blue">Runtime</span>
+              <strong>Local Python/API tests</strong>
+              <span>pytest, compileall, ruff, HDF5 export, trainer smoke 중심.</span>
+            </div>
+            <div class="status-item">
+              <span class="pill amber">Optional</span>
+              <strong>Isaac / HMD adapter</strong>
+              <span>Quest/OpenXR 경로를 다시 살릴 때만 release validation으로 실행.</span>
+            </div>
+            <div class="status-item">
+              <span class="pill red">Not default</span>
+              <strong>Gate A collection</strong>
+              <span>physical HMD Gate 0가 다시 통과하기 전까지 재개하지 않음.</span>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="what-changed">
+          <div class="section-head">
+            <h2 id="what-changed">무엇이 달라졌나</h2>
+            <p class="muted">
+              예전에는 “Quest/ALVR/SteamVR/OpenXR/Isaac Lab이 실제로 움직이는가”가 전체 프로젝트의
+              첫 증명처럼 취급됐다. 지금은 그 경로를 experimental adapter로 내리고,
+              RDF core가 구매자에게 신뢰 가능한 dataset artifact를 만들 수 있는지를 먼저 검증한다.
+            </p>
+          </div>
+
+          <table class="decision-table">
+            <thead>
+              <tr>
+                <th>질문</th>
+                <th>이전 HMD-first 기준</th>
+                <th>현재 data trust 기준</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>기본 proof에 OpenXR/ALVR/SteamVR이 필요한가?</strong></td>
+                <td>사실상 필요했다. HMD stream stability가 병목이었다.</td>
+                <td>아니다. 기본 proof는 HMD-free fixture로 실행한다.</td>
+              </tr>
+              <tr>
+                <td><strong>기본 proof에 Isaac Sim GUI가 필요한가?</strong></td>
+                <td>live teleop 확인을 위해 필요했다.</td>
+                <td>아니다. 현재 proof command는 repo-local Python 경로로 돈다.</td>
+              </tr>
+              <tr>
+                <td><strong>그럼 Isaac은 버렸나?</strong></td>
+                <td>아니다.</td>
+                <td>아니다. Isaac/HMD는 experimental adapter와 미래 physical validation 경로로 남긴다.</td>
+              </tr>
+              <tr>
+                <td><strong>Gate A collection을 다시 해도 되나?</strong></td>
+                <td>HMD 안정성만 좋아 보이면 시도하고 싶었다.</td>
+                <td>아니다. physical HMD Gate 0 rerun이 통과하기 전까지 금지다.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section aria-labelledby="daily">
+          <div class="section-head">
+            <h2 id="daily">기본 테스트 세트</h2>
+            <p class="muted">
+              RDF core나 data trust layer를 건드렸다면 아래가 현재 기준의 1차 acceptance다.
+              이 세트는 Quest, SteamVR, ALVR, OpenXR runtime, Isaac GUI 없이 실행되어야 한다.
+            </p>
+          </div>
+
+          <h3>Data trust proof</h3>
+          <div class="command">uv run python scripts/run_data_trust_layer_proof.py --clean --pretty</div>
+
+          <h3 style="margin-top: 20px;">Targeted proof tests</h3>
+          <div class="command">uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+uv run pytest apps/api/tests/test_mvp1_trainer_smoke_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q</div>
+
+          <h3 style="margin-top: 20px;">Static checks</h3>
+          <div class="command">uv run python -m compileall -q scripts apps/api/app apps/api/tests
+uvx ruff check scripts/run_data_trust_layer_proof.py apps/api/tests/test_data_trust_layer_proof_script.py</div>
+        </section>
+
+        <section aria-labelledby="decision-tree">
+          <div class="section-head">
+            <h2 id="decision-tree">무엇을 바꿨는지에 따른 실행 기준</h2>
+            <p class="muted">커밋 전에 모든 테스트를 무조건 돌리는 대신, 변경 범위별로 증명해야 할 claim을 분리한다.</p>
+          </div>
+
+          <div class="flow">
+            <div class="flow-item">
+              <div class="label">Docs only</div>
+              <div>
+                <h3>문서 위치, 링크, HTML만 바꾼 경우</h3>
+                <p class="muted">HTML/Markdown 링크 검증과 whitespace check면 충분하다. Isaac/HMD 실행은 필요 없다.</p>
+                <div class="command">python3 -m compileall -q scripts apps/api/app apps/api/tests  # docs-only면 생략 가능
+git diff --check -- index.html docs Handoff.md README.md tasks/todo.md
+# HTML/Markdown local-link validation은 docs portal worklog의 stdlib validator 기준으로 실행</div>
+              </div>
+            </div>
+
+            <div class="flow-item">
+              <div class="label">Core proof</div>
+              <div>
+                <h3>proof runner, evaluator, curator, export, trainer smoke를 바꾼 경우</h3>
+                <p class="muted">HMD-free data trust proof와 관련 pytest를 실행한다. 이것이 현재 1차 제품 proof다.</p>
+                <div class="command">uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+uv run pytest apps/api/tests/test_mvp1_trainer_smoke_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q</div>
+              </div>
+            </div>
+
+            <div class="flow-item">
+              <div class="label">API / services</div>
+              <div>
+                <h3>API service나 evaluator/curator 공통 로직을 바꾼 경우</h3>
+                <p class="muted">관련 targeted tests 뒤에 API 전체 테스트를 돌린다. 여전히 HMD나 Isaac은 필요 없다.</p>
+                <div class="command">uv run pytest apps/api/tests -q
+uv run python -m compileall -q apps/api/app apps/api/tests scripts</div>
+              </div>
+            </div>
+
+            <div class="flow-item">
+              <div class="label">Web UI</div>
+              <div>
+                <h3>Next.js frontend를 바꾼 경우</h3>
+                <p class="muted">문서 포털 HTML과 별개다. `apps/web`을 바꾸면 web lint/build를 따로 봐야 한다.</p>
+                <div class="command">npm --prefix apps/web run lint
+npm --prefix apps/web run build</div>
+              </div>
+            </div>
+
+            <div class="flow-item">
+              <div class="label">HMD adapter</div>
+              <div>
+                <h3>Quest/OpenXR/HMD live adapter를 다시 건드린 경우</h3>
+                <p class="muted">
+                  이때만 physical validation이 필요하다. 이것은 implementation acceptance가 아니라
+                  release validation이다. Gate A collection은 Gate 0 통과 전까지 계속 금지다.
+                </p>
+                <div class="command">./scripts/run_hmd_axis_debug.sh gate0-static --no-start-xr
+./scripts/run_hmd_axis_debug.sh gate0-all --no-start-xr</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="isaac">
+          <div class="section-head">
+            <h2 id="isaac">Isaac Sim은 언제 쓰나</h2>
+            <p class="muted">
+              현재 data trust layer proof는 Isaac Sim GUI에 의존하지 않는다. 다만 Isaac 기반 live teleop,
+              physical HMD adapter, 또는 실제 robot/sim collection UX를 검증하는 순간에는 여전히 Isaac이 필요하다.
+            </p>
+          </div>
+
+          <div class="callout">
+            <strong>정리</strong>
+            커밋 전 기본 테스트는 Isaac 없이 끝나야 한다. Isaac/Quest/OpenXR/ALVR/SteamVR는
+            “RDF core proof”가 아니라 “experimental HMD adapter release validation”을 할 때만 켠다.
+          </div>
+        </section>
+
+        <section aria-labelledby="commit">
+          <div class="section-head">
+            <h2 id="commit">커밋 전에 추천하는 분리</h2>
+            <p class="muted">
+              현재 워크트리는 docs, data trust proof, API/scripts, web 변경이 섞여 있을 수 있다.
+              한 커밋에 모두 넣으면 테스트 기준도 전체로 커진다.
+            </p>
+          </div>
+
+          <table class="decision-table">
+            <thead>
+              <tr>
+                <th>커밋 종류</th>
+                <th>넣을 내용</th>
+                <th>필수 검증</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>docs portal commit</strong></td>
+                <td>root/docs portal, file moves, explanation HTML</td>
+                <td>HTML/Markdown link validation, `git diff --check`</td>
+              </tr>
+              <tr>
+                <td><strong>data trust proof commit</strong></td>
+                <td>HMD-free proof runner, tests, generated proof docs</td>
+                <td>proof command, targeted proof pytest, compileall, ruff</td>
+              </tr>
+              <tr>
+                <td><strong>runtime/web commit</strong></td>
+                <td>API/scripts/web runtime behavior</td>
+                <td>affected targeted tests plus broad API/web checks</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section aria-labelledby="links">
+          <div class="section-head">
+            <h2 id="links">관련 문서</h2>
+            <p class="muted">현재 테스트 기준을 이해할 때 같이 보면 되는 문서들이다.</p>
+          </div>
+          <ul class="link-list">
+            <li><a href="../buyer/data_trust_layer_reset.html"><strong>Data trust layer reset</strong><span>왜 HMD-first에서 HMD-free proof로 옮겼는지.</span></a></li>
+            <li><a href="project_instructions.md"><strong>Project instructions</strong><span>현재 product boundary와 금지 claim.</span></a></li>
+            <li><a href="worklog.md"><strong>Worklog</strong><span>실제 구현 및 검증 기록.</span></a></li>
+            <li><a href="../../scripts/run_data_trust_layer_proof.py"><strong>Proof runner</strong><span>현재 기본 acceptance command의 entrypoint.</span></a></li>
+          </ul>
+        </section>
+      </main>
+
+      <footer>
+        <a href="index.html">Developer docs</a> · <a href="../index.html">Docs hub</a> · <a href="../../index.html">Root portal</a>
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

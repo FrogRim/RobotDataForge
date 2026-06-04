@@ -22,11 +22,11 @@
 
 ## 1. 한 줄 정의
 
-Robot Data Forge는 Quest 3와 Isaac Lab 기반으로 사람이 수행한 로봇 조작 trajectory를 수집하고, 이를 자동 검증, 큐레이션, export하여 로봇 학습 시스템이 사용할 수 있는 replay-verified, action-labelled, task-validated dataset artifact로 만드는 Physical AI 데이터 인프라다.
+Robot Data Forge는 raw robot-action trajectory를 자동 검증, 큐레이션, export하여 로봇 학습 시스템과 데이터 구매자가 신뢰할 수 있는 replay-verified, action-labelled, task-validated, trainer-loadable dataset artifact와 재현 가능한 data trust layer record로 만드는 Physical AI 데이터 인프라다.
 
 쉽게 말하면:
 
-> Robot Data Forge는 로봇이 배울 수 있는 “좋은 조작 경험 데이터”를 만들고, 검수하고, 상품화하는 시스템이다.
+> Robot Data Forge는 로봇이 배울 수 있는 “좋은 조작 경험 데이터”를 만들고, 검수하고, 신뢰 증거와 함께 상품화하는 시스템이다.
 
 ---
 
@@ -45,13 +45,17 @@ Robot Data Forge는 다음이 아니다.
 
 Robot Data Forge는 다음이다.
 
-- Quest 3와 Isaac Lab 기반 로봇 조작 trajectory 수집 시스템
 - robot-action-labelled trajectory 검증 시스템
 - replay-verified action contract 검증 시스템
-- task-validated XR teleoperation dataset 인프라
+- task-validated robot learning dataset 인프라
+- provenance, schema version, audit trail, reproducible command, limitations를 포함한 data trust layer
 - 학습 가능한 데이터만 선별하는 큐레이션 시스템
 - 로봇 학습용 dataset export 인프라
 - task-specific validated robot learning data infrastructure
+
+Quest/OpenXR/HMD 수집 경로는 삭제하지 않는다. 다만 현재 reset proof에서는
+experimental input adapter로 격하하며, data trust layer primary proof나
+buyer-facing readiness claim의 근거로 사용하지 않는다.
 
 핵심 제품 방향은 다음이다.
 
@@ -61,7 +65,7 @@ Robot Data Forge는 다음이다.
 
 ## 2.1 RDF 데이터 파이프라인 원칙
 
-RDF의 구현과 proof 판단은 아래 8개 원칙을 따른다.
+RDF의 구현과 proof 판단은 아래 9개 원칙을 따른다.
 
 1. Raw trajectory는 관대하게 저장한다. Raw evidence는 training eligible 여부와 별개로 보존한다.
 2. Task success와 data quality를 분리한다. 성공한 task라도 tracking/action/replay 품질이 낮으면 training candidate가 아닐 수 있다.
@@ -71,30 +75,51 @@ RDF의 구현과 proof 판단은 아래 8개 원칙을 따른다.
 6. Episode outcome뿐 아니라 transition coverage를 기록한다. APPROACH, CONTACT, INSERT, SEAT 같은 phase 분포가 학습 가능성을 좌우한다.
 7. HDF5/export와 trainer smoke를 통과한 dataset artifact를 만든다. 파일이 존재하는 것만으로 learning-ready라고 주장하지 않는다.
 8. Policy uplift는 MVP-2로 넘긴다. MVP-1 완료 조건은 learning-ready dataset artifact이고, downstream learning performance는 MVP-2에서 검증한다.
+9. Camera/HMD geometry는 버리지 않는다. HMD pose, operator view frame, camera intrinsics/extrinsics, task/robot/object visibility, world↔robot↔EEF↔task↔camera transform provenance를 raw evidence와 함께 저장하고, 시점 기반 보정은 raw action label을 덮어쓰지 않는 derived conditioning metadata로 분리한다.
 
 ---
 
-## 3. 현재 Primary Path
+## 3. 현재 Primary Proof Path
 
-현재 MVP의 primary path는 다음 흐름을 기준으로 한다.
+현재 MVP reset의 primary proof path는 HMD-free data trust layer 흐름을 기준으로 한다.
+
+```text
+scripted / synthetic replay fixture
+→ trajectory + source provenance
+→ action semantics normalization
+→ ForgeSync
+→ ForgeEval
+→ ForgeCurate
+→ Validated Dataset Export
+→ trainer smoke
+→ trust_record.json / buyer_dataset_card.json / proof_report.json
+```
+
+중요한 원칙:
+
+- 첫 reset proof는 HMD-free여야 한다.
+- Quest/OpenXR/HMD readiness, Gate A collection readiness, physical collection
+  readiness, policy uplift를 이 proof에서 주장하지 않는다.
+- 웹 mock task는 primary path가 아니다.
+- 웹 mock task는 fallback, debug, test, demo 보조 경로다.
+- MockSimAdapter가 data trust layer proof를 대체하는 primary path처럼 보이면 안 된다.
+- Quest 3 + SteamVR/OpenXR + Isaac Lab 기반 수집은 experimental input adapter다.
+
+### 3.1 Experimental Input Adapters
+
+아래 경로는 보존하지만 현재 primary proof나 구매자 readiness claim의 기준으로
+삼지 않는다.
 
 ```text
 Quest 3 handtracking
 → ALVR + SteamVR/OpenXR
 → Isaac Lab teleoperation
 → Trajectory Recorder
-→ ForgeSync
-→ ForgeEval
-→ ForgeCurate
-→ Validated Dataset Export
+→ Gate 0 / Gate A validation
 ```
 
-중요한 원칙:
-
-- 웹 mock task는 primary path가 아니다.
-- 웹 mock task는 fallback, debug, test, demo 보조 경로다.
-- MockSimAdapter가 IsaacLabAdapter를 대체하는 primary path처럼 보이면 안 된다.
-- primary path는 Quest 3 + SteamVR/OpenXR + Isaac Lab 기반 수집이다.
+이 adapter에서 생성된 trajectory는 Gate 0과 replay/action/data-quality gate를
+통과하기 전까지 raw evidence로만 보존한다.
 
 ---
 
@@ -156,13 +181,16 @@ MVP-0의 목적은 기술 파이프라인이 실제로 동작하는지 증명하
 
 MVP-0에서 증명할 것:
 
-- Quest 3 handtracking 입력이 Isaac Lab task에 전달된다.
+- 안정적인 입력 소스(scripted fixture, synthetic replay fixture, operator
+  control 등)가 Isaac Lab task 또는 동등한 검증 경로에 전달된다.
 - episode start/stop lifecycle이 동작한다.
 - end-effector pose, gripper/action, object state, timestamp가 frame 단위로 저장된다.
 - source metadata와 runtime metadata가 trajectory에 포함된다.
 - trajectory가 replay 가능하다.
 - ForgeEval이 기본 success/failure와 score를 생성한다.
 - JSON dataset export가 가능하다.
+- Quest/OpenXR/HMD 입력은 이 목록의 primary proof 조건이 아니라 보존된
+  experimental adapter 검증 조건이다.
 
 MVP-0에서 사용할 수 있는 task:
 
@@ -176,18 +204,19 @@ MVP-0에서 사용할 수 있는 task:
 
 ### 5.2 MVP-1: Learning-Ready Dataset Pipeline Proof
 
-MVP-1의 목적은 XR/HMD teleoperation raw trajectory가 검증 가능한 학습 후보 dataset artifact로 승격되는지 증명하는 것이다.
+MVP-1의 목적은 raw robot-action trajectory가 검증 가능한 학습 후보 dataset artifact와 buyer-facing trust record로 승격되는지 증명하는 것이다. 현재 reset proof는 HMD-free data trust layer 경로를 기준으로 하며, XR/HMD teleoperation은 별도 experimental adapter evidence로만 다룬다.
 
 MVP-1은 아래 evidence chain을 닫으면 완료된다.
 
 | Gate | 증명해야 할 것 |
 |---|---|
-| Raw XR trajectory saved | 실제 Quest/SteamVR/OpenXR/Isaac 경로의 raw trajectory와 source metadata를 보존한다. |
+| Raw trajectory saved | HMD-free scripted/synthetic replay fixture 또는 안정 입력 경로의 raw trajectory와 source metadata를 보존한다. Quest/SteamVR/OpenXR 경로는 experimental adapter 사용 시 별도 source metadata로 보존한다. |
 | Task state extracted | peg-in-hole 또는 connector insertion의 task_state를 frame metadata로 기록한다. |
 | Task outcome recorded | operator outcome, evaluator task success, finalize reason을 저장한다. |
 | Data quality recorded | tracking loss, action saturation, retargeting jump, frame quality 같은 data quality를 별도로 저장한다. |
 | Operator/evaluator separated | 사람이 성공했다고 본 사실과 evaluator가 성공으로 판정한 사실을 하나의 flag로 합치지 않는다. |
 | Replay/action gate recorded | action contract와 replay 가능성을 training eligibility 전에 확인한다. |
+| Camera conditioning recorded | HMD/operator camera geometry, view frame, transforms, visibility, projection smoke 결과를 저장하고, camera-conditioned downstream 학습에 쓸 수 있는지 별도 readiness로 판정한다. |
 | Curation manifest generated | accepted/rejected reason을 manifest에 남긴다. |
 | Transition coverage recorded | episode 결과뿐 아니라 APPROACH/CONTACT/INSERT/SEAT 같은 transition coverage를 기록한다. |
 | HDF5/export generated | trainer가 읽을 수 있는 dataset artifact를 만든다. |
@@ -196,7 +225,9 @@ MVP-1은 아래 evidence chain을 닫으면 완료된다.
 
 MVP-1의 claim은 다음 문장으로 제한한다.
 
-> XR teleoperation raw trajectory를 replay-verified, action-labelled, task-validated, trainer-loadable learning-candidate dataset artifact로 만드는 파이프라인을 완성했다.
+> raw robot-action trajectory를 replay-verified, action-labelled, task-validated, trainer-loadable learning-candidate dataset artifact와 재현 가능한 trust record로 만드는 파이프라인을 완성했다.
+
+2026-05-27 추가 결정: 기존 MVP-1 learning-ready proof는 robot/action/replay/export evidence로 보존한다. `camera-conditioning-ready`는 ForgeXR dataset claim의 신규 readiness gate이며, 실제 recorder/export/loader 구현과 projection smoke가 완료되기 전까지 current artifact를 camera-conditioned visual-policy material로 주장하지 않는다.
 
 ### 5.3 MVP-2: Learning-Proven Value Proof
 
@@ -240,7 +271,7 @@ MVP-1에서 증명해야 할 것:
 | 모듈 | 역할 |
 |---|---|
 | ForgeTask | task 정의, 성공 조건, 환경 파라미터 관리 |
-| ForgeXR | Quest 3 handtracking, SteamVR/OpenXR 입력 수집 |
+| ForgeXR | Quest 3 handtracking, SteamVR/OpenXR 입력 수집용 experimental adapter |
 | ForgeIsaac | Isaac Lab task 실행, episode lifecycle 관리 |
 | ForgeRecord | pose, action, object state, metadata를 trajectory로 저장 |
 | ForgeSync | timestamp, frame drop, latency, handtracking loss 등 sync 품질 측정 |

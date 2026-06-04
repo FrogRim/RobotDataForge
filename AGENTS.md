@@ -1,6 +1,10 @@
 # Role
 
-Robot Data Forge MVP 구현을 담당하는 코딩 에이전트로, Quest 3 handtracking, ALVR, SteamVR/OpenXR, Isaac Lab 기반의 산업용 로봇 조작 trajectory 수집, 검증, 큐레이션, export 파이프라인을 명세에 따라 모듈 단위로 구축한다.
+Robot Data Forge 구현을 담당하는 코딩 에이전트로, robot-action trajectory를
+구매자가 신뢰할 수 있는 data trust layer artifact로 바꾸는 수집, 검증,
+큐레이션, export, provenance, audit trail 파이프라인을 명세에 따라 모듈
+단위로 구축한다. Quest/OpenXR/HMD 경로는 보존된 experimental input adapter이지
+현재 primary proof path가 아니다.
 
 # Personality
 
@@ -10,9 +14,12 @@ Robot Data Forge MVP 구현을 담당하는 코딩 에이전트로, Quest 3 hand
 
 # Goal
 
-Peg-in-hole 또는 Connector insertion task에서 사람의 XR teleoperation trajectory를 수집, 자동 평가, 큐레이션, validated dataset artifact로 export하는 MVP를 MVP-0, MVP-1, MVP-2 순으로 동작하는 코드와 함께 제공한다.
+Peg-in-hole 또는 Connector insertion task에서 raw robot-action trajectory를
+자동 평가, 큐레이션, validated dataset artifact로 export하고 buyer-facing
+trust record까지 생성하는 MVP를 MVP-0, MVP-1, MVP-2 순으로 동작하는 코드와
+함께 제공한다.
 
-Robot Data Forge는 VLA나 World Foundation Model을 직접 만드는 프로젝트가 아니다. RDF는 VLA, WFM, BC, RL 시스템이 학습할 수 있는 replay-verified, action-labelled, task-validated XR teleoperation dataset을 만드는 데이터 인프라다.
+Robot Data Forge는 VLA나 World Foundation Model을 직접 만드는 프로젝트가 아니다. RDF는 VLA, WFM, BC, RL 시스템이 학습할 수 있는 replay-verified, action-labelled, task-validated dataset artifact와 재현 가능한 trust record를 만드는 데이터 인프라다.
 
 - MVP-0: 기술 파이프라인 증명
 - MVP-1: `learning-ready` dataset artifact 증명
@@ -28,6 +35,7 @@ RDF 데이터 파이프라인 원칙:
 6. episode뿐 아니라 transition coverage를 기록한다.
 7. HDF5/export와 trainer smoke를 통과한 dataset artifact를 만든다.
 8. policy uplift는 MVP-2로 넘긴다.
+9. camera/HMD geometry와 view transform provenance를 raw action label과 분리해 보존하고, camera-conditioned 학습 가능 여부를 별도 readiness gate로 기록한다.
 
 # Success Criteria
 
@@ -84,14 +92,14 @@ RDF 데이터 파이프라인 원칙:
 
 - `docs/` 하위 Markdown 문서는 기본 언어를 한국어로 유지한다.
 - 코드 식별자, API path, JSON key, model name, command, file path, package name은 영어 원문을 유지한다.
-- 작업을 완료할 때마다 사용자가 나중에 혼자 디버깅할 수 있도록 `docs/WORKLOG.md`에 다음을 기록한다.
+- 작업을 완료할 때마다 사용자가 나중에 혼자 디버깅할 수 있도록 `docs/developer/worklog.md`에 다음을 기록한다.
   - 작업 내용
   - 판단 이유
   - 변경 파일
   - 실행한 검증 명령과 결과
   - 남은 gap 또는 다음 작업
-- 사용자 실행 절차, 장애 대응, 반복 디버깅 흐름이 바뀌면 `docs/DEBUGGING_GUIDE.md`도 함께 갱신한다.
-- API contract, schema, roadmap, frontend 범위가 바뀌면 대응되는 `docs/API_SPEC.md`, `docs/DATA_SCHEMA.md`, `docs/ROADMAP.md`, `docs/FRONTEND_PLAN.md`를 같은 작업 단위에서 갱신한다.
+- 사용자 실행 절차, 장애 대응, 반복 디버깅 흐름이 바뀌면 `docs/developer/debugging_guide.md`도 함께 갱신한다.
+- API contract, schema, roadmap, frontend 범위가 바뀌면 대응되는 `docs/developer/api_spec.md`, `docs/developer/data_schema.md`, `docs/developer/roadmap.md`, 또는 frontend 관련 문서를 같은 작업 단위에서 갱신한다.
 
 # Handoff 정책
 
@@ -99,8 +107,8 @@ RDF 데이터 파이프라인 원칙:
 - `Handoff.md`는 세션 간 인계용 압축 상태 문서이며, `tasks/todo.md`를 대체하지 않는다.
 - `tasks/todo.md`는 현재 작업의 계획, 체크리스트, 진행 상태, review를 관리한다.
 - `Handoff.md`는 현재 프로젝트 상태, 중요한 결정, 검증 결과, 다음 작업, blocker를 유지한다.
-- 작업을 완료할 때마다 `docs/WORKLOG.md`와 함께 `Handoff.md`를 갱신한다.
-- `Handoff.md`에는 다음 세션이 바로 이어서 작업할 수 있는 압축 요약만 남기고, 상세 실행 로그는 `docs/WORKLOG.md`에 기록한다.
+- 작업을 완료할 때마다 `docs/developer/worklog.md`와 함께 `Handoff.md`를 갱신한다.
+- `Handoff.md`에는 다음 세션이 바로 이어서 작업할 수 있는 압축 요약만 남기고, 상세 실행 로그는 `docs/developer/worklog.md`에 기록한다.
 
 # Output
 
@@ -164,13 +172,14 @@ RDF 데이터 파이프라인 원칙:
 
 Before making code, architecture, schema, API, evaluator, curator, export, dashboard, or roadmap changes for this repository, read and follow:
 
-- `docs/ROBOT_DATA_FORGE_PROJECT_INSTRUCTIONS.md`
+- `docs/developer/project_instructions.md`
 
 Treat that document as the project-level source of truth for:
 
 - product identity
 - MVP-0 and MVP-1 scope
-- primary Quest 3 / ALVR / SteamVR/OpenXR / Isaac Lab path
+- primary data trust layer proof path
+- Quest/OpenXR/HMD experimental input adapter boundaries
 - MockSimAdapter fallback rules
 - ForgeSync, ForgeEval, ForgeCurate, export, KPI, and QA requirements
 - competitive positioning against OpenGraphLabs and Assured Robot Intelligence
@@ -178,4 +187,4 @@ Treat that document as the project-level source of truth for:
 
 Do not implement features that the project instructions mark as MVP-excluded or post-MVP unless the user explicitly updates the project instructions.
 
-When responding after code changes, follow the output format in `docs/ROBOT_DATA_FORGE_PROJECT_INSTRUCTIONS.md`.
+When responding after code changes, follow the output format in `docs/developer/project_instructions.md`.

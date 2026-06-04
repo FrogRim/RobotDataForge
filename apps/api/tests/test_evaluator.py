@@ -146,6 +146,55 @@ def test_evaluator_retargeting_jump_gate() -> None:
     assert result.metrics["retargeting_jump_max"] > 0.5
 
 
+def test_evaluator_raw_wrist_valid_to_valid_jump_gate() -> None:
+    frames = [
+        make_frame(
+            0.0,
+            0,
+            [0.75, 0.5],
+            {"right_hand_tracked": True, "xr_frame_valid": True},
+            {
+                "raw_wrist_direct": {
+                    "gate_state": "accepted",
+                    "valid_to_valid_jump_m": 0.01,
+                }
+            },
+        ),
+        make_frame(
+            0.1,
+            1,
+            [0.75, 0.5],
+            {"right_hand_tracked": True, "xr_frame_valid": True},
+            {"raw_wrist_direct": {"gate_state": "warn", "valid_to_valid_jump_m": 0.12}},
+        ),
+        make_frame(
+            0.2,
+            2,
+            [0.75, 0.5],
+            {"right_hand_tracked": True, "xr_frame_valid": True},
+            {
+                "raw_wrist_direct": {
+                    "gate_state": "accepted",
+                    "valid_to_valid_jump_m": 0.02,
+                }
+            },
+        ),
+    ]
+    criteria = {**SUCCESS_CRITERIA, "max_raw_wrist_valid_to_valid_jump_m": 0.10}
+
+    result = evaluate_trajectory(TASK_CONFIG, criteria, make_trajectory(frames=frames))
+
+    assert result.success is False
+    assert result.failure_reason == "RAW_WRIST_JUMP"
+    assert result.failure_category == "DATA_QUALITY_FAILURE"
+    assert result.metrics["raw_wrist_valid_to_valid_jump"]["fail"] is True
+    assert result.metrics["raw_wrist_valid_to_valid_jump"]["max_m"] == 0.12
+    assert result.metrics["raw_wrist_valid_to_valid_jump"]["count_over_threshold"] == 1
+    assert "RAW_WRIST_JUMP" in result.metrics["data_quality"]["quality_failure_reasons"]
+    assert "RAW_WRIST_JUMP" in result.metrics["curation"]["rejection_reasons"]
+    assert result.metrics["curation"]["training_eligible"] is False
+
+
 def test_evaluator_latency_gate() -> None:
     frames = [
         make_frame(
@@ -351,6 +400,95 @@ def test_peg_in_hole_insertion_depth_failure() -> None:
     assert result.success is False
     assert result.failure_reason == "INSUFFICIENT_INSERTION_DEPTH"
     assert result.metrics["insertion_depth"] == 0.01
+
+
+def _scene_state_frame(
+    t: float,
+    step: int,
+    *,
+    eef: list[float],
+    peg: list[float],
+    hole: list[float],
+    hole_target: list[float],
+    distance: float = 0.006,
+) -> dict:
+    return make_frame(
+        t,
+        step,
+        peg,
+        {
+            "right_hand_tracked": True,
+            "xr_frame_valid": True,
+            "task_state": {
+                "peg_position": peg,
+                "peg_tip_position": peg,
+                "hole_position": hole,
+                "hole_target_position": hole_target,
+                "peg_tip_distance_to_target": distance,
+                "peg_lateral_distance_to_target": min(distance, 0.004),
+                "peg_tip_distance_3d_to_target": distance,
+                "axis_alignment_error_rad": 0.05,
+                "insertion_depth": 0.03,
+                "contact_sequence_valid": True,
+                "object_drop_detected": False,
+            },
+        },
+        {"retargeted_robot_action": {"command": [0.01 * step, 0.0, 0.0, 1.0]}},
+    ) | {"end_effector_position": eef}
+
+
+def test_peg_in_hole_scene_state_discontinuity_blocks_training() -> None:
+    frames = [
+        _scene_state_frame(
+            0.0,
+            0,
+            eef=[0.51, -0.10, 0.18],
+            peg=[0.50, -0.12, 0.15],
+            hole=[0.55, 0.03, 0.00],
+            hole_target=[0.55, 0.03, 0.025],
+            distance=0.03,
+        ),
+        _scene_state_frame(
+            0.1,
+            1,
+            eef=[0.64, -0.04, 0.12],
+            peg=[0.64, -0.04, 0.09],
+            hole=[0.63, -0.03, 0.06],
+            hole_target=[0.63, -0.03, 0.085],
+        ),
+        _scene_state_frame(
+            0.2,
+            2,
+            eef=[0.64, -0.04, 0.12],
+            peg=[0.64, -0.04, 0.09],
+            hole=[0.63, -0.03, 0.06],
+            hole_target=[0.63, -0.03, 0.085],
+        ),
+    ]
+    trajectory = peg_trajectory(frames)
+    trajectory["summary"].update(
+        {
+            "episode_status": "success",
+            "episode_finalize_reason": "operator_success",
+            "replay_verified": True,
+        }
+    )
+
+    result = evaluate_trajectory(PEG_CONFIG, PEG_CRITERIA, trajectory)
+
+    assert result.success is False
+    assert result.failure_reason == "SCENE_STATE_DISCONTINUITY"
+    assert result.failure_category == "DATA_QUALITY_FAILURE"
+    assert result.metrics["scene_state_discontinuity"]["fail"] is True
+    assert result.metrics["scene_state_discontinuity"]["frames"] == [1]
+    assert (
+        "SCENE_STATE_DISCONTINUITY"
+        in result.metrics["data_quality"]["quality_failure_reasons"]
+    )
+    assert result.metrics["curation"]["training_eligible"] is False
+    assert (
+        "SCENE_STATE_DISCONTINUITY" in result.metrics["curation"]["rejection_reasons"]
+    )
 
 
 # ---------------------------------------------------------------------------
