@@ -8457,3 +8457,390 @@ uv run python scripts/run_mvp1_proof_audit.py --output /tmp/rdf_mvp1_proof_audit
 
 - 실제 Gate A collection 재개는 최신 `gate0-all` aggregate가 PASS일 때만 가능하다.
 - Unsupported/future input sources are explicitly unclaimed in Phase 1 and fail Gate 0 with `UNSUPPORTED_INPUT_SOURCE` until a real adapter is implemented and verified.
+
+## 2026-06-08 - MVP-1+ robot embodiment adapter proof
+
+### 작업 내용
+
+- MVP-1 완료 이후 MVP-2로 바로 넘어가지 않고, `MVP-1+` 단계로 여러 robot embodiment adapter가 같은 data trust layer를 통과하는지 검증하는 proof를 추가했다.
+- `AdapterRegistry -> RobotEmbodimentAdapter -> ContractBuilder -> NormalizedTrajectoryContractValidator -> HDF5 export -> trainer smoke -> buyer summary` 흐름을 구현했다.
+- `Franka`, `ROBOTIS SH5 / ROS2-DDS`, `Universal Robots UR`, `Universal Robots UR generated external-style` adapter를 static registry에 등록했다.
+- Adapter별 `JSONL + metadata JSON` source evidence를 생성하고, accepted/rejected command-state row를 RDF trajectory/evaluation/curation input으로 project한다.
+- Adapter-emitted normalized contract의 top-level `source_profile`은 projected recorded-log provenance를 유지하도록 했다. Builder static source profile은 `robot_embodiment_adapter_evidence.source_provenance.builder_source_profile` 아래로 격리했다.
+- Buyer-facing `mvp1plus_buyer_summary.json`에 adapter id/version, builder id, robot embodiment, action semantics, replay/consistency evidence, accepted/rejected funnel, rejection reason distribution, HDF5/trainer status, limitations, non-claims를 기록했다.
+- `--clean` guard를 추가해 repo root, home, repo parent 같은 unsafe output path 삭제를 막았다.
+- 작업 중 테스트로 unsafe clean path를 실행하기 전에 guard가 없어서 repo working tree가 삭제되는 사고가 있었다. 즉시 손상 디렉터리를 `/home/kangrim/robot-data-forge-corrupt-20260608T180131`로 보존하고, 원격 `git@github.com:FrogRim/ForgeXR.git`에서 `/home/kangrim/robot-data-forge`를 재클론한 뒤 구현을 재적용했다. 현재 script에는 동일 사고 방지 guard와 regression test가 있다.
+
+### 판단 이유
+
+- MVP-1은 learning-ready dataset artifact proof이며 policy uplift나 real robot success를 요구하지 않는다.
+- MVP-2 전에 cross-embodiment compatibility를 확인하면 이후 real route/runtime 작업에서 contract, curation, export, buyer report가 흔들리지 않는다.
+- 이 단계의 목표는 robot runtime 지원이 아니라 recorded/log-backed command-state stream이 같은 normalized trajectory contract를 emit하고 같은 gate를 통과한다는 증명이다.
+
+### 변경 파일
+
+- `scripts/run_mvp1plus_embodiment_proof.py`
+- `apps/api/app/services/adapter_contract_emitters.py`
+- `apps/api/app/services/contract_builders.py`
+- `apps/api/app/services/normalized_trajectory_contract.py`
+- `apps/api/app/services/robot_embodiment_adapters.py`
+- `apps/api/tests/test_mvp1plus_embodiment_proof_script.py`
+- `.omx/ultragoal/brief.md`
+- `.omx/ultragoal/goals.json`
+- `.omx/ultragoal/ledger.jsonl`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py -q
+  16 passed
+
+uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  8 passed
+
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty
+  passed=true, adapter_count=4, accepted_count=4, rejected_count=4
+  rejection reason coverage passed
+  integrated HDF5 export exists, HDF5 inspection clean, trainer smoke passed
+  normalized contracts use rdf_mvp1plus_cross_embodiment_recorded_log_adapter_proof_v0
+  all adapter emissions use preprojected inputs
+
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+  passed=true, accepted_count=4, rejected_count=4
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp1plus_embodiment_proof.py scripts/run_data_trust_layer_proof.py apps/api/app apps/api/tests
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+Additional regression coverage added during review:
+
+- unsafe `--clean` rejects repo root, `storage/`, `/tmp`, and hostile `TMPDIR`.
+- source metadata rejects overclaiming `claim_boundary` and `source_provenance`
+  fields.
+- preprojected contract emission rejects adapter id mismatch.
+- contract emission without preprojected inputs is rejected to prevent
+  post-export re-projection drift.
+- default registry-created robot embodiment adapter emission uses the MVP-1+
+  proof id and contract name.
+- preprojected contract emission rejects cross-adapter accepted evaluation
+  mixing by validating trajectory/evaluation/curation/split/projection links.
+- no-clean reruns remove stale per-adapter and integrated projected export
+  inputs.
+
+Final Ultragoal review gate:
+
+```text
+code-reviewer: APPROVE
+architect: CLEAR
+prior blockers: closed
+```
+
+Ultragoal checkpoint:
+
+```text
+G001-mvp-1-hybrid-full-proof-for-forgexr: complete
+artifactComplete=true
+Codex goal status=complete
+Codex goal usage=993206 tokens, 4005 seconds
+```
+
+### 남은 gap 또는 다음 작업
+
+- 이 proof는 generated/recorded-log-backed adapter evidence다. Physical Franka, live ROS2/DDS, UR/RTDE runtime은 구현하지 않았다.
+- `universal_robots_ur_external_style`은 generated external-style sample이며 public sample import evidence가 아니다.
+- 다음 단계는 MVP-1+ evidence를 바탕으로 실제 UR recorded log sample을 수집하거나 변환해 같은 path를 통과시키는 것이다.
+- Policy uplift, curated-vs-uncurated improvement, held-out policy A/B, real robot validation은 MVP-2 범위다.
+
+## 2026-06-08 - MVP-1+ UR file-backed lineage hardening
+
+### 작업 내용
+
+- `universal_robots_ur_industrial_arm` adapter의 기본 source를 generated in-script row에서 repo-local file-backed recorded-log fixture로 바꿨다.
+- 기본 fixture를 `fixtures/mvp1plus/universal_robots_ur_recorded_log_fixture/`에 추가했다.
+- `scripts/run_mvp1plus_embodiment_proof.py`에 `--ur-recorded-log-dir` 옵션과 `build_mvp1plus_embodiment_proof(..., ur_recorded_log_dir=...)` parameter를 추가했다.
+- UR source copy 단계에서 `metadata.json`, `accepted_command_state.jsonl`, `rejected_command_state.jsonl`을 output source evidence로 복사하고, 기본 fixture는 `fixture_path`와 `repo_local_recorded_log_fixture=true`를 기록하게 했다.
+- Source files와 projected artifacts에 SHA-256 `lineage_evidence`를 추가했다. 이 payload는 adapter proof, normalized contract evidence, summary, buyer summary에 동일하게 들어간다.
+- Buyer/proof claim은 계속 file-backed proof로 제한했고, live UR/RTDE runtime, physical UR readiness, real robot success, policy uplift는 주장하지 않았다.
+
+### 판단 이유
+
+- MVP-1+ confidence hardening의 핵심은 file-backed recorded/log source에서 시작하는 ingestion path를 보여주는 것이다.
+- UR부터 시작하면 industrial-arm embodiment에 대한 buyer-facing 신뢰도를 올릴 수 있지만, 아직 physical UR runtime을 구현하거나 claim하면 MVP-1+ 범위를 넘는다.
+- Hash lineage는 buyer가 source evidence와 trainer-loadable projected artifact가 같은 proof package 안에서 어떻게 연결되는지 추적하기 위한 최소 증거다.
+
+### 변경 파일
+
+- `scripts/run_mvp1plus_embodiment_proof.py`
+- `apps/api/tests/test_mvp1plus_embodiment_proof_script.py`
+- `fixtures/mvp1plus/universal_robots_ur_recorded_log_fixture/metadata.json`
+- `fixtures/mvp1plus/universal_robots_ur_recorded_log_fixture/accepted_command_state.jsonl`
+- `fixtures/mvp1plus/universal_robots_ur_recorded_log_fixture/rejected_command_state.jsonl`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+- `docs/superpowers/specs/2026-06-08-mvp1plus-ur-file-backed-lineage-design.md`
+- `docs/superpowers/plans/2026-06-08-mvp1plus-ur-file-backed-lineage.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py::test_mvp1plus_uses_repo_local_ur_recorded_log_fixture_by_default apps/api/tests/test_mvp1plus_embodiment_proof_script.py::test_mvp1plus_ur_recorded_log_dir_overrides_default_fixture apps/api/tests/test_mvp1plus_embodiment_proof_script.py::test_mvp1plus_lineage_hashes_source_and_projected_artifacts -q
+  3 passed
+
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py -q
+  19 passed
+
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty
+  passed=true
+  adapter_count=4
+  accepted_count=4
+  rejected_count=4
+  universal_robots_ur_industrial_arm lineage source_evidence_type=file_backed_recorded_log_fixture
+  source_bundle_sha256 and projected_bundle_sha256 generated
+
+uv run python scripts/run_mvp1plus_embodiment_proof.py --output-dir /tmp/.../out --ur-recorded-log-dir /tmp/.../custom_ur_log --clean --pretty
+  passed=true
+  reproduce_command includes --ur-recorded-log-dir
+
+uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  8 passed
+
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+  passed=true, accepted_count=4, rejected_count=4
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp1plus_embodiment_proof.py scripts/run_data_trust_layer_proof.py apps/api/app apps/api/tests
+  All checks passed
+
+uvx ruff check --select F401,F841,PLR0912,PLR0915,C901 scripts/run_mvp1plus_embodiment_proof.py apps/api/app/services/robot_embodiment_adapters.py apps/api/tests/test_mvp1plus_embodiment_proof_script.py
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 현재 UR source는 repo-local file-backed fixture다. 실제 physical UR run 또는 live UR/RTDE runtime evidence가 아니다.
+- 다음 confidence step은 `--ur-recorded-log-dir`로 외부 recorded UR log sample을 같은 shape로 변환해 통과시키는 것이다.
+- Franka/ROBOTIS도 동일한 file-backed fixture/import path로 확장할 수 있다.
+- Policy uplift, held-out policy A/B, curated-vs-uncurated improvement, real robot validation은 계속 MVP-2 범위다.
+
+## 2026-06-08 - MVP-2 Rebase UR policy A/B harness spec 작성
+
+### 작업 내용
+
+- MVP-2를 legacy `MVP-1C` / HUD-first 실행 흐름에서 새 MVP-1/MVP-1+
+  data trust layer 구조로 재정렬하는 설계 문서를 작성했다.
+- 첫 MVP-2 proof source를 `universal_robots_ur_industrial_arm`
+  file-backed recorded log로 고정했다.
+- 첫 slice 범위를 `Rebase spec + offline policy A/B harness + schema-only
+  rollout ingest contract proof`로 제한했다.
+- 새 primary entrypoint/artifact는 `mvp2_*` 이름을 사용하고, 기존
+  `mvp1c_*` script는 compatibility path로 보존하는 방향을 명시했다.
+- 독립 `mvp2_policy_ab_harness_report.json`을 primary artifact로 두고,
+  `run_mvp1_proof_audit.py`에는 MVP-2 harness readiness 요약만 연결하는
+  설계를 정리했다.
+
+### 판단 이유
+
+- 기존 MVP-2 문서는 상위 목표는 유효하지만, 실행 흐름에 legacy
+  `MVP-1C`, HUD/Quest/HMD ingest 전제가 남아 있다.
+- 현재 RDF primary path는 adapter-emitted normalized trajectory contract와
+  buyer-facing trust artifact이므로, policy A/B harness 입력도 같은 lineage에서
+  시작해야 한다.
+- schema-only rollout fixture는 외부 trainer/evaluator output shape 검증용이며,
+  policy uplift evidence로 해석하지 않아야 한다.
+
+### 변경 파일
+
+- `docs/superpowers/specs/2026-06-08-mvp2-rebase-ur-policy-ab-harness-design.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+rg -n "TODO|TBD|FIXME|mvp1c_\\*.*primary|HMD.*primary|policy uplift.*claimed|learning_proven=true|proof_eligible=true" docs/superpowers/specs/2026-06-08-mvp2-rebase-ur-policy-ab-harness-design.md
+  Only expected legacy-problem and stop-condition references found.
+```
+
+### 남은 gap 또는 다음 작업
+
+- 아직 구현은 시작하지 않았다.
+- 다음 단계는 사용자가 spec을 검토한 뒤 `$ralplan`으로 implementation plan과
+  test spec을 작성하는 것이다.
+- 실제 policy uplift, real held-out rollout, live UR/RTDE runtime, physical robot
+  readiness는 이 rebase first slice 범위 밖이다.
+
+## 2026-06-08 - MVP-2 Rebase UR policy A/B harness implementation plan 작성
+
+### 작업 내용
+
+- MVP-2 Rebase spec을 기준으로 실행 가능한 implementation plan을 작성했다.
+- plan은 TDD 순서로 `test_mvp2_ur_policy_ab_harness_script.py` red test를 먼저
+  만들고, 이후 `scripts/run_mvp2_ur_policy_ab_harness.py`를 구현하도록 구성했다.
+- proof audit summary, MVP-1/MVP-1+ regression, HMD boundary scan, worklog/Handoff
+  갱신, Lore commit 절차를 plan에 포함했다.
+
+### 판단 이유
+
+- MVP-2는 기존 `MVP-1C` / HUD-first surface가 아니라 UR file-backed recorded-log
+  adapter-emitted contract lineage에서 시작해야 한다.
+- 첫 slice는 policy uplift proof가 아니라 policy A/B harness readiness proof이므로
+  `learning_results_measured=false`, `learning_proven=false`,
+  `proof_eligible=false` 경계를 plan 단계에서 고정했다.
+
+### 변경 파일
+
+- `docs/superpowers/plans/2026-06-08-mvp2-rebase-ur-policy-ab-harness.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+rg -n "TODO|TBD|FIXME|appropriate|similar to|implement later|Paste the actual|RESULT_FROM|placeholder" docs/superpowers/plans/2026-06-08-mvp2-rebase-ur-policy-ab-harness.md
+  no matches
+
+git diff --check -- docs/superpowers/plans/2026-06-08-mvp2-rebase-ur-policy-ab-harness.md
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 아직 구현은 시작하지 않았다.
+- 다음 단계는 이 plan을 기준으로 `$ultragoal` 실행 계획을 만들고 구현을 진행하는 것이다.
+- 실제 policy training, held-out rollout, policy uplift, live UR runtime, HMD readiness는
+  계속 범위 밖이다.
+
+## 2026-06-08 - MVP-2 Rebase UR policy A/B harness 구현
+
+### 작업 내용
+
+- `$ultragoal` artifact를 새 MVP-2 Rebase 구현 목표로 생성하고 G001을 in-progress로
+  전환했다.
+- TDD 순서로 `apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py`를 먼저
+  추가해 `scripts/run_mvp2_ur_policy_ab_harness.py` 부재 실패를 확인했다.
+- `scripts/run_mvp2_ur_policy_ab_harness.py`를 추가해
+  `universal_robots_ur_industrial_arm` file-backed recorded-log lineage에서
+  baseline/candidate dataset view, HDF5 export, held-out suite manifest,
+  policy eval input template, schema-only rollout ingest contract를 생성했다.
+- `--clean` 실행이 관리 artifact root 밖을 삭제하지 못하도록 safe-clean guard와
+  regression test를 추가했다.
+- Independent architect review의 WATCH 항목을 반영해 schema-only rollout
+  fixture를 non-comparative로 바꾸고, UR file-backed lineage hard gate와
+  no-clean stale output reset regression을 추가했다.
+- Final review에서 추가로 지적된 lineage binding/readiness derivation 문제를
+  반영해 expected lineage key set, path/hash/byte-size/bundle hash 재검증,
+  `projected_inputs` path binding, gate-derived `passed/harness_ready`를
+  추가했다.
+- `run_mvp1_proof_audit.py`에 `mvp2_policy_ab_harness` summary를 추가했다.
+  이 summary는 readiness 정보만 제공하며 MVP-1 gate나 learning-proven claim을
+  승격하지 않는다.
+- 새 artifact schema와 실행 절차를 `data_schema.md`와 `debugging_guide.md`에
+  기록했다.
+
+### 판단 이유
+
+- MVP-2 Rebase first slice는 policy uplift를 증명하는 단계가 아니라, 새
+  adapter-emitted contract lineage에서 policy A/B harness input/output 계약을
+  준비하는 단계다.
+- Schema-only rollout fixture는 ingest shape 검증용이므로
+  `learning_results_measured=false`, `curated_vs_uncurated_uplift=null`,
+  `learning_proven=false`, `proof_eligible=false`를 유지했다.
+- 기존 `mvp1c_*` script는 compatibility surface로 남기고, 새 primary surface는
+  `mvp2_*` 이름으로 추가했다.
+
+### 변경 파일
+
+- `scripts/run_mvp2_ur_policy_ab_harness.py`
+- `scripts/run_mvp1_proof_audit.py`
+- `apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py`
+- `apps/api/tests/test_mvp1_proof_audit_script.py`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py -q
+  19 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1c_headless_eval_bundle_script.py apps/api/tests/test_mvp1c_rollout_result_adapter_script.py -q
+  5 passed
+
+uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+  9 passed
+
+uv run python scripts/run_mvp2_ur_policy_ab_harness.py --clean --refresh-mvp1plus --pretty
+  passed=true
+  harness_ready=true
+  rollout_ingest_contract_ready=true
+  learning_results_measured=false
+  learning_proven=false
+  proof_eligible=false
+
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty
+  passed=true
+  adapter_count=4
+  accepted_count=4
+  rejected_count=4
+
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+  passed=true
+  accepted_count=4
+  rejected_count=4
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2_ur_policy_ab_harness.py scripts/run_mvp1_proof_audit.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp1_proof_audit_script.py
+  All checks passed!
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 실제 held-out rollout 결과는 아직 없다.
+- 실제 policy training, curated-vs-uncurated uplift, learning-proven value proof는
+  다음 MVP-2 slice다.
+- live UR/RTDE runtime, physical UR readiness, real robot success, HMD readiness는
+  계속 주장하지 않는다.
+- 이 Codex thread에는 이전 completed aggregate goal이 남아 있어 `create_goal`은
+  실패했다. 새 `.omx/ultragoal` artifact와 ledger에는 해당 context blocker를
+  annotation으로 남기고 구현을 진행했다.

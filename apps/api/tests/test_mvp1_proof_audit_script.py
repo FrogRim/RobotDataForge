@@ -50,6 +50,26 @@ def audit(output_dir: Path, *, trajectory_dir: Path, learning_manifest: Path | N
     )
 
 
+def audit_with_mvp2_harness(
+    output_dir: Path,
+    *,
+    trajectory_dir: Path,
+    harness_report: Path,
+    learning_manifest: Path | None = None,
+) -> dict:
+    return proof.build_audit(
+        readiness_report_path=output_dir / "readiness_report.json",
+        curation_manifest_path=output_dir / "curation_manifest.json",
+        split_manifest_path=output_dir / "split_manifest.json",
+        dataset_card_path=output_dir / "dataset_card.json",
+        hdf5_inspection_path=output_dir / "hdf5_inspection.json",
+        trajectory_dir=trajectory_dir,
+        learning_manifest_path=learning_manifest or output_dir / "curated_vs_uncurated_experiment_manifest.json",
+        output_path=output_dir / "proof_audit.json",
+        mvp2_policy_ab_harness_report_path=harness_report,
+    )
+
+
 def add_live_export_evidence(manifest: dict, live_export_dir: Path, trajectory: dict) -> dict:
     live_export_dir.mkdir(parents=True, exist_ok=True)
     hdf5_path = live_export_dir / "rdf_mvp1_live_export_smoke.hdf5"
@@ -110,6 +130,57 @@ def add_live_export_evidence(manifest: dict, live_export_dir: Path, trajectory: 
         }
     )
     return manifest
+
+
+def test_proof_audit_summarizes_mvp2_harness_without_learning_proven_claim(tmp_path: Path) -> None:
+    output_dir = tmp_path / "mvp1_readiness"
+    trajectory_dir = tmp_path / "real_trajectories"
+    build_readiness(output_dir)
+    harness_report = tmp_path / "mvp2_policy_ab_harness_report.json"
+    write_json(
+        harness_report,
+        {
+            "schema_version": "rdf_mvp2_ur_policy_ab_harness_v0.1.0",
+            "passed": True,
+            "harness_ready": True,
+            "rollout_ingest_contract_ready": True,
+            "learning_results_measured": False,
+            "curated_vs_uncurated_uplift": None,
+            "learning_proven": False,
+            "proof_eligible": False,
+            "proof_source": {
+                "adapter_id": "universal_robots_ur_industrial_arm",
+                "source_evidence_type": "file_backed_recorded_log_fixture",
+                "validator_backend": "NormalizedTrajectoryContractValidator",
+            },
+            "claim_boundary": {
+                "policy_uplift_claimed": False,
+                "learning_results_measured": False,
+                "curated_vs_uncurated_uplift": None,
+                "learning_proven": False,
+                "proof_eligible": False,
+            },
+        },
+    )
+
+    report = audit_with_mvp2_harness(
+        output_dir,
+        trajectory_dir=trajectory_dir,
+        harness_report=harness_report,
+    )
+
+    harness = report["mvp2_policy_ab_harness"]
+    assert harness["available"] is True
+    assert harness["harness_ready"] is True
+    assert harness["rollout_ingest_contract_ready"] is True
+    assert harness["adapter_id"] == "universal_robots_ur_industrial_arm"
+    assert harness["source_evidence_type"] == "file_backed_recorded_log_fixture"
+    assert harness["learning_results_measured"] is False
+    assert harness["learning_proven"] is False
+    assert harness["proof_eligible"] is False
+    assert report["learning_proven_policy_uplift_achieved"] is False
+    assert report["policy_uplift_required_for_mvp1"] is False
+    assert report["summary"]["do_not_claim_policy_uplift"] is True
 
 
 def test_mvp1_proof_audit_reports_partial_until_live_and_learning_evidence_exist(tmp_path: Path) -> None:

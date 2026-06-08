@@ -211,3 +211,215 @@ uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
   passed=true, accepted_count=4, rejected_count=4
   trainer_smoke_passed=true, hdf5_inspection_clean=true
 ```
+
+## MVP-1+ Robot Embodiment Adapter Proof - 2026-06-08
+
+Goal: prove that multiple recorded/log-backed robot embodiment adapters can emit
+the same normalized trajectory contract and pass the same data trust layer
+without claiming real robot runtime support or policy uplift.
+
+- [x] Restore Ultragoal plan in `.omx/ultragoal/`.
+- [x] Add `AdapterContractEmitter`, `ContractBuilder`, and
+  `NormalizedTrajectoryContractValidator` service boundaries.
+- [x] Add static robot embodiment adapter registry.
+- [x] Represent `Franka`, `ROBOTIS SH5 / ROS2-DDS`, `Universal Robots UR`, and
+  generated external-style UR.
+- [x] Generate adapter source evidence as `JSONL + metadata JSON`.
+- [x] Project source logs into RDF-compatible trajectory/evaluation/curation
+  inputs.
+- [x] Emit normalized trajectory contracts through adapter + builder path.
+- [x] Require preprojected inputs for contract emission; no internal
+  re-projection fallback is allowed after export/trainer artifacts exist.
+- [x] Keep default robot embodiment adapter contract identity aligned with the
+  MVP-1+ proof id and contract name.
+- [x] Reject cross-adapter projected artifact mixes by validating accepted and
+  rejected trajectory/evaluation/curation/split/projection links.
+- [x] Preserve projected recorded-log `source_profile`; keep builder static
+  source profile under adapter evidence only.
+- [x] Generate accepted and rejected artifacts with complete rejection reasons.
+- [x] Export per-adapter and integrated HDF5 artifacts.
+- [x] Pass trainer smoke for per-adapter and integrated exports.
+- [x] Add buyer-readable `mvp1plus_buyer_summary.json`.
+- [x] Add safe `--clean` guard and regression test for unsafe output paths.
+- [x] Preserve original MVP-1 proof script compatibility.
+- [x] Run final cleanup scan and independent code-review/architect gate.
+- [x] Checkpoint Ultragoal final story.
+
+Verification so far:
+
+```text
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py -q
+  16 passed
+
+uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  8 passed
+
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty
+  passed=true, adapter_count=4, accepted_count=4, rejected_count=4
+  rejection_reason_coverage_passed=true
+  integrated hdf5/export/trainer gates pass
+  normalized contract proof_id is rdf_mvp1plus_cross_embodiment_recorded_log_adapter_proof_v0
+  all adapter emissions use preprojected inputs
+
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+  passed=true, accepted_count=4, rejected_count=4
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp1plus_embodiment_proof.py scripts/run_data_trust_layer_proof.py apps/api/app apps/api/tests
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+Final review gate:
+
+```text
+code-reviewer: APPROVE
+architect: CLEAR
+prior blockers: closed
+ultragoal: G001 complete, artifactComplete=true
+```
+
+## MVP-1+ UR File-Backed Lineage Hardening - 2026-06-08
+
+Goal: strengthen MVP-1+ confidence by proving the UR industrial-arm adapter can
+start from a repo-local file-backed recorded-log fixture, not only in-script
+generated rows, and preserve hash lineage into buyer/proof artifacts.
+
+- [x] Add claim-safe UR recorded-log fixture under
+  `fixtures/mvp1plus/universal_robots_ur_recorded_log_fixture/`.
+- [x] Make `universal_robots_ur_industrial_arm` use the repo-local fixture by
+  default.
+- [x] Add `--ur-recorded-log-dir` and `ur_recorded_log_dir` build parameter for
+  custom UR recorded/log source directories.
+- [x] Preserve the same normalized trajectory contract and validator gates.
+- [x] Add source file SHA-256 and projected artifact SHA-256 lineage evidence.
+- [x] Attach lineage evidence to adapter proof, normalized contract evidence,
+  summary, and buyer summary.
+- [x] Keep claims bounded: no live UR/RTDE runtime, no physical UR readiness, no
+  real robot success, no policy uplift.
+- [x] Update data schema, debugging guide, worklog, tasks, and Handoff.
+
+Verification:
+
+```text
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py -q
+  19 passed
+
+uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  8 passed
+
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty
+  passed=true, adapter_count=4, accepted_count=4, rejected_count=4
+  UR lineage source_evidence_type=file_backed_recorded_log_fixture
+
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+  passed=true, accepted_count=4, rejected_count=4
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp1plus_embodiment_proof.py scripts/run_data_trust_layer_proof.py apps/api/app apps/api/tests
+  All checks passed
+
+uvx ruff check --select F401,F841,PLR0912,PLR0915,C901 scripts/run_mvp1plus_embodiment_proof.py apps/api/app/services/robot_embodiment_adapters.py apps/api/tests/test_mvp1plus_embodiment_proof_script.py
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+Next confidence step:
+
+- [ ] Feed a captured or externally converted UR recorded/log directory through
+  `--ur-recorded-log-dir` without adding live UR runtime control.
+- [ ] Extend the same file-backed lineage pattern to Franka and ROBOTIS if
+  stronger cross-embodiment buyer evidence is needed before MVP-2.
+
+## MVP-2 Rebase UR Policy A/B Harness Spec - 2026-06-08
+
+Goal: rebase MVP-2 from legacy `MVP-1C` / HUD-first policy-uplift execution
+into the new MVP-1/MVP-1+ adapter-emitted contract lineage.
+
+- [x] Select first MVP-2 proof source:
+  `universal_robots_ur_industrial_arm` file-backed recorded log.
+- [x] Select first slice scope:
+  Rebase spec + offline policy A/B harness.
+- [x] Preserve legacy `mvp1c_*` scripts as compatibility surfaces.
+- [x] Define new `mvp2_*` primary artifact/entrypoint direction.
+- [x] Use schema-only rollout ingest fixture for contract validation, not policy
+  evidence.
+- [x] Define primary `mvp2_policy_ab_harness_report.json` plus proof audit
+  summary integration.
+- [x] Write design spec:
+  `docs/superpowers/specs/2026-06-08-mvp2-rebase-ur-policy-ab-harness-design.md`
+- [x] User review of the written spec and approval to continue.
+- [x] Write implementation plan:
+  `docs/superpowers/plans/2026-06-08-mvp2-rebase-ur-policy-ab-harness.md`
+- [x] `$ultragoal` implementation execution from the written plan.
+- [x] Add `scripts/run_mvp2_ur_policy_ab_harness.py`.
+- [x] Add MVP-2 UR harness TDD coverage.
+- [x] Add MVP-2 UR harness safe-clean guard regression coverage.
+- [x] Resolve final architect WATCH items:
+  non-comparative schema fixture, UR file-backed lineage gate, no-clean stale reset.
+- [x] Resolve final code-review findings:
+  exact lineage key/hash/path binding and gate-derived harness readiness.
+- [x] Add proof audit `mvp2_policy_ab_harness` readiness summary.
+- [x] Generate MVP-2 harness artifacts under `storage/mvp2_policy_ab_harness/`.
+- [x] Preserve boundary:
+  `learning_results_measured=false`, `learning_proven=false`,
+  `proof_eligible=false`, no policy uplift claim.
+- [x] Update data schema, debugging guide, worklog, tasks, and Handoff.
+
+Verification:
+
+```text
+uv run pytest apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py -q
+  19 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1c_headless_eval_bundle_script.py apps/api/tests/test_mvp1c_rollout_result_adapter_script.py -q
+  5 passed
+
+uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+  9 passed
+
+uv run python scripts/run_mvp2_ur_policy_ab_harness.py --clean --refresh-mvp1plus --pretty
+  passed=true, harness_ready=true, rollout_ingest_contract_ready=true
+
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty
+  passed=true, adapter_count=4, accepted_count=4, rejected_count=4
+
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+  passed=true, accepted_count=4, rejected_count=4
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2_ur_policy_ab_harness.py scripts/run_mvp1_proof_audit.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp1_proof_audit_script.py
+  All checks passed!
+
+git diff --check
+  PASS
+```
+
+Next MVP-2 gap:
+
+- [ ] Ingest real held-out rollout results.
+- [ ] Select actual trainer/policy class for baseline and candidate.
+- [ ] Run real curated-vs-uncurated policy A/B.
+- [ ] Record positive or negative learning-proven result report.
