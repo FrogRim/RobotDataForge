@@ -1,0 +1,45 @@
+{
+  "adapter_id": "universal_robots_ur_industrial_arm",
+  "adapter_name": "Universal Robots UR Industrial-Arm Adapter",
+  "adapter_version": "rdf_robot_embodiment_adapter_v0.1.0",
+  "capabilities": [
+    "industrial_command_state_projection",
+    "normalized_contract_emission"
+  ],
+  "claim_boundary": {
+    "hmd_readiness_claimed": false,
+    "live_runtime_support_claimed": false,
+    "physical_robot_readiness_claimed": false,
+    "policy_uplift_claimed": false,
+    "public_sample_evidence_claimed": false,
+    "real_robot_success_claimed": false,
+    "universal_robot_support_claimed": false
+  },
+  "command_state_interface": "industrial_arm_command_fixture",
+  "command_state_transport": "industrial_command_state_fixture",
+  "coordinate_frames": {
+    "command_frame": "task_frame",
+    "normalization_frame": "rdf_normalized_task_frame",
+    "state_frame": "robot_base_frame"
+  },
+  "embodiment_class": "industrial_arm",
+  "evidence_level": "generated_recorded_log",
+  "generated_external_style_sample": false,
+  "limitations": [
+    "Repo-local file-backed recorded-log fixture only.",
+    "No UR/RTDE runtime claimed.",
+    "No physical UR readiness claimed."
+  ],
+  "public_sample_evidence_claimed": false,
+  "robot_family": "universal_robots_ur",
+  "schema_version": "rdf_mvp1plus_command_state_source_metadata_v0.1.0",
+  "source_provenance": {
+    "fixture_path": "",
+    "generated_external_style_sample": false,
+    "public_sample_evidence_claimed": false,
+    "recorded_log_backed": true,
+    "repo_local_recorded_log_fixture": true,
+    "source_type": "file_backed_recorded_log_fixture"
+  },
+  "state_interface": "industrial_arm_state_stream_fixture"
+}
