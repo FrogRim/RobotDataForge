@@ -8844,3 +8844,43 @@ git diff --check
 - 이 Codex thread에는 이전 completed aggregate goal이 남아 있어 `create_goal`은
   실패했다. 새 `.omx/ultragoal` artifact와 ledger에는 해당 context blocker를
   annotation으로 남기고 구현을 진행했다.
+
+## 2026-06-08 - MVP-2 Closed positive uplift spec 작성
+
+### 작업 내용
+
+- MVP-2 Closed 기준을 `positive curated > uncurated held-out policy uplift` 필수로
+  고정했다.
+- Approach C를 선택해 local offline policy A/B runner와 external rollout ingest
+  path를 함께 보존하는 설계를 작성했다.
+- `docs/superpowers/specs/2026-06-08-mvp2-learning-proven-policy-uplift-design.md`
+  를 추가했다.
+
+### 판단 이유
+
+- MVP-2는 learning-ready가 아니라 learning-proven 단계다.
+- Negative 또는 동률 결과는 중요한 evidence지만 `MVP-2 Closed`가 아니다.
+- 현재 `mvp2_policy_ab_harness`는 readiness artifact이므로, 실제 measured rollout
+  결과와 positive uplift validator를 통과해야만 learning-proven claim을 할 수 있다.
+
+### 변경 파일
+
+- `docs/superpowers/specs/2026-06-08-mvp2-learning-proven-policy-uplift-design.md`
+- `docs/developer/worklog.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+rg -n "TBD|TODO|FIXME|placeholder|implement later|appropriate|similar to" docs/superpowers/specs/2026-06-08-mvp2-learning-proven-policy-uplift-design.md
+  no matches
+
+git diff --check -- docs/superpowers/specs/2026-06-08-mvp2-learning-proven-policy-uplift-design.md docs/developer/worklog.md
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 아직 구현은 시작하지 않았다.
+- 다음 단계는 spec review 후 implementation plan을 작성하는 것이다.
+- MVP-2 implementation은 positive uplift가 나오지 않으면 Closed 처리하지 않는다.
