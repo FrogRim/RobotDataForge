@@ -1126,3 +1126,339 @@ rdf_gate0_all_report_v0.1.0
 ```
 
 `gate0-all` aggregate는 네 개 개별 `.gate0.json` report를 합산한 operator convenience artifact다. `gate0_all_pass=false`이면 `gate_a_collection_allowed=false`이며, Gate A collection은 재개하지 않는다. `scripts/run_collection_loop.sh`는 aggregate schema, 네 개 stage 순서/개수, stage별 pass/allow/failure reason, matched input source, 단일 source id, report freshness를 다시 검증한 뒤에만 명시적 Gate A collection을 시작한다.
+
+## MVP-1+ Robot Embodiment Adapter Proof Artifacts
+
+MVP-1+는 MVP-2 policy uplift 이전에 여러 robot embodiment source가 같은
+data trust layer contract를 emit할 수 있는지 확인하는 단계다. 이 단계는
+real robot runtime, live ROS2/DDS runtime, HMD readiness, marketplace,
+production auth, DB migration을 주장하지 않는다.
+
+실행 명령:
+
+```bash
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty
+```
+
+기본 출력 위치:
+
+```text
+storage/mvp1plus_embodiment_proof/
+```
+
+최상위 artifact:
+
+```text
+storage/mvp1plus_embodiment_proof/mvp1plus_embodiment_proof.json
+storage/mvp1plus_embodiment_proof/mvp1plus_embodiment_proof_summary.json
+storage/mvp1plus_embodiment_proof/mvp1plus_buyer_summary.json
+```
+
+핵심 schema version:
+
+```text
+rdf_mvp1plus_embodiment_proof_v0.1.0
+rdf_mvp1plus_embodiment_summary_v0.1.0
+rdf_mvp1plus_buyer_summary_v0.1.0
+rdf_mvp1plus_command_state_source_metadata_v0.1.0
+rdf_mvp1plus_embodiment_projection_v0.1.0
+rdf_mvp1plus_lineage_evidence_v0.1.0
+rdf_normalized_trajectory_contract_v0.1.0
+```
+
+Adapter source evidence는 adapter별로 `JSONL + metadata JSON` 형태를 사용한다.
+
+```text
+source_logs/<adapter_id>/metadata.json
+source_logs/<adapter_id>/accepted_command_state.jsonl
+source_logs/<adapter_id>/rejected_command_state.jsonl
+```
+
+현재 represented adapter:
+
+| adapter_id | 역할 | claim boundary |
+|---|---|---|
+| `franka_research_arm` | baseline / research-arm adapter | generated recorded-log proof only |
+| `robotis_sh5_ros2_dds` | ROS2 / DDS command-state bridge adapter | no live ROS2/DDS runtime claim |
+| `universal_robots_ur_industrial_arm` | industrial-arm adapter | repo-local file-backed recorded-log fixture by default; no UR/RTDE runtime claim |
+| `universal_robots_ur_external_style` | generated external-style UR sample | no public sample import claim |
+
+`metadata.json` 핵심 shape:
+
+```json
+{
+  "schema_version": "rdf_mvp1plus_command_state_source_metadata_v0.1.0",
+  "adapter_id": "franka_research_arm",
+  "adapter_version": "rdf_robot_embodiment_adapter_v0.1.0",
+  "robot_family": "franka",
+  "embodiment_class": "research_arm",
+  "command_state_interface": "joint_and_ee_delta_command_fixture",
+  "command_state_transport": "fixture_command_state",
+  "state_interface": "fixture_joint_and_ee_state",
+  "coordinate_frames": {
+    "command_frame": "task_frame",
+    "state_frame": "robot_base_frame",
+    "normalization_frame": "rdf_normalized_task_frame"
+  },
+  "source_provenance": {
+    "source_type": "jsonl_plus_metadata_recorded_command_state_log",
+    "recorded_log_backed": true,
+    "public_sample_evidence_claimed": false
+  },
+  "claim_boundary": {
+    "real_robot_success_claimed": false,
+    "physical_robot_readiness_claimed": false,
+    "live_runtime_support_claimed": false,
+    "hmd_readiness_claimed": false,
+    "policy_uplift_claimed": false,
+    "universal_robot_support_claimed": false
+  }
+}
+```
+
+`accepted_command_state.jsonl`과 `rejected_command_state.jsonl`의 row는 다음
+필드를 요구한다.
+
+```json
+{
+  "timestamp": 0.04,
+  "sequence_id": 1,
+  "command": {
+    "interface": "joint_and_ee_delta_command_fixture",
+    "vector": [0.018, -0.004, -0.052, 0.002, 0.0, -0.001, 0.35],
+    "unit": "meters_radians_normalized_gripper"
+  },
+  "state": {
+    "interface": "fixture_joint_and_ee_state",
+    "end_effector_position": [0.436, -0.018, 0.035],
+    "end_effector_quaternion": [1.0, 0.0, 0.0, 0.0],
+    "object_position": [0.44, -0.02, 0.0],
+    "object_quaternion": [1.0, 0.0, 0.0, 0.0],
+    "joint_positions": [0.0, -0.41, 0.18, -1.88, 0.0, 1.57, 0.78]
+  },
+  "action_semantics": {
+    "representation": "robot_delta_ee_pose",
+    "coordinate_frame": "task_frame",
+    "normalized_contract_roles": [
+      "teleop_intent",
+      "executed_control",
+      "learning_action",
+      "retargeted_robot_action"
+    ]
+  },
+  "quality": {
+    "replay_verified": true,
+    "action_contract_valid": true,
+    "control_quality": "pass",
+    "timestamp_gap_detected": false,
+    "rejection_reason": null
+  }
+}
+```
+
+Projection output은 기존 HDF5 exporter/trainer 호환을 위해 RDF trajectory /
+evaluation / curation manifest로 변환된다. `raw_xr_right_wrist_pose`와
+`aligned_xr_right_wrist_pose`는 exporter compatibility placeholder이며,
+HMD evidence가 아니다.
+
+```json
+{
+  "exporter_compatibility_placeholders": {
+    "raw_xr_right_wrist_pose": "zero_pose_exporter_compatibility_only",
+    "aligned_xr_right_wrist_pose": "zero_pose_exporter_compatibility_only",
+    "hmd_readiness_evidence": false
+  }
+}
+```
+
+Adapter-emitted normalized contract는 adapter별로 생성된다.
+
+```text
+normalized_contracts/<adapter_id>_normalized_trajectory_contract.json
+```
+
+Contract의 `source_profile`은 projected recorded-log provenance를 유지한다.
+Builder가 가진 static source profile은 `robot_embodiment_adapter_evidence`
+아래 `source_provenance.builder_source_profile`에만 남긴다. 이를 통해
+builder static fixture가 recorded-log source provenance를 덮어쓰지 않는다.
+
+UR industrial adapter의 기본 source는 다음 repo-local fixture다.
+
+```text
+fixtures/mvp1plus/universal_robots_ur_recorded_log_fixture/
+```
+
+이 fixture는 `source_provenance.source_type=file_backed_recorded_log_fixture`를
+사용하고, output source copy에는 `fixture_path`와
+`repo_local_recorded_log_fixture=true`를 기록한다. 이는 file-backed ingestion
+path를 증명하기 위한 claim-safe fixture이며, physical UR run, live UR/RTDE
+runtime, public sample import, real robot success evidence가 아니다.
+
+Custom UR source를 검증할 때는 동일한 `metadata.json`,
+`accepted_command_state.jsonl`, `rejected_command_state.jsonl` shape를 가진
+directory를 `--ur-recorded-log-dir`로 지정한다.
+
+```bash
+uv run python scripts/run_mvp1plus_embodiment_proof.py \
+  --output-dir /tmp/rdf_mvp1plus_custom_ur \
+  --ur-recorded-log-dir /path/to/ur_recorded_log_dir \
+  --clean --pretty
+```
+
+`lineage_evidence`는 proof, normalized contract evidence, adapter summary,
+buyer summary에 같은 payload로 들어간다.
+
+```json
+{
+  "schema_version": "rdf_mvp1plus_lineage_evidence_v0.1.0",
+  "source_evidence_type": "file_backed_recorded_log_fixture",
+  "source_files": {
+    "metadata_json": {
+      "path": "storage/mvp1plus_embodiment_proof/source_logs/universal_robots_ur_industrial_arm/metadata.json",
+      "sha256": "<sha256>",
+      "byte_size": 1024
+    }
+  },
+  "source_bundle_sha256": "<sha256>",
+  "projected_artifacts": {
+    "accepted_trajectory": {
+      "path": "storage/mvp1plus_embodiment_proof/projected_inputs/universal_robots_ur_industrial_arm/trajectories/<id>.json",
+      "sha256": "<sha256>",
+      "byte_size": 2048
+    }
+  },
+  "projected_bundle_sha256": "<sha256>"
+}
+```
+
+`source_bundle_sha256`는 source evidence files의 path/sha256/byte_size를
+stable JSON으로 정렬해 다시 hash한 값이다. `projected_bundle_sha256`도 같은
+방식으로 projected trajectory/evaluation/curation/split/projection artifacts를
+묶는다. 이 값들은 buyer가 "어떤 source가 어떤 trainer-loadable artifact로
+project됐는가"를 재현 가능하게 추적하기 위한 lineage evidence다.
+
+Buyer summary는 다음 non-claim을 모두 `false`로 기록한다.
+
+```json
+{
+  "real_robot_success": false,
+  "physical_robot_readiness": false,
+  "live_runtime_support": false,
+  "hmd_readiness": false,
+  "policy_uplift": false,
+  "universal_robot_support": false,
+  "public_sample_import": false,
+  "marketplace_readiness": false,
+  "db_migration": false,
+  "production_auth": false
+}
+```
+
+## MVP-2 UR Policy A/B Harness Artifact
+
+MVP-2 Rebase의 첫 artifact는 UR file-backed recorded-log lineage에서 시작하는
+policy A/B harness readiness proof다. 이는 learning-proven proof가 아니라,
+curated/uncurated dataset view, HDF5 export, held-out suite manifest,
+policy eval input template, schema-only rollout ingest contract가 같은 lineage로
+연결되는지 확인하는 artifact다.
+
+기본 실행 위치:
+
+```text
+storage/mvp2_policy_ab_harness/
+```
+
+Primary report:
+
+```text
+storage/mvp2_policy_ab_harness/mvp2_policy_ab_harness_report.json
+```
+
+주요 schema version:
+
+```json
+{
+  "mvp2_policy_ab_harness_report": "rdf_mvp2_ur_policy_ab_harness_v0.1.0",
+  "mvp2_policy_eval_input_template": "rdf_mvp2_policy_eval_input_v0.1.0",
+  "mvp2_heldout_suite_manifest": "rdf_mvp2_heldout_suite_manifest_v0.1.0",
+  "rollout_ingest_contract": "rdf_mvp2_rollout_ingest_contract_v0.1.0"
+}
+```
+
+Report의 proof source는 MVP-1+ UR adapter-emitted contract lineage를 가리킨다.
+
+```json
+{
+  "proof_source": {
+    "adapter_id": "universal_robots_ur_industrial_arm",
+    "source_evidence_type": "file_backed_recorded_log_fixture",
+    "validator_backend": "NormalizedTrajectoryContractValidator",
+    "contract_path": "storage/mvp1plus_embodiment_proof/normalized_contracts/universal_robots_ur_industrial_arm_normalized_trajectory_contract.json"
+  }
+}
+```
+
+Dataset view는 두 개다.
+
+```json
+{
+  "baseline": {
+    "dataset_view": "baseline_uncurated_recorded_log_harness",
+    "include_statuses": ["failure", "success"]
+  },
+  "candidate": {
+    "dataset_view": "candidate_curated_accepted",
+    "include_statuses": ["success"]
+  }
+}
+```
+
+Schema-only rollout ingest fixture는 외부 trainer/evaluator 결과 shape 검증용이다.
+`baseline_success_rate`와 `candidate_success_rate`가 계산될 수 있지만, 이 값은
+fixture ingest sanity 값일 뿐 policy uplift evidence가 아니다. 현재 schema-only
+fixture는 baseline/candidate success rate를 의도적으로 같은 값으로 두며,
+`schema_fixture_metrics.non_comparative=true`와
+`must_not_be_used_for_policy_uplift=true`를 기록한다.
+
+MVP-2 harness는 UR proof source가
+`source_evidence_type=file_backed_recorded_log_fixture`이고
+`source_bundle_sha256`, `projected_bundle_sha256`, source file hash,
+projected artifact hash가 존재할 때만 `lineage_gate.passed=true`가 된다. 기존
+MVP-1+ output을 재사용하더라도 이 gate를 통과하지 못하면 harness는 실패해야
+한다. 이 gate는 expected source/artifact key set, `projected_inputs` path와
+lineage path 일치, per-file SHA-256, byte size, bundle SHA-256을 재계산해
+확인한다.
+
+`passed`와 `harness_ready`는 상수 true가 아니라 다음 gate에서 파생된다.
+
+```json
+{
+  "lineage_gate_passed": true,
+  "ur_contract_validation_passed": true,
+  "baseline_export_nonempty": true,
+  "candidate_export_nonempty": true,
+  "baseline_hdf5_inspection_clean": true,
+  "candidate_hdf5_inspection_clean": true,
+  "rollout_ingest_contract_ready": true,
+  "schema_fixture_non_comparative": true,
+  "schema_fixture_not_policy_uplift": true
+}
+```
+
+MVP-2 Rebase first slice는 다음 boundary를 항상 유지한다.
+
+```json
+{
+  "learning_results_measured": false,
+  "curated_vs_uncurated_uplift": null,
+  "learning_proven": false,
+  "proof_eligible": false,
+  "policy_uplift_claimed": false,
+  "physical_robot_readiness_claimed": false,
+  "hmd_readiness_claimed": false
+}
+```
+
+`run_mvp1_proof_audit.py`는 `mvp2_policy_ab_harness` summary를 읽을 수 있지만,
+이 summary는 MVP-1 gate를 통과시키거나 `learning_proven_policy_uplift_achieved`
+를 `true`로 만들지 않는다.

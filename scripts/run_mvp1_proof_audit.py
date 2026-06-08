@@ -551,6 +551,58 @@ def build_mvp2_policy_uplift_status(
     }
 
 
+def build_mvp2_policy_ab_harness_summary(report_path: Path | None) -> dict[str, Any]:
+    if report_path is None:
+        return {
+            "available": False,
+            "path": None,
+            "harness_ready": False,
+            "rollout_ingest_contract_ready": False,
+            "learning_results_measured": False,
+            "learning_proven": False,
+            "proof_eligible": False,
+            "adapter_id": None,
+            "source_evidence_type": None,
+            "policy_uplift_not_claimed": True,
+            "limitations": ["MVP-2 policy A/B harness report path was not provided."],
+        }
+
+    report = read_json(report_path)
+    if report is None:
+        return {
+            "available": False,
+            "path": str(report_path),
+            "harness_ready": False,
+            "rollout_ingest_contract_ready": False,
+            "learning_results_measured": False,
+            "learning_proven": False,
+            "proof_eligible": False,
+            "adapter_id": None,
+            "source_evidence_type": None,
+            "policy_uplift_not_claimed": True,
+            "limitations": ["MVP-2 policy A/B harness report is missing or invalid JSON."],
+        }
+
+    proof_source = report.get("proof_source") if isinstance(report.get("proof_source"), dict) else {}
+    claim_boundary = report.get("claim_boundary") if isinstance(report.get("claim_boundary"), dict) else {}
+    return {
+        "available": True,
+        "path": str(report_path),
+        "schema_version": report.get("schema_version"),
+        "harness_ready": report.get("harness_ready") is True,
+        "rollout_ingest_contract_ready": report.get("rollout_ingest_contract_ready") is True,
+        "learning_results_measured": report.get("learning_results_measured") is True,
+        "curated_vs_uncurated_uplift": report.get("curated_vs_uncurated_uplift"),
+        "learning_proven": report.get("learning_proven") is True,
+        "proof_eligible": report.get("proof_eligible") is True,
+        "adapter_id": proof_source.get("adapter_id"),
+        "source_evidence_type": proof_source.get("source_evidence_type"),
+        "validator_backend": proof_source.get("validator_backend"),
+        "policy_uplift_not_claimed": claim_boundary.get("policy_uplift_claimed") is False,
+        "limitations": report.get("limitations") if isinstance(report.get("limitations"), list) else [],
+    }
+
+
 def _stage_passed(gate_map: dict[str, Gate], gate_names: tuple[str, ...]) -> bool:
     return all(gate_map.get(name) is not None and gate_map[name].passed for name in gate_names)
 
@@ -616,6 +668,7 @@ def build_audit(
     learning_manifest_path: Path,
     output_path: Path | None = None,
     min_live_trajectories: int = 1,
+    mvp2_policy_ab_harness_report_path: Path | None = None,
 ) -> dict[str, Any]:
     readiness = read_json(readiness_report_path)
     curation = read_json(curation_manifest_path)
@@ -826,6 +879,7 @@ def build_audit(
         learning_manifest_path=learning_manifest_path,
         live_scan=live_scan,
     )
+    mvp2_harness = build_mvp2_policy_ab_harness_summary(mvp2_policy_ab_harness_report_path)
     report = {
         "schema_version": SCHEMA_VERSION,
         "proof_name": "MVP-1 Validated Dataset Pipeline Proof",
@@ -838,6 +892,7 @@ def build_audit(
         "learning_proven_policy_uplift_achieved": mvp2_status["learning_proven"],
         "staged_mvp1": staged_status,
         "mvp2_policy_uplift_proof": mvp2_status,
+        "mvp2_policy_ab_harness": mvp2_harness,
         "passed_required_gates": len(passed_required),
         "required_gate_count": len(required_gates),
         "gates": [
@@ -890,6 +945,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=default_root / "curated_vs_uncurated_experiment_manifest.json",
     )
+    parser.add_argument(
+        "--mvp2-policy-ab-harness-report",
+        type=Path,
+        default=ROOT / "storage" / "mvp2_policy_ab_harness" / "mvp2_policy_ab_harness_report.json",
+    )
     parser.add_argument("--output", type=Path, default=ROOT / "storage" / "mvp1_proof" / "proof_audit.json")
     parser.add_argument("--min-live-trajectories", type=int, default=1)
     parser.add_argument("--pretty", action="store_true")
@@ -909,6 +969,7 @@ def main() -> int:
         learning_manifest_path=args.learning_manifest,
         output_path=args.output,
         min_live_trajectories=args.min_live_trajectories,
+        mvp2_policy_ab_harness_report_path=args.mvp2_policy_ab_harness_report,
     )
     if args.pretty:
         print(stable_json(report))

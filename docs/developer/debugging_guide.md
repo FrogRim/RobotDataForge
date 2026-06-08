@@ -2055,3 +2055,171 @@ auto_recenter_unstable_count == 0
 ```
 
 `scripts/run_collection_loop.sh`는 명시적 Gate A collection entrypoint이므로 최신 `*.gate0_all.json` aggregate report가 없거나 `gate0_all_pass=true` / `gate_a_collection_allowed=true`가 아니면 시작 전에 종료한다. 또한 aggregate schema, 네 개 stage 순서/개수, stage별 pass/allow/failure reason, matched input source, 단일 source id, report freshness를 검증한다. Smoke/debug/proof/audit script는 이 hard block 대상이 아니며, Gate 0 evidence를 만들거나 기존 artifact를 검증하는 용도로 계속 실행할 수 있다.
+
+## MVP-1+ Robot Embodiment Adapter Proof 실행
+
+여러 robot embodiment adapter가 같은 normalized trajectory contract를 emit하고
+같은 data trust gate를 통과하는지 확인하려면 다음 명령을 사용한다.
+
+```bash
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty
+```
+
+성공 조건:
+
+```text
+passed=true
+adapter_count=4
+accepted_count=4
+rejected_count=4
+integrated_export.hdf5_export_exists=true
+integrated_export.hdf5_inspection_clean=true
+integrated_export.trainer_smoke_passed=true
+```
+
+기본 artifact 위치:
+
+```text
+storage/mvp1plus_embodiment_proof/
+```
+
+UR industrial adapter는 기본적으로 repo-local file-backed recorded-log fixture를
+사용한다.
+
+```text
+fixtures/mvp1plus/universal_robots_ur_recorded_log_fixture/
+```
+
+다른 UR recorded/log directory를 검증하려면 같은 file shape를 가진 directory를
+명시한다.
+
+```bash
+uv run python scripts/run_mvp1plus_embodiment_proof.py \
+  --output-dir /tmp/rdf_mvp1plus_custom_ur \
+  --ur-recorded-log-dir /path/to/ur_recorded_log_dir \
+  --clean --pretty
+```
+
+Custom source directory에는 반드시 다음 파일이 있어야 한다.
+
+```text
+metadata.json
+accepted_command_state.jsonl
+rejected_command_state.jsonl
+```
+
+UR lineage evidence를 확인할 때는 proof JSON에서 UR adapter proof를 조회한다.
+
+```bash
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty > /tmp/rdf_mvp1plus.json
+jq '.adapter_proofs[]
+  | select(.adapter_id=="universal_robots_ur_industrial_arm")
+  | .lineage_evidence
+  | {source_evidence_type, source_bundle_sha256, projected_bundle_sha256}' /tmp/rdf_mvp1plus.json
+```
+
+예상 boundary:
+
+```text
+source_evidence_type=file_backed_recorded_log_fixture
+source_bundle_sha256 is non-empty
+projected_bundle_sha256 is non-empty
+```
+
+중요한 debugging boundary:
+
+- `Franka`, `ROBOTIS SH5 / ROS2-DDS`, `Universal Robots UR`는 recorded/log-backed 또는 generated external-style proof source다.
+- 이 proof는 physical robot readiness, live ROS2/DDS runtime, UR/RTDE runtime, real robot success, HMD readiness, policy uplift를 주장하지 않는다.
+- `raw_xr_right_wrist_pose`와 `aligned_xr_right_wrist_pose`는 기존 HDF5 exporter/trainer 호환 placeholder다. HMD evidence로 해석하면 안 된다.
+- `--clean`은 `storage/` 또는 system temp 하위 output만 삭제한다. repo root, home, repo parent 같은 unsafe path는 `ValueError: refusing to clean unsafe output_dir`로 막는다.
+- Lineage hash mismatch가 나면 validator를 약하게 하지 말고 source files 또는 projected artifact 생성 경로가 바뀌었는지 확인한다.
+
+Malformed source evidence를 확인할 때는 adapter projection을 직접 호출한다.
+
+```python
+from pathlib import Path
+
+from app.services.robot_embodiment_adapters import RobotEmbodimentAdapterRegistry
+
+adapter = RobotEmbodimentAdapterRegistry.create("franka_research_arm")
+result = adapter.project_source_evidence(
+    source_dir=Path("/tmp/bad_source"),
+    output_dir=Path("/tmp/bad_projection"),
+)
+print(result.passed)
+print(result.issues)
+```
+
+`accepted_command_state.jsonl`이나 `rejected_command_state.jsonl`이 `{}` 같은
+malformed row이면 `command.vector missing`, `quality.rejection_reason
+mismatch` 같은 structured issue가 나와야 한다. 이 경우 validator를 약하게
+하지 말고 source evidence를 고친다.
+
+## MVP-2 UR Policy A/B Harness 실행
+
+MVP-2 Rebase first slice를 실행하려면 다음 명령을 사용한다.
+
+```bash
+uv run python scripts/run_mvp2_ur_policy_ab_harness.py --clean --refresh-mvp1plus --pretty
+```
+
+성공 조건:
+
+```text
+passed=true
+harness_ready=true
+rollout_ingest_contract_ready=true
+learning_results_measured=false
+learning_proven=false
+proof_eligible=false
+```
+
+기본 artifact 위치:
+
+```text
+storage/mvp2_policy_ab_harness/
+```
+
+필수 artifact:
+
+```text
+mvp2_policy_ab_harness_report.json
+mvp2_policy_eval_input_template.json
+mvp2_heldout_suite_manifest.json
+baseline_uncurated/baseline_uncurated_train.hdf5
+candidate_curated/candidate_curated_train.hdf5
+rollout_ingest_contract_fixture/ingest_contract_report.json
+```
+
+Proof audit에 MVP-2 harness summary를 연결하려면 다음 명령을 사용한다.
+
+```bash
+uv run python scripts/run_mvp1_proof_audit.py \
+  --mvp2-policy-ab-harness-report storage/mvp2_policy_ab_harness/mvp2_policy_ab_harness_report.json \
+  --output storage/mvp1_proof/proof_audit.json \
+  --pretty
+```
+
+주의:
+
+- `mvp2_policy_ab_harness` summary는 readiness summary다.
+- Schema-only rollout fixture의 success rate는 ingest contract sanity 값이며
+  policy uplift evidence가 아니다. Baseline/candidate fixture rate는
+  non-comparative로 유지되어야 한다.
+- UR source는 `file_backed_recorded_log_fixture` lineage gate를 통과해야 한다.
+  기존 MVP-1+ output을 재사용하더라도 source/projected bundle hash가 없거나
+  file-backed lineage가 아니면 harness가 실패해야 한다. 또한 lineage path와
+  실제 `projected_inputs` path, per-file hash, byte size, bundle hash가 모두
+  일치해야 한다.
+- `passed`와 `harness_ready`는 lineage gate, UR contract validation, non-empty
+  baseline/candidate export, clean HDF5 inspection, rollout ingest contract,
+  schema fixture non-policy flags가 모두 true일 때만 true가 된다.
+- `--clean` 없이 재실행하더라도 harness-managed output directory는 먼저
+  reset되어 stale trajectory/evaluation/rollout fixture가 export에 섞이면 안 된다.
+- `learning_results_measured=false`, `curated_vs_uncurated_uplift=null`,
+  `learning_proven=false`, `proof_eligible=false`가 유지되어야 한다.
+- 이 harness는 live UR/RTDE runtime, physical UR readiness, real robot success,
+  HMD readiness를 주장하지 않는다.
+- UR normalized contract validation이 실패하면 validator를 약하게 하지 말고
+  MVP-1+ UR projected source, curation, export, trainer artifact lineage를 먼저
+  확인한다.
