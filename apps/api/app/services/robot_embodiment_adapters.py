@@ -214,24 +214,24 @@ class RobotEmbodimentAdapter:
         evaluations_dir.mkdir(parents=True, exist_ok=True)
 
         metadata = read_result["metadata"]
-        accepted_row = read_result["accepted_rows"][0]
+        accepted_rows = read_result["accepted_rows"]
         rejected_row = read_result["rejected_rows"][0]
         accepted_trajectory = _build_projected_trajectory(
             profile=self.profile,
             metadata=metadata,
-            row=accepted_row,
+            rows=accepted_rows,
             accepted=True,
         )
         rejected_trajectory = _build_projected_trajectory(
             profile=self.profile,
             metadata=metadata,
-            row=rejected_row,
+            rows=[rejected_row],
             accepted=False,
         )
         accepted_evaluation = _build_projected_evaluation(
             profile=self.profile,
             trajectory=accepted_trajectory,
-            row=accepted_row,
+            row=accepted_rows[0],
             accepted=True,
         )
         rejected_evaluation = _build_projected_evaluation(
@@ -1044,19 +1044,20 @@ def _action_role(command: list[float], *, role: str, source: str) -> dict[str, A
     }
 
 
-def _build_projected_trajectory(
+def _normalized_action_phase(row: dict[str, Any]) -> str:
+    phase = row.get("task_phase") or row.get("action_phase") or "UNKNOWN"
+    return str(phase).strip().upper()
+
+
+def _build_projected_frame(
     *,
     profile: RobotEmbodimentAdapterRegistryProfile,
-    metadata: dict[str, Any],
     row: dict[str, Any],
-    accepted: bool,
 ) -> dict[str, Any]:
-    status = "accepted" if accepted else "rejected"
-    trajectory_id = f"mvp1plus_{profile.adapter_id}_{status}_trajectory"
-    episode_id = f"mvp1plus_{profile.adapter_id}_{status}_episode"
     command = [float(value) for value in row["command"]["vector"]]
     state = row["state"]
-    frame = {
+    action_phase = _normalized_action_phase(row)
+    return {
         "t": float(row["timestamp"]),
         "step": int(row["sequence_id"]),
         "end_effector_position": state["end_effector_position"],
@@ -1064,6 +1065,7 @@ def _build_projected_trajectory(
         "object_position": state["object_position"],
         "object_quaternion": state["object_quaternion"],
         "metadata": {
+            "action_phase": action_phase,
             "command_state_row": copy.deepcopy(row),
             "robot_family": profile.robot_family,
             "embodiment_class": profile.embodiment_class,
@@ -1095,6 +1097,19 @@ def _build_projected_trajectory(
             ),
         },
     }
+
+
+def _build_projected_trajectory(
+    *,
+    profile: RobotEmbodimentAdapterRegistryProfile,
+    metadata: dict[str, Any],
+    rows: list[dict[str, Any]],
+    accepted: bool,
+) -> dict[str, Any]:
+    status = "accepted" if accepted else "rejected"
+    trajectory_id = f"mvp1plus_{profile.adapter_id}_{status}_trajectory"
+    episode_id = f"mvp1plus_{profile.adapter_id}_{status}_episode"
+    frames = [_build_projected_frame(profile=profile, row=row) for row in rows]
     return {
         "schema_version": MVP1PLUS_TRAJECTORY_SCHEMA_VERSION,
         "id": trajectory_id,
@@ -1109,7 +1124,7 @@ def _build_projected_trajectory(
             "adapter_id": profile.adapter_id,
             "evidence_level": profile.evidence_level,
         },
-        "frames": [frame],
+        "frames": frames,
         "summary": {
             "episode_status": "success" if accepted else "failure",
             "action_replay_gate": {
@@ -1119,6 +1134,8 @@ def _build_projected_trajectory(
             },
             "projection_boundary": "jsonl_metadata_projected_to_rdf_trajectory",
             "learning_eligibility_candidate": accepted,
+            "projected_command_state_row_count": len(frames),
+            "projected_action_phases": [frame["metadata"]["action_phase"] for frame in frames],
         },
     }
 

@@ -109,7 +109,7 @@ def test_mvp1plus_generates_jsonl_source_evidence_and_projected_inputs(tmp_path:
 
         assert metadata["adapter_id"] == adapter_id
         assert metadata["source_provenance"]["recorded_log_backed"] is True
-        expected_accepted_rows = 2 if adapter_id == "universal_robots_ur_industrial_arm" else 1
+        expected_accepted_rows = 4 if adapter_id == "universal_robots_ur_industrial_arm" else 1
         assert len(accepted_rows) == expected_accepted_rows
         assert len(rejected_rows) == 1
         assert projection["projection_semantics"]["raw_jsonl_is_direct_trainer_input"] is False
@@ -128,12 +128,25 @@ def test_mvp1plus_uses_repo_local_ur_recorded_log_fixture_by_default(tmp_path: P
     output_source_dir = tmp_path / "mvp1plus" / "source_logs" / "universal_robots_ur_industrial_arm"
     metadata = read_json(output_source_dir / "metadata.json")
     accepted_rows = (output_source_dir / "accepted_command_state.jsonl").read_text(encoding="utf-8").splitlines()
+    projection = read_json(
+        tmp_path
+        / "mvp1plus"
+        / "projected_inputs"
+        / "universal_robots_ur_industrial_arm"
+        / "projection_manifest.json"
+    )
+    accepted_trajectory = read_json(Path(projection["accepted"]["trajectory"]))
+    accepted_phases = [
+        frame["metadata"]["action_phase"]
+        for frame in accepted_trajectory["frames"]
+    ]
 
     assert metadata["source_provenance"]["source_type"] == "file_backed_recorded_log_fixture"
     assert metadata["source_provenance"]["repo_local_recorded_log_fixture"] is True
     assert metadata["source_provenance"]["fixture_path"] == str(UR_RECORDED_LOG_FIXTURE)
     assert metadata["claim_boundary"]["real_robot_success_claimed"] is False
-    assert len(accepted_rows) == 2
+    assert len(accepted_rows) == 4
+    assert accepted_phases == ["APPROACH", "CONTACT", "INSERT", "SEAT"]
 
 
 def test_mvp1plus_ur_recorded_log_dir_overrides_default_fixture(tmp_path: Path) -> None:

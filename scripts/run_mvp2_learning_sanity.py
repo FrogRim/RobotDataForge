@@ -111,6 +111,17 @@ def _phase_from_metadata(metadata: dict[str, Any]) -> tuple[str, str, float]:
             phase = str(task_phase).strip().upper()
             return (phase if phase in SUPPORTED_PHASES else "UNKNOWN", "task_state_metadata", 0.9)
 
+    command_state_row = metadata.get("command_state_row")
+    if isinstance(command_state_row, dict):
+        command_state_phase = command_state_row.get("task_phase") or command_state_row.get("action_phase")
+        if command_state_phase is not None:
+            phase = str(command_state_phase).strip().upper()
+            return (
+                phase if phase in SUPPORTED_PHASES else "UNKNOWN",
+                "command_state_row.task_phase",
+                0.8,
+            )
+
     return ("UNKNOWN", "unavailable", 0.0)
 
 
