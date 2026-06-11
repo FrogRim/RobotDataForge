@@ -3460,3 +3460,34 @@ heldout_opened=false
   너무 보수적인지 재검토한다.
 - 재검토는 새 spec/plan으로 진행한다. 기존 v0.6e 결과를 보고 threshold를 임의 완화하지
   않는다.
+
+## MVP-2E v0.6f approach capture gate 해석
+
+v0.6f는 v0.6e 결과를 소급 통과시키지 않는다. `capture_radius_m=0.0001`은 계속
+geometry-isolated straight-down lower bound로 보존한다.
+
+핵심 구분:
+
+```text
+straight_down_capture_radius_m:
+  xy/yaw correction 없이 straight-down bounded push에서 측정한 geometry lower bound
+
+approach_lateral_gate_m:
+  controller-assisted z descent를 허용하는 pre-registered approach gate
+```
+
+중요한 규칙:
+
+```text
+env_native_max_consecutive_success_steps >= 10 만 seed pass authority다.
+secondary diagnostic은 env-native pass를 veto하지 못한다.
+green_light_for_40_run_gate=false이면 fixed 40-run gate를 열지 않는다.
+held-out 21000-21049는 계속 봉인한다.
+```
+
+재현 계획 문서:
+
+```text
+docs/superpowers/specs/2026-06-11-mvp2e-v06f-approach-capture-gate-design.md
+docs/superpowers/plans/2026-06-11-mvp2e-v06f-approach-capture-gate.md
+```

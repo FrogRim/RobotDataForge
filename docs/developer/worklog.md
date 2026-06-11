@@ -12443,3 +12443,52 @@ heldout_opened=false
   measurement를 z descent gate로 그대로 쓰는 것이 올바른지 재검토하는 것이다.
   현재 증거상 세 seed 모두 lateral을 0.0001까지 줄이기 전에 horizon 말미에 z가 억제되어
   `max_insertion_depth_m=0`으로 끝난다.
+
+## 2026-06-11 - MVP-2E v0.6f approach capture gate spec/plan
+
+### 작업 내용
+
+- `v0_6e` fail-closed runtime evidence를 기준으로 새 `v0_6f` spec을 작성했다.
+- `capture_radius_m=0.0001`을 폐기하지 않고, geometry-isolated straight-down lower bound로
+  의미를 고정했다.
+- controller-assisted descent에는 별도 `approach_lateral_gate_m`를 쓰는 설계를
+  pre-register했다.
+- 이 설계를 실행하기 위한 implementation plan을 작성했다.
+
+### 판단 이유
+
+- `v0_6e`는 numeric capture-radius preflight를 해결했지만, 그 값을 그대로 z-descent gate로
+  쓰면서 세 repair probe seed 모두 `max_insertion_depth_m=0`으로 종료했다.
+- 따라서 다음 작업은 success authority 완화가 아니라 z-gate semantics 분리다.
+- env-native 10-consecutive success는 계속 seed pass authority이며, fixed 40-run gate와
+  held-out `21000-21049`는 계속 닫힌다.
+
+### 변경 파일
+
+```text
+docs/superpowers/specs/2026-06-11-mvp2e-v06f-approach-capture-gate-design.md
+docs/superpowers/plans/2026-06-11-mvp2e-v06f-approach-capture-gate.md
+docs/developer/worklog.md
+docs/developer/debugging_guide.md
+tasks/todo.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+rg -n "TBD|TODO|implement later|fill in|placeholder|FIXME|적당|나중|maybe" \
+  docs/superpowers/specs/2026-06-11-mvp2e-v06f-approach-capture-gate-design.md \
+  docs/superpowers/plans/2026-06-11-mvp2e-v06f-approach-capture-gate.md
+```
+
+```text
+NO ACTIONABLE MATCH
+```
+
+### 남은 gap 또는 다음 작업
+
+- `v0_6f` implementation plan을 실행한다.
+- plan의 범위는 repair-probe-only runtime evidence까지다.
+- fixed 40-run train gate는 `repair_probe_gate.green_light_for_40_run_gate=true` 전까지 금지다.
+- held-out `21000-21049`는 fixed train gate와 calibration prerequisites 전까지 계속 봉인한다.

@@ -1687,3 +1687,18 @@ heldout_opened=false
   whether `straight_down capture_radius_m=0.0001` should be used directly as
   the z descent gate, or whether the z-gate must be derived from a different
   pre-registered approach/capture envelope without weakening env-native success.
+
+### 2026-06-11 follow-up: MVP-2E v0.6f approach capture gate spec/plan
+
+- [x] Wrote v0.6f spec:
+  `docs/superpowers/specs/2026-06-11-mvp2e-v06f-approach-capture-gate-design.md`
+- [x] Wrote v0.6f implementation plan:
+  `docs/superpowers/plans/2026-06-11-mvp2e-v06f-approach-capture-gate.md`
+- [x] Preserved `capture_radius_m=0.0001` as straight-down geometry lower bound.
+- [x] Pre-registered separate `approach_lateral_gate_m` for controller-assisted
+  z descent.
+- [x] Kept env-native 10-consecutive success as the only seed pass authority.
+- [x] Confirmed v0.6f scope stops at repair-probe-only runtime evidence.
+- [ ] Execute v0.6f implementation plan.
+- [ ] Do not run fixed 40-run train gate until v0.6f repair probe is green.
+- [ ] Do not open held-out `21000-21049`.
