@@ -1634,6 +1634,8 @@ uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test
   - no per-seed grid search on the three repair probe seeds
 - [x] Wrote spec:
   `docs/superpowers/specs/2026-06-11-mvp2e-v06e-repair-probe-green-design.md`
-- [ ] User review of spec.
-- [ ] After approval, write implementation plan.
+- [x] User approved moving to implementation plan.
+- [x] Wrote implementation plan:
+  `docs/superpowers/plans/2026-06-11-mvp2e-v06e-repair-probe-green.md`
+- [ ] Execute implementation plan with `$ultragoal` or executing-plans.
 - [ ] Do not run fixed 40-run train gate or held-out `21000-21049`.

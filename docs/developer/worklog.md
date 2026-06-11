@@ -12298,3 +12298,40 @@ NO MATCH
 
 - 사용자 spec review 후 implementation plan을 작성한다.
 - fixed 40-run train gate와 held-out `21000-21049`는 계속 금지다.
+
+## 2026-06-11 - MVP-2E v0.6e repair probe green implementation plan
+
+### 작업 내용
+
+- `v0_6e` repair probe green spec을 기준으로 구현 계획 문서를 작성했다.
+- 문서 경로:
+  `docs/superpowers/plans/2026-06-11-mvp2e-v06e-repair-probe-green.md`
+
+### 판단 이유
+
+- 현재 blocker는 MVP-2 closure 자체가 아니라 repair-probe-only green light 전 단계다.
+- 구현 계획은 fixed 40-run train gate와 held-out `21000-21049`를 열지 않는 범위로 제한했다.
+- plan은 numeric capture-radius preflight, env-native authority, non-seated convergence,
+  capture-radius z-push gate, repair-probe-only runtime evidence 순서로 TDD 실행 가능하게 나눴다.
+
+### 변경 파일
+
+```text
+docs/superpowers/plans/2026-06-11-mvp2e-v06e-repair-probe-green.md
+docs/developer/worklog.md
+tasks/todo.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+rg -n "TBD|TODO|implement later|fill in|適当|적당|나중|maybe|placeholder|FIXME|<[A-Za-z][^>]+>|RESULT_FROM|ACTUAL_" \
+  docs/superpowers/plans/2026-06-11-mvp2e-v06e-repair-probe-green.md
+NO MATCH
+```
+
+### 남은 gap 또는 다음 작업
+
+- plan 기준으로 `$ultragoal` 또는 executing-plans 실행을 시작한다.
+- implementation 전까지 fixed 40-run train gate와 held-out `21000-21049`는 계속 금지다.
