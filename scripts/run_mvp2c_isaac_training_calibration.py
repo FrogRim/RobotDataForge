@@ -15,6 +15,7 @@ import argparse
 from datetime import UTC, datetime
 import hashlib
 import json
+import math
 from pathlib import Path
 import shutil
 import statistics
@@ -1941,6 +1942,7 @@ def derive_v06_repair_probe_gate_from_probe_result(
     validation = validate_v06b_native_metric_trace_rows(trace_rows)
     gate["v0_6b_native_metric_trace_validation"] = validation
     gate["v0_6c_controller_action_diagnosis"] = summarize_v06c_controller_action_diagnosis(trace_rows)
+    gate["v0_6f_reset_boundary_diagnosis"] = summarize_v06f_reset_boundary_diagnosis(trace_rows)
     if validation["valid"] is not True:
         gate["green_light_for_40_run_gate"] = False
         gate["hard_stop"] = True
@@ -1956,6 +1958,117 @@ def derive_v06_repair_probe_gate_from_probe_result(
     )
     gate["repair_probe_gate_sha256"] = _sha256_payload_excluding(gate, "repair_probe_gate_sha256")
     return gate
+
+
+def _pose_position_m(row: dict[str, Any], key: str) -> list[float] | None:
+    pose = row.get(key)
+    if not isinstance(pose, dict):
+        return None
+    values = pose.get("position_m")
+    if values is None:
+        values = pose.get("position")
+    if not isinstance(values, list | tuple) or len(values) < 3:
+        return None
+    try:
+        return [float(values[0]), float(values[1]), float(values[2])]
+    except (TypeError, ValueError):
+        return None
+
+
+def _pose_delta_m(prev_row: dict[str, Any], next_row: dict[str, Any], key: str) -> float | None:
+    prev_pos = _pose_position_m(prev_row, key)
+    next_pos = _pose_position_m(next_row, key)
+    if prev_pos is None or next_pos is None:
+        return None
+    return math.dist(prev_pos, next_pos)
+
+
+def _row_insertion_depth_m(row: dict[str, Any]) -> float | None:
+    candidates = [row.get("insertion_depth_m")]
+    metric = row.get("rdf_peg_in_hole_metric")
+    if isinstance(metric, dict):
+        summary = metric.get("summary")
+        if isinstance(summary, dict):
+            candidates.append(summary.get("max_insertion_depth_m"))
+    for value in candidates:
+        try:
+            if value is None:
+                continue
+            return float(value)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def summarize_v06f_reset_boundary_diagnosis(
+    trace_rows: list[dict[str, Any]],
+    *,
+    asset_jump_threshold_m: float = 0.01,
+    depth_reset_threshold_m: float = 0.001,
+) -> dict[str, Any]:
+    reset_like_jumps: list[dict[str, Any]] = []
+    rows = [row for row in trace_rows if isinstance(row, dict)]
+    for index in range(1, len(rows)):
+        prev_row = rows[index - 1]
+        next_row = rows[index]
+        try:
+            prev_step = int(prev_row.get("step"))
+            next_step = int(next_row.get("step"))
+        except (TypeError, ValueError):
+            prev_step = None
+            next_step = None
+        if prev_step is not None and next_step is not None and next_step <= prev_step:
+            continue
+        fixed_delta = _pose_delta_m(prev_row, next_row, "fixed_asset_pose_w")
+        held_delta = _pose_delta_m(prev_row, next_row, "held_asset_pose_w")
+        prev_depth = _row_insertion_depth_m(prev_row)
+        next_depth = _row_insertion_depth_m(next_row)
+        asset_jump = (
+            (fixed_delta is not None and fixed_delta >= float(asset_jump_threshold_m))
+            or (held_delta is not None and held_delta >= float(asset_jump_threshold_m))
+        )
+        depth_reset = (
+            prev_depth is not None
+            and next_depth is not None
+            and prev_depth > float(depth_reset_threshold_m)
+            and next_depth <= float(depth_reset_threshold_m)
+        )
+        if not asset_jump or not depth_reset:
+            continue
+        reset_like_jumps.append(
+            {
+                "row_index": index,
+                "from_step": prev_row.get("step"),
+                "to_step": next_row.get("step"),
+                "fixed_asset_delta_m": round(float(fixed_delta or 0.0), 6),
+                "held_asset_delta_m": round(float(held_delta or 0.0), 6),
+                "pre_reset_phase": prev_row.get("phase"),
+                "post_reset_phase": next_row.get("phase"),
+                "pre_reset_insertion_depth_m": round(float(prev_depth), 6),
+                "post_reset_insertion_depth_m": round(float(next_depth), 6),
+            }
+        )
+
+    diagnosis = {
+        "schema_version": "rdf_mvp2e_v06f_reset_boundary_diagnosis_v0.1.0",
+        "proof_authority": False,
+        "trace_rows": len(rows),
+        "asset_jump_threshold_m": float(asset_jump_threshold_m),
+        "depth_reset_threshold_m": float(depth_reset_threshold_m),
+        "reset_like_jump_detected": bool(reset_like_jumps),
+        "reset_like_jump_count": len(reset_like_jumps),
+        "first_reset_like_jump": reset_like_jumps[0] if reset_like_jumps else None,
+        "reset_like_jump_steps": [jump["to_step"] for jump in reset_like_jumps],
+        "heldout_opened": False,
+        "fixed_40_run_gate_opened": False,
+        "recommended_next_step": (
+            "diagnose_episode_reset_boundary_before_controller_changes"
+            if reset_like_jumps
+            else "continue_controller_action_instrumentation"
+        ),
+    }
+    diagnosis["reset_boundary_diagnosis_sha256"] = _sha256_payload(diagnosis)
+    return diagnosis
 
 
 def _z_component(values: Any) -> float | None:

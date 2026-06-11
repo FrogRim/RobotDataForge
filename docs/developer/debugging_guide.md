@@ -3585,3 +3585,67 @@ heldout_opened=false
 - held-out `21000-21049`를 열지 않는다.
 - env-native 10-consecutive success authority를 완화하지 않는다.
 - secondary RDF/diagnostic metric으로 env-native pass를 veto하거나 대체하지 않는다.
+
+## MVP-2E v0.6f reset-boundary diagnosis
+
+v0.6f repair probe 실패를 해석할 때는 controller failure와 episode reset boundary를 먼저 분리한다.
+
+새 진단 helper:
+
+```text
+summarize_v06f_reset_boundary_diagnosis(trace_rows)
+```
+
+감지 기준:
+
+```text
+fixed_asset_pose_w 또는 held_asset_pose_w consecutive delta >= 0.01m
+AND
+insertion_depth_m 이 0.001m 이하로 reset-like drop
+AND
+step counter가 감소하지 않음
+```
+
+`step`이 `149 -> 0`처럼 감소하는 경우는 여러 trace file을 이어붙인 파일 경계이므로 reset-like jump로
+계산하지 않는다.
+
+현재 v0.6f 실제 trace 진단:
+
+```text
+/tmp/rdf-mvp2e-v06f-approach-capture-gate/reset_boundary_diagnosis.json
+reset_like_jump_detected=true
+reset_like_jump_count=2
+reset_like_jump_steps=[148, 148]
+heldout_opened=false
+fixed_40_run_gate_opened=false
+```
+
+첫 번째 reset-like jump:
+
+```text
+from_step=147
+to_step=148
+pre_reset_phase=SEAT
+post_reset_phase=APPROACH
+pre_reset_insertion_depth_m=0.022587
+post_reset_insertion_depth_m=0.0
+fixed_asset_delta_m=0.097859
+held_asset_delta_m=0.095631
+```
+
+해석:
+
+- `16023`은 reset 직전 `insertion_depth_m=0.022587`, `lateral_error_m=0.000228`까지 접근했다.
+- `16096`도 step 148에서 reset-like jump가 관측된다.
+- 따라서 다음 controller 변경 전, reset 이후 tail이 convergence/regression 진단을 오염하는지 먼저
+  분리해야 한다.
+
+다음 valid debugging slice:
+
+```text
+1. episode reset boundary를 artifact에 seed별로 기록한다.
+2. reset 이후 row를 secondary convergence/regression diagnosis에서 제외할지 spec으로 고정한다.
+3. fixed 40-run train gate는 repair probe green 전까지 열지 않는다.
+4. held-out 21000-21049는 계속 봉인한다.
+5. horizon increase는 현재 stop condition이므로 단순 해법으로 쓰지 않는다.
+```

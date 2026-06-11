@@ -1739,5 +1739,28 @@ heldout_opened=false
 - [x] Do not run fixed 40-run train gate until repair probe is green.
 - [x] Do not open held-out `21000-21049`.
 - [ ] MVP-2 Closed remains blocked.
-- [ ] Next valid step: v0.6g or diagnosis slice for `16023` hold failure and `16096`
-  late regression/contact behavior. Do not reopen success metric or held-out set.
+- [x] Added v0.6f reset-boundary diagnosis helper and repair gate embedding.
+- [x] Verified actual v0.6f trace has reset-like jumps at step 148 for failing probe paths:
+
+```text
+/tmp/rdf-mvp2e-v06f-approach-capture-gate/reset_boundary_diagnosis.json
+reset_like_jump_detected=true
+reset_like_jump_count=2
+reset_like_jump_steps=[148, 148]
+first_reset_like_jump.pre_reset_insertion_depth_m=0.022587
+first_reset_like_jump.post_reset_insertion_depth_m=0.0
+fixed_40_run_gate_opened=false
+heldout_opened=false
+```
+
+- [x] Ran relevant regression tests after reset-boundary helper:
+
+```text
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+119 passed
+```
+
+- [ ] Next valid step: v0.6g reset-boundary diagnosis slice before controller tuning.
+  - Seed-level artifact should distinguish pre-reset controller progress from post-reset tail.
+  - Decide by spec whether post-reset rows are excluded from secondary convergence/regression diagnostics.
+  - Do not reopen success metric, fixed 40-run gate, or held-out set.

@@ -12608,3 +12608,96 @@ v0_6b_native_metric_trace_validation.valid=true
   - `16096`: approach gate 근처까지 수렴한 뒤 마지막 tail에서 regression이 발생한다.
   - controller/action diagnosis는 `final_negative_z_action_steps=151`, `z_motion_allowed=151`을 기록하므로
     이제 핵심은 z-gate blockade가 아니라 hold/contact/late-regression behavior다.
+
+## 2026-06-12 - MVP-2E v0.6f reset-boundary diagnosis helper
+
+### 작업 내용
+
+- v0.6f repair probe trace에서 episode reset-like asset pose jump를 감지하는 진단 helper를 추가했다.
+- `repair_probe_gate`에 `v0_6f_reset_boundary_diagnosis`를 embedding하도록 했다.
+- 실제 v0.6f `/tmp` trace에 helper를 적용하여 별도 진단 artifact를 생성했다.
+
+### 판단 이유
+
+- v0.6f runtime result는 `16023`과 `16096`이 step 148 부근에서 fixed/held asset pose가 크게 이동하고
+  `insertion_depth_m`가 0으로 떨어지는 증거를 보였다.
+- 이는 controller가 계속 실패했다는 단순 해석과 다르다. 특히 `16023`은 step 147에서
+  `insertion_depth_m=0.022587`, `lateral_error_m=0.000228`까지 접근한 직후 reset-like jump가 발생했다.
+- 따라서 다음 controller 변경 전에 episode reset boundary와 trace tail contamination을 먼저 분리해야 한다.
+- 파일 경계 row(`149 -> 0`)는 실제 episode reset이 아니므로 오탐 방지 테스트를 추가했다.
+
+### 변경 파일
+
+```text
+scripts/run_mvp2c_isaac_training_calibration.py
+apps/api/tests/test_mvp2c_isaac_training_calibration_script.py
+docs/developer/worklog.md
+docs/developer/debugging_guide.md
+tasks/todo.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py::test_v06f_reset_boundary_diagnosis_detects_asset_jump_and_depth_reset \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py::test_v06f_reset_boundary_diagnosis_ignores_smooth_trace \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py::test_v06f_reset_boundary_diagnosis_ignores_cross_trace_file_boundaries \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py::test_v06f_repair_probe_gate_from_probe_result_embeds_reset_boundary_diagnosis \
+  -q
+```
+
+```text
+4 passed
+```
+
+```bash
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+```
+
+```text
+119 passed
+```
+
+```bash
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+uvx ruff check scripts/run_mvp2c_isaac_training_calibration.py \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py
+git diff --check
+```
+
+```text
+All checks passed
+```
+
+실제 trace 진단 artifact:
+
+```text
+/tmp/rdf-mvp2e-v06f-approach-capture-gate/reset_boundary_diagnosis.json
+reset_like_jump_detected=true
+reset_like_jump_count=2
+reset_like_jump_steps=[148, 148]
+first_reset_like_jump:
+  from_step=147
+  to_step=148
+  pre_reset_phase=SEAT
+  post_reset_phase=APPROACH
+  pre_reset_insertion_depth_m=0.022587
+  post_reset_insertion_depth_m=0.0
+  fixed_asset_delta_m=0.097859
+  held_asset_delta_m=0.095631
+heldout_opened=false
+fixed_40_run_gate_opened=false
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 Closed가 아니다.
+- fixed 40-run train gate는 열리지 않았다.
+- held-out `21000-21049`는 열리지 않았다.
+- 다음 valid step은 `v0.6g` controller 튜닝이 아니라 먼저 reset-boundary diagnosis slice다.
+  - episode length/reset timing을 runtime artifact에 명시한다.
+  - reset 이후 trace tail을 non-seated convergence/regression 진단에서 제외할지 별도 spec으로 고정한다.
+  - horizon increase는 현재 금지 조건이므로, 단순히 horizon을 늘리는 방식으로 해결하지 않는다.

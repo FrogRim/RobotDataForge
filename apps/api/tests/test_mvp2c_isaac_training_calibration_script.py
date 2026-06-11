@@ -598,6 +598,92 @@ def test_v06c_controller_action_diagnosis_summarizes_phase_mismatch_root_cause()
     assert diagnosis["z_motion_block_reason_counts"]["controller_phase_vocabulary_mismatch"] == 12
 
 
+def test_v06f_reset_boundary_diagnosis_detects_asset_jump_and_depth_reset() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    diagnosis = script.summarize_v06f_reset_boundary_diagnosis(
+        [
+            {
+                "step": 147,
+                "phase": "SEAT",
+                "insertion_depth_m": 0.022587,
+                "fixed_asset_pose_w": {"position_m": [0.578435, -0.047545, 0.094409]},
+                "held_asset_pose_w": {"position_m": [0.578545, -0.047745, 0.096821]},
+            },
+            {
+                "step": 148,
+                "phase": "APPROACH",
+                "insertion_depth_m": 0.0,
+                "fixed_asset_pose_w": {"position_m": [0.613180, 0.043170, 0.082577]},
+                "held_asset_pose_w": {"position_m": [0.602522, 0.042215, 0.118676]},
+            },
+        ]
+    )
+
+    assert diagnosis["schema_version"] == "rdf_mvp2e_v06f_reset_boundary_diagnosis_v0.1.0"
+    assert diagnosis["reset_like_jump_detected"] is True
+    assert diagnosis["reset_like_jump_count"] == 1
+    assert diagnosis["first_reset_like_jump"]["from_step"] == 147
+    assert diagnosis["first_reset_like_jump"]["to_step"] == 148
+    assert diagnosis["first_reset_like_jump"]["pre_reset_insertion_depth_m"] == 0.022587
+    assert diagnosis["first_reset_like_jump"]["post_reset_insertion_depth_m"] == 0.0
+    assert diagnosis["heldout_opened"] is False
+    assert diagnosis["fixed_40_run_gate_opened"] is False
+
+
+def test_v06f_reset_boundary_diagnosis_ignores_smooth_trace() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    diagnosis = script.summarize_v06f_reset_boundary_diagnosis(
+        [
+            {
+                "step": 0,
+                "phase": "APPROACH",
+                "insertion_depth_m": 0.001,
+                "fixed_asset_pose_w": {"position_m": [0.0, 0.0, 0.0]},
+                "held_asset_pose_w": {"position_m": [0.0, 0.0, 0.1]},
+            },
+            {
+                "step": 1,
+                "phase": "INSERT",
+                "insertion_depth_m": 0.002,
+                "fixed_asset_pose_w": {"position_m": [0.0001, 0.0, 0.0]},
+                "held_asset_pose_w": {"position_m": [0.0, 0.0001, 0.099]},
+            },
+        ]
+    )
+
+    assert diagnosis["reset_like_jump_detected"] is False
+    assert diagnosis["reset_like_jump_count"] == 0
+    assert diagnosis["first_reset_like_jump"] is None
+
+
+def test_v06f_reset_boundary_diagnosis_ignores_cross_trace_file_boundaries() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    diagnosis = script.summarize_v06f_reset_boundary_diagnosis(
+        [
+            {
+                "step": 149,
+                "phase": "SEAT",
+                "insertion_depth_m": 0.022,
+                "fixed_asset_pose_w": {"position_m": [0.0, 0.0, 0.0]},
+                "held_asset_pose_w": {"position_m": [0.0, 0.0, 0.1]},
+            },
+            {
+                "step": 0,
+                "phase": "APPROACH",
+                "insertion_depth_m": 0.0,
+                "fixed_asset_pose_w": {"position_m": [0.08, 0.0, 0.0]},
+                "held_asset_pose_w": {"position_m": [0.08, 0.0, 0.1]},
+            },
+        ]
+    )
+
+    assert diagnosis["reset_like_jump_detected"] is False
+    assert diagnosis["reset_like_jump_count"] == 0
+
+
 def test_v06b_trace_semantic_validator_requires_factory_base_target_source() -> None:
     script = load_script("run_mvp2c_isaac_training_calibration")
 
@@ -1042,6 +1128,80 @@ def test_v06e_repair_probe_gate_from_probe_result_uses_capture_radius(tmp_path: 
     assert gate["green_light_for_40_run_gate"] is True
     assert gate["seed_results"]["16042"]["seed_pass"] is True
     assert gate["seed_results"]["16096"]["seed_pass"] is True
+
+
+def test_v06f_repair_probe_gate_from_probe_result_embeds_reset_boundary_diagnosis(tmp_path: Path) -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+    trace_dir = tmp_path / "traces"
+    trace_dir.mkdir()
+    paths = []
+    scenarios = [
+        (16023, False, [0.0002, 0.0107], [0.022587, 0.0]),
+        (16042, True, [0.0004, 0.0004], [0.02498, 0.02498]),
+        (16096, False, [0.0001, 0.0144], [0.002396, 0.0]),
+    ]
+    for seed, success, lateral_values, depth_values in scenarios:
+        rows = []
+        for index, (lateral, depth) in enumerate(zip(lateral_values, depth_values, strict=True)):
+            jumped = index == 1 and seed in {16023, 16096}
+            rows.append(
+                {
+                    "step": 147 + index,
+                    "phase": "APPROACH" if jumped else "SEAT",
+                    "lateral_error_m": lateral,
+                    "env_native_success": success,
+                    "env_native_success_mask": success,
+                    "env_native_diagnostics_source": "factory_utils_base_target",
+                    "env_native_xy_dist_m": lateral,
+                    "env_native_z_disp_m": 0.0 if success else 0.02,
+                    "env_native_height_threshold_m": 0.001,
+                    "fixed_asset_pose_w": {
+                        "position_m": [0.0 if not jumped else 0.08, 0.0, 0.0],
+                    },
+                    "held_asset_pose_w": {
+                        "position_m": [0.0 if not jumped else 0.08, 0.0, 0.1],
+                    },
+                    "held_base_pose_w": {},
+                    "target_held_base_pose_w": {},
+                    "legacy_positive_z_disp_m": 0.0,
+                    "runtime_depth_feature_m": 0.0,
+                    "insertion_depth_m": depth,
+                }
+            )
+        path = trace_dir / f"seed_{seed}.json"
+        script.write_json(
+            path,
+            {
+                "scenario": {"seed": seed},
+                "summary": {
+                    "env_native_rollout_success": success,
+                    "env_native_max_consecutive_success_steps": 10 if success else 0,
+                },
+                "trace": rows,
+            },
+        )
+        paths.append(str(path))
+    probe_result = script.BackendResult(
+        runtime_gate={"passed": True},
+        baseline_rollouts=[],
+        candidate_rollouts=[],
+        baseline_trace_paths=paths,
+        candidate_trace_paths=[],
+        runtime_backend="isaac_runtime",
+        proof_runtime="isaac_scripted_expert_repair_probe",
+        runtime_metadata={},
+    )
+
+    gate = script.derive_v06_repair_probe_gate_from_probe_result(
+        probe_result,
+        capture_radius_m=0.0001,
+        gate_version="v0_6f",
+    )
+
+    reset_diagnosis = gate["v0_6f_reset_boundary_diagnosis"]
+    assert reset_diagnosis["reset_like_jump_detected"] is True
+    assert reset_diagnosis["reset_like_jump_count"] == 2
+    assert reset_diagnosis["recommended_next_step"] == "diagnose_episode_reset_boundary_before_controller_changes"
 
 
 def test_v06a_capture_radius_partial_runtime_timeout_keeps_partial_branch_b() -> None:
