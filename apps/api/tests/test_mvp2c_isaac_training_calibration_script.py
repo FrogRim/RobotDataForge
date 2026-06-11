@@ -303,6 +303,91 @@ def test_lateral_divergence_stopped_uses_gap_derived_cap_and_last10_median() -> 
     assert divergent["max_lateral_error_m"] >= 0.008
 
 
+def test_v06e_non_seated_convergence_uses_capture_radius_and_no_regression() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    converged = script.evaluate_v06e_non_seated_lateral_convergence(
+        lateral_errors_m=[0.023, 0.018, 0.011, 0.004, 0.0028, 0.0027, 0.0028, 0.0029, 0.0028, 0.0029],
+        capture_radius_m=0.003,
+        last_k=5,
+    )
+
+    assert converged["non_seated_lateral_converged"] is True
+    assert converged["near_band_m"] == 0.003
+    assert converged["last_k_median_lateral_m"] <= 0.003
+    assert converged["regression_detected"] is False
+
+    regressed = script.evaluate_v06e_non_seated_lateral_convergence(
+        lateral_errors_m=[0.0234, 0.012, 0.00276, 0.006, 0.010, 0.0143, 0.0142, 0.0144, 0.0143, 0.0141],
+        capture_radius_m=0.003,
+        last_k=5,
+    )
+
+    assert regressed["non_seated_lateral_converged"] is False
+    assert regressed["regression_detected"] is True
+    assert regressed["min_lateral_achieved_m"] == 0.00276
+
+
+def test_v06e_repair_probe_gate_does_not_let_divergence_veto_env_native_pass() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    gate = script.evaluate_v06e_repair_probe_gate(
+        {
+            16023: {
+                "env_native_rollout_success": True,
+                "env_native_max_consecutive_success_steps": 10,
+                "lateral_divergence_stopped": True,
+            },
+            16042: {
+                "env_native_rollout_success": True,
+                "env_native_max_consecutive_success_steps": 10,
+                "lateral_divergence_stopped": False,
+                "initial_lateral_error_m": 0.016754,
+                "last_10_median_lateral_error_m": 0.000365,
+            },
+            16096: {
+                "env_native_rollout_success": False,
+                "env_native_max_consecutive_success_steps": 0,
+                "lateral_errors_m": [0.023, 0.018, 0.011, 0.004, 0.0028, 0.0027, 0.0028, 0.0029, 0.0028, 0.0029],
+            },
+        },
+        capture_radius_m=0.003,
+    )
+
+    assert gate["green_light_for_40_run_gate"] is True
+    assert gate["hard_stop"] is False
+    assert gate["seed_results"]["16042"]["seed_pass"] is True
+    assert gate["seed_results"]["16042"]["divergence_diagnostic_authority"] == "report_only"
+
+
+def test_v06e_repair_probe_gate_blocks_non_seated_lateral_regression() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    gate = script.evaluate_v06e_repair_probe_gate(
+        {
+            16023: {
+                "env_native_rollout_success": True,
+                "env_native_max_consecutive_success_steps": 10,
+            },
+            16042: {
+                "env_native_rollout_success": True,
+                "env_native_max_consecutive_success_steps": 10,
+            },
+            16096: {
+                "env_native_rollout_success": False,
+                "env_native_max_consecutive_success_steps": 0,
+                "lateral_errors_m": [0.0234, 0.012, 0.00276, 0.006, 0.010, 0.0143, 0.0142, 0.0144, 0.0143, 0.0141],
+            },
+        },
+        capture_radius_m=0.003,
+    )
+
+    assert gate["green_light_for_40_run_gate"] is False
+    assert gate["hard_stop"] is True
+    assert gate["seed_results"]["16096"]["seed_pass"] is False
+    assert gate["seed_results"]["16096"]["convergence"]["regression_detected"] is True
+
+
 def test_v06_repair_probe_green_light_requires_hold_and_lateral_modes() -> None:
     script = load_script("run_mvp2c_isaac_training_calibration")
 
@@ -523,6 +608,26 @@ def test_v06a_insert_envelope_is_pre_registered_and_not_probe_derived() -> None:
     }
 
 
+def test_v06a_capture_radius_trial_schedule_samples_all_directions_before_next_delta() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    schedule = script.build_v06a_capture_radius_trial_schedule()
+
+    assert schedule[:4] == [
+        ("+x", 0.0001),
+        ("-x", 0.0001),
+        ("+y", 0.0001),
+        ("-y", 0.0001),
+    ]
+    assert schedule[4:8] == [
+        ("+x", 0.0002),
+        ("-x", 0.0002),
+        ("+y", 0.0002),
+        ("-y", 0.0002),
+    ]
+    assert (("+x", 0.0)) not in schedule
+
+
 def test_v06a_capture_radius_branch_a_requires_all_direction_capture(tmp_path: Path) -> None:
     script = load_script("run_mvp2c_isaac_training_calibration")
     probe = script.build_v06a_capture_radius_probe_artifact(
@@ -623,6 +728,153 @@ def test_v06a_capture_radius_branch_b_when_all_directions_are_below_branch_a_bar
     assert measurement["capture_radius_m"] == 0.0002
     assert probe["repair_probe_allowed"] is True
     assert preflight["train_generation_gate_allowed"] is False
+
+
+def test_v06e_numeric_capture_preflight_rejects_approximate_branch_b(tmp_path: Path) -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+    preflight = {
+        "preflight_branch": "B",
+        "inspection_method": "runtime_empirical_capture_radius_probe",
+        "capture_radius_m": "approximate",
+        "repair_probe_allowed": True,
+        "capture_radius_probe_sha256": "abc",
+    }
+    probe = {
+        "preflight_branch": "B",
+        "inspection_method": "runtime_empirical_capture_radius_probe",
+        "capture_radius_m": "approximate",
+        "capture_radius_probe_sha256": "abc",
+        "geometry_probe_seed": script.V06A_CAPTURE_RADIUS_PRIMARY_SEED,
+        "directions": list(script.V06A_CAPTURE_RADIUS_DIRECTIONS),
+        "offset_sweep_m": list(script.V06A_CAPTURE_RADIUS_OFFSET_SWEEP_M),
+        "measurement": {"capture_radius_m": "approximate"},
+    }
+
+    resolved = script.validate_v06e_numeric_capture_radius_preflight(
+        preflight=preflight,
+        capture_radius_probe=probe,
+    )
+
+    assert resolved["repair_probe_allowed"] is False
+    assert resolved["insert_parameter_freeze_allowed"] is False
+    assert resolved["reason"] == "capture_radius_not_numeric"
+
+
+def test_v06e_numeric_capture_preflight_accepts_geometry_isolated_numeric_probe() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+    preflight = {
+        "preflight_branch": "B",
+        "inspection_method": "runtime_empirical_capture_radius_probe",
+        "capture_radius_m": 0.0002,
+        "repair_probe_allowed": True,
+        "insert_parameter_freeze_allowed": True,
+        "capture_radius_probe_sha256": "abc",
+    }
+    probe = {
+        "preflight_branch": "B",
+        "inspection_method": "runtime_empirical_capture_radius_probe",
+        "capture_radius_m": 0.0002,
+        "capture_radius_probe_sha256": "abc",
+        "geometry_probe_seed": script.V06A_CAPTURE_RADIUS_PRIMARY_SEED,
+        "geometry_isolated": True,
+        "xy_correction_enabled": False,
+        "yaw_correction_enabled": False,
+        "z_push_mode": "straight_down_bounded",
+        "directions": list(script.V06A_CAPTURE_RADIUS_DIRECTIONS),
+        "offset_sweep_m": list(script.V06A_CAPTURE_RADIUS_OFFSET_SWEEP_M),
+        "measurement": {"capture_radius_m": 0.0002},
+    }
+
+    resolved = script.validate_v06e_numeric_capture_radius_preflight(
+        preflight=preflight,
+        capture_radius_probe=probe,
+    )
+
+    assert resolved["repair_probe_allowed"] is True
+    assert resolved["insert_parameter_freeze_allowed"] is True
+    assert resolved["capture_radius_m"] == 0.0002
+    assert resolved["capture_radius_probe_geometry_isolated"] is True
+
+
+def test_v06e_controller_repair_config_derives_z_gate_from_capture_radius() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    config = script.build_v06e_controller_repair_config(capture_radius_m=0.003)
+
+    assert config["controller_version"] == "v0_6_active_state_controller"
+    assert config["capture_radius_m"] == 0.003
+    assert config["align_lateral_gate_m"] == 0.003
+    assert config["tol_align_source"] == "empirical_capture_radius_m"
+    assert config["z_push_gate"] == "lateral_error_m <= capture_radius_m"
+    assert config["retry_recover_withdraw_search"] is False
+    assert config["force_reactive_control"] is False
+
+
+def test_v06e_repair_probe_gate_from_probe_result_uses_capture_radius(tmp_path: Path) -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+    trace_dir = tmp_path / "traces"
+    trace_dir.mkdir()
+    paths = []
+    scenarios = [
+        (16023, True, [0.002, 0.001, 0.0005]),
+        (16042, True, [0.016, 0.004, 0.0004]),
+        (16096, False, [0.023, 0.010, 0.0028, 0.0029, 0.0028, 0.0029, 0.0028, 0.0029, 0.0028, 0.0029]),
+    ]
+    for seed, success, lateral_values in scenarios:
+        rows = [
+            {
+                "step": index,
+                "phase": "APPROACH",
+                "lateral_error_m": lateral,
+                "env_native_success": success,
+                "env_native_success_mask": success,
+                "env_native_diagnostics_source": "factory_utils_base_target",
+                "env_native_xy_dist_m": lateral,
+                "env_native_z_disp_m": 0.0 if success else 0.02,
+                "env_native_height_threshold_m": 0.001,
+                "held_asset_pose_w": {},
+                "fixed_asset_pose_w": {},
+                "held_base_pose_w": {},
+                "target_held_base_pose_w": {},
+                "legacy_positive_z_disp_m": 0.0,
+                "runtime_depth_feature_m": 0.0,
+                "insertion_depth_m": 0.0,
+            }
+            for index, lateral in enumerate(lateral_values)
+        ]
+        path = trace_dir / f"seed_{seed}.json"
+        script.write_json(
+            path,
+            {
+                "scenario": {"seed": seed},
+                "summary": {
+                    "env_native_rollout_success": success,
+                    "env_native_max_consecutive_success_steps": 10 if success else 0,
+                },
+                "trace": rows,
+            },
+        )
+        paths.append(str(path))
+    probe_result = script.BackendResult(
+        runtime_gate={"passed": True},
+        baseline_rollouts=[],
+        candidate_rollouts=[],
+        baseline_trace_paths=paths,
+        candidate_trace_paths=[],
+        runtime_backend="isaac_runtime",
+        proof_runtime="isaac_scripted_expert_repair_probe",
+        runtime_metadata={},
+    )
+
+    gate = script.derive_v06_repair_probe_gate_from_probe_result(
+        probe_result,
+        capture_radius_m=0.003,
+    )
+
+    assert gate["schema_version"] == "rdf_mvp2e_v06e_repair_probe_gate_v0.1.0"
+    assert gate["green_light_for_40_run_gate"] is True
+    assert gate["seed_results"]["16042"]["seed_pass"] is True
+    assert gate["seed_results"]["16096"]["seed_pass"] is True
 
 
 def test_v06a_capture_radius_partial_runtime_timeout_keeps_partial_branch_b() -> None:

@@ -3370,3 +3370,93 @@ root_cause_hypothesis=physics_or_action_mapping_does_not_convert_negative_z_to_s
 - diagnostic-only divergence rule을 high-initial-lateral probe에 맞게 재검토한다.
 - severe seed `16096`의 align authority / horizon usage를 trace로 먼저 분석한다.
 - 그 전까지 fixed 40-run train gate와 held-out `21000-21049`는 계속 금지다.
+
+## MVP-2E v0.6e repair-probe-only result
+
+v0.6e는 다음 경계를 추가한다.
+
+```text
+capture_radius_m must be numeric.
+capture-radius probe must be geometry-isolated:
+  xy_correction_enabled=false
+  yaw_correction_enabled=false
+  z_push_mode=straight_down_bounded
+env-native 10-consecutive success is primary authority.
+secondary divergence diagnostics cannot veto env-native pass.
+z push is blocked while lateral_error_m > capture_radius_m.
+fixed 40-run gate and held-out 21000-21049 remain closed.
+```
+
+재현 명령:
+
+```bash
+rm -rf /tmp/rdf-mvp2e-v06e-repair-probe-green
+mkdir -p /tmp/rdf-mvp2e-v06e-repair-probe-green
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06e-repair-probe-green \
+  --scenario-profile v0_6 \
+  --capture-radius-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06e-repair-probe-green \
+  --scenario-profile v0_6 \
+  --train-generation-probe-only \
+  --repair-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+핵심 artifact:
+
+```text
+/tmp/rdf-mvp2e-v06e-repair-probe-green/capture_radius_preflight_result.json
+/tmp/rdf-mvp2e-v06e-repair-probe-green/controller_repair_config.json
+/tmp/rdf-mvp2e-v06e-repair-probe-green/repair_probe_gate.json
+```
+
+현재 v0.6e 결과:
+
+```text
+capture_radius_m=0.0001
+preflight_branch=B
+runtime_error=v0_6a capture-radius trial exceeded runtime deadline
+direction max successful deltas:
+  +x=0.0002
+  -x=0.0002
+  +y=0.0001
+  -y=0.0001
+
+green_light_for_40_run_gate=false
+hard_stop=true
+fixed_40_run_gate_opened=false
+heldout_opened=false
+
+16023 env_native_rollout_success=false, max_consecutive=0, max_insertion_depth_m=0
+16042 env_native_rollout_success=false, max_consecutive=0, max_insertion_depth_m=0
+16096 env_native_rollout_success=false, max_consecutive=0, max_insertion_depth_m=0
+```
+
+해석:
+
+- numeric capture radius 문제는 해결됐다.
+- runtime capture probe는 모든 방향에서 최소 `0.0001m` straight-down success를 확인했다.
+- 하지만 `capture_radius_m=0.0001`을 그대로 z-push gate로 쓰면 repair probe seed들이
+  모두 `APPROACH`에 머문다.
+- 세 seed 모두 lateral을 충분히 줄였지만 `lateral_error_m <= 0.0001` 조건에는 도달하지
+  못해 z descent가 억제되고, 결과적으로 `max_insertion_depth_m=0`이다.
+- 이는 코드 crash가 아니라 fail-closed stop condition이다.
+
+다음 진단 순서:
+
+- v0.6e 결과를 소급 통과 처리하지 않는다.
+- fixed 40-run train gate를 열지 않는다.
+- held-out `21000-21049`에 접근하지 않는다.
+- 다음 slice에서 `straight-down capture_radius_m`을 z-gate threshold로 직접 쓰는 설계가
+  너무 보수적인지 재검토한다.
+- 재검토는 새 spec/plan으로 진행한다. 기존 v0.6e 결과를 보고 threshold를 임의 완화하지
+  않는다.

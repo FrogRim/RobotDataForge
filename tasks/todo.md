@@ -1637,5 +1637,53 @@ uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test
 - [x] User approved moving to implementation plan.
 - [x] Wrote implementation plan:
   `docs/superpowers/plans/2026-06-11-mvp2e-v06e-repair-probe-green.md`
-- [ ] Execute implementation plan with `$ultragoal` or executing-plans.
-- [ ] Do not run fixed 40-run train gate or held-out `21000-21049`.
+- [x] Executed implementation plan with `$ultragoal` until runtime stop condition.
+- [x] Added v0.6e helper/tests:
+  - env-native authority cannot be vetoed by secondary divergence diagnostics.
+  - non-seated lateral convergence uses numeric capture radius + no-regression.
+  - strict numeric geometry-isolated capture-radius preflight gates repair probe.
+  - controller repair config derives z-push gate from `capture_radius_m`.
+  - capture-radius runtime trial schedule is delta-major.
+- [x] Ran focused and relevant regression tests:
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py::test_v06a_capture_radius_trial_schedule_samples_all_directions_before_next_delta -q
+1 passed
+
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+107 passed
+```
+
+- [x] Ran capture-radius runtime probe:
+
+```text
+/tmp/rdf-mvp2e-v06e-repair-probe-green/capture_radius_preflight_result.json
+capture_radius_m=0.0001
+preflight_branch=B
+direction max successful deltas: +x=0.0002, -x=0.0002, +y=0.0001, -y=0.0001
+heldout_schedule.scheduled=false
+```
+
+- [x] Ran repair-probe-only runtime:
+
+```text
+/tmp/rdf-mvp2e-v06e-repair-probe-green/repair_probe_gate.json
+green_light_for_40_run_gate=false
+hard_stop=true
+fixed_40_run_gate_opened=false
+heldout_opened=false
+16023 env_native_rollout_success=false, max_consecutive=0, max_insertion_depth_m=0
+16042 env_native_rollout_success=false, max_consecutive=0, max_insertion_depth_m=0
+16096 env_native_rollout_success=false, max_consecutive=0, max_insertion_depth_m=0
+```
+
+- [x] Stop condition hit:
+  - `16023 loses env-native pass after global repair config`
+  - `all lateral seeds lose env-native pass after global repair config`
+- [x] Fixed 40-run train gate remained closed.
+- [x] Held-out `21000-21049` remained sealed.
+- [ ] MVP-2 Closed remains blocked.
+- [ ] Next valid step: write a new spec/plan for the v0.6f design question:
+  whether `straight_down capture_radius_m=0.0001` should be used directly as
+  the z descent gate, or whether the z-gate must be derived from a different
+  pre-registered approach/capture envelope without weakening env-native success.

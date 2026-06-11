@@ -184,6 +184,89 @@ def test_v06d_action_diagnostics_allow_approach_phase_z_motion_when_aligned() ->
     assert diagnostics["z_motion_block_reason"] == "z_motion_allowed"
 
 
+def test_v06e_capture_radius_gate_suppresses_z_until_inside_capture_radius() -> None:
+    script = load_script("run_mvp2b_isaac_proof_evaluator")
+    policy_artifact = {
+        "selected_action_adapter_id": "isaac_signed_xy_downward_servo_v0",
+        "selected_action_adapter_config": {
+            "controller_version": "v0_6_active_state_controller",
+            "capture_radius_m": 0.003,
+            "align_lateral_gate_m": 0.003,
+            "align_orientation_gate_rad": 0.25,
+            "xy_source": "state_feedback",
+            "xy_state_feedback_gain": 4.0,
+            "xy_action_clip": 0.035,
+            "z_action_scale": 24.0,
+            "z_action_clip": 0.12,
+            "rotation_action_scale": 0.0,
+        },
+    }
+    metric_row = {
+        "phase": "APPROACH",
+        "lateral_error_m": 0.004,
+        "orientation_error_deg": 0.01,
+        "insertion_depth_m": 0.0,
+        "relative_x_m": 0.004,
+        "relative_y_m": 0.0,
+        "env_native_success": False,
+        "env_native_current_consecutive_success_steps": 0,
+    }
+
+    action, diagnostics = script._apply_selected_action_adapter_with_diagnostics(
+        policy_artifact=policy_artifact,
+        raw_action=script.np.asarray([0.0, 0.0, -0.005, 0.0, 0.0, 0.0, 1.0]),
+        action_scale=1.0,
+        metric_row=metric_row,
+    )
+
+    assert diagnostics["pre_controller_action_vector"][2] < 0.0
+    assert action[2] == 0.0
+    assert diagnostics["z_motion_suppressed"] is True
+    assert diagnostics["z_motion_block_reason"] == "alignment_gate_not_satisfied"
+    assert diagnostics["align_lateral_gate_m"] == 0.003
+
+
+def test_v06e_capture_radius_gate_allows_z_inside_capture_radius() -> None:
+    script = load_script("run_mvp2b_isaac_proof_evaluator")
+    policy_artifact = {
+        "selected_action_adapter_id": "isaac_signed_xy_downward_servo_v0",
+        "selected_action_adapter_config": {
+            "controller_version": "v0_6_active_state_controller",
+            "capture_radius_m": 0.003,
+            "align_lateral_gate_m": 0.003,
+            "align_orientation_gate_rad": 0.25,
+            "xy_source": "state_feedback",
+            "xy_state_feedback_gain": 4.0,
+            "xy_action_clip": 0.035,
+            "z_action_scale": 24.0,
+            "z_action_clip": 0.12,
+            "rotation_action_scale": 0.0,
+        },
+    }
+    metric_row = {
+        "phase": "APPROACH",
+        "lateral_error_m": 0.0025,
+        "orientation_error_deg": 0.01,
+        "insertion_depth_m": 0.0,
+        "relative_x_m": 0.0025,
+        "relative_y_m": 0.0,
+        "env_native_success": False,
+        "env_native_current_consecutive_success_steps": 0,
+    }
+
+    action, diagnostics = script._apply_selected_action_adapter_with_diagnostics(
+        policy_artifact=policy_artifact,
+        raw_action=script.np.asarray([0.0, 0.0, -0.005, 0.0, 0.0, 0.0, 1.0]),
+        action_scale=1.0,
+        metric_row=metric_row,
+    )
+
+    assert action[2] < 0.0
+    assert diagnostics["z_motion_suppressed"] is False
+    assert diagnostics["z_motion_block_reason"] == "z_motion_allowed"
+    assert diagnostics["align_lateral_gate_m"] == 0.003
+
+
 def test_factory_peg_insert_native_height_threshold_matches_factory_config() -> None:
     script = load_script("run_mvp2b_isaac_proof_evaluator")
 

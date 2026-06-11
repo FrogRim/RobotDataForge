@@ -12335,3 +12335,111 @@ NO MATCH
 
 - plan 기준으로 `$ultragoal` 또는 executing-plans 실행을 시작한다.
 - implementation 전까지 fixed 40-run train gate와 held-out `21000-21049`는 계속 금지다.
+
+## 2026-06-11 - MVP-2E v0.6e repair probe green implementation result
+
+### 작업 내용
+
+- `v0_6e` repair-probe-only 구현을 진행했다.
+- env-native 10-consecutive success를 primary authority로 유지하고, secondary
+  divergence diagnostic이 env-native pass를 veto하지 못하도록 gate helper를 추가했다.
+- `capture_radius_m`이 positive JSON number이고 geometry-isolated runtime empirical
+  probe에서 온 경우에만 repair probe를 열도록 strict preflight를 추가했다.
+- controller repair config를 numeric `capture_radius_m`에서 유도해
+  `z_push_gate = lateral_error_m <= capture_radius_m`로 기록하고 repair probe expert
+  policy에 전달했다.
+- capture-radius runtime probe의 trial schedule을 delta-major로 바꿨다.
+  - 이전 방식은 `+x` 방향 큰 delta sweep에 runtime budget을 먼저 소비했다.
+  - 새 방식은 모든 방향을 `0.0001`, `0.0002`, ... 순서로 먼저 확인한다.
+
+### 판단 이유
+
+- `v0_6a` static-local preflight는 cloud/Nucleus asset geometry를 inspect하지 못했지만,
+  Isaac runtime은 Factory env를 로드할 수 있었다.
+- 따라서 geometry-isolated straight-down runtime probe로 capture radius를 측정하는 것이
+  현재 가장 좁고 방어 가능한 경로였다.
+- 단, `capture_radius_m=0.0001`로 측정되면서 global z-push gate가 너무 엄격해졌고,
+  repair probe seed 세 개 모두 `APPROACH`에서 z descent를 시작하지 못했다.
+
+### 변경 파일
+
+```text
+scripts/run_mvp2c_isaac_training_calibration.py
+apps/api/tests/test_mvp2c_isaac_training_calibration_script.py
+apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py
+docs/developer/worklog.md
+docs/developer/debugging_guide.md
+tasks/todo.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py::test_v06a_capture_radius_trial_schedule_samples_all_directions_before_next_delta -q
+```
+
+```text
+1 passed
+```
+
+```bash
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+```
+
+```text
+107 passed
+```
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06e-repair-probe-green \
+  --scenario-profile v0_6 \
+  --capture-radius-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+```text
+capture_radius_m=0.0001
+preflight_branch=B
+next_gate=repair_probe
+heldout_schedule.scheduled=false
+direction max successful deltas: +x=0.0002, -x=0.0002, +y=0.0001, -y=0.0001
+```
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06e-repair-probe-green \
+  --scenario-profile v0_6 \
+  --train-generation-probe-only \
+  --repair-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+```text
+green_light_for_40_run_gate=false
+hard_stop=true
+fixed_40_run_gate_opened=false
+heldout_opened=false
+16023: env_native_rollout_success=false, max_consecutive=0, min_lateral=0.000135, max_insertion_depth_m=0
+16042: env_native_rollout_success=false, max_consecutive=0, min_lateral=0.000875, max_insertion_depth_m=0
+16096: env_native_rollout_success=false, max_consecutive=0, min_lateral=0.000632, max_insertion_depth_m=0
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 Closed가 아니다.
+- 이번 `$ultragoal` slice는 runtime stop condition에 걸려 fail-closed로 종료한다.
+- stop condition:
+  - `16023 loses env-native pass after global repair config`
+  - `all lateral seeds lose env-native pass after global repair config`
+- fixed 40-run train gate는 열리지 않았다.
+- held-out `21000-21049`는 열리지 않았다.
+- 다음 valid step은 새 spec/plan에서 `capture_radius_m=0.0001` straight-down geometry
+  measurement를 z descent gate로 그대로 쓰는 것이 올바른지 재검토하는 것이다.
+  현재 증거상 세 seed 모두 lateral을 0.0001까지 줄이기 전에 horizon 말미에 z가 억제되어
+  `max_insertion_depth_m=0`으로 끝난다.

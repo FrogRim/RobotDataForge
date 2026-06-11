@@ -136,6 +136,9 @@ V06A_NON_CLAIMS = {
 V06_ENV_NATIVE_STABLE_STEPS_REQUIRED = 10
 V06_TRAIN_GATE_SUCCESS_MINIMUM = 20
 V06_TRAIN_GATE_ATTEMPT_COUNT = 40
+V06E_CONVERGENCE_LAST_K = 10
+V06E_REGRESSION_TOL_FLOOR_M = 0.0005
+V06E_REGRESSION_TOL_CAPTURE_RATIO = 0.5
 V06_ENV_NATIVE_SUCCESS_AUTHORITY = {
     "primary": "isaac_env_native_consecutive_success_v0",
     "isaac_function": "_get_curr_successes",
@@ -536,6 +539,72 @@ def evaluate_lateral_divergence_stopped(
     }
 
 
+def _numeric_capture_radius_m(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if not isinstance(value, int | float):
+        return None
+    numeric = float(value)
+    if numeric <= 0.0:
+        return None
+    return numeric
+
+
+def evaluate_v06e_non_seated_lateral_convergence(
+    *,
+    lateral_errors_m: Sequence[float],
+    capture_radius_m: float,
+    last_k: int = V06E_CONVERGENCE_LAST_K,
+    regression_tol_floor_m: float = V06E_REGRESSION_TOL_FLOOR_M,
+    regression_tol_capture_ratio: float = V06E_REGRESSION_TOL_CAPTURE_RATIO,
+) -> dict[str, Any]:
+    numeric_capture_radius = _numeric_capture_radius_m(capture_radius_m)
+    if numeric_capture_radius is None:
+        return {
+            "non_seated_lateral_converged": False,
+            "reason": "capture_radius_not_numeric",
+            "capture_radius_m": capture_radius_m,
+        }
+    if not lateral_errors_m:
+        return {
+            "non_seated_lateral_converged": False,
+            "reason": "missing_lateral_diagnostics",
+            "capture_radius_m": numeric_capture_radius,
+            "near_band_m": numeric_capture_radius,
+        }
+    values = [float(value) for value in lateral_errors_m]
+    window = values[-max(1, int(last_k)) :]
+    min_lateral = min(values)
+    tail_median = statistics.median(window)
+    regression_tol = max(float(regression_tol_floor_m), float(regression_tol_capture_ratio) * numeric_capture_radius)
+    inside_near_band = tail_median <= numeric_capture_radius
+    no_regression = tail_median <= min_lateral + regression_tol
+    return {
+        "non_seated_lateral_converged": bool(inside_near_band and no_regression),
+        "reason": "converged_no_regression" if inside_near_band and no_regression else "not_converged_or_regressed",
+        "capture_radius_m": numeric_capture_radius,
+        "near_band_m": numeric_capture_radius,
+        "last_k": int(last_k),
+        "regression_tol_m": round(float(regression_tol), 6),
+        "min_lateral_achieved_m": round(float(min_lateral), 6),
+        "last_k_median_lateral_m": round(float(tail_median), 6),
+        "inside_near_band": bool(inside_near_band),
+        "regression_detected": not bool(no_regression),
+    }
+
+
+def _v06e_lateral_errors_from_probe_result(result: dict[str, Any]) -> list[float]:
+    values = result.get("lateral_errors_m")
+    if isinstance(values, list):
+        return [float(value) for value in values]
+    initial = result.get("initial_lateral_error_m")
+    last_median = result.get("last_10_median_lateral_error_m")
+    min_lateral = result.get("min_lateral_achieved_m")
+    if initial is not None and last_median is not None and min_lateral is not None:
+        return [float(initial), float(min_lateral), float(last_median)]
+    return []
+
+
 def _normalize_v06_repair_probe_results(probe_results: dict[Any, Any]) -> dict[int, dict[str, Any]]:
     normalized: dict[int, dict[str, Any]] = {}
     for seed in V06_REPAIR_PROBE_SEEDS:
@@ -571,6 +640,70 @@ def evaluate_v06_repair_probe_gate(probe_results: dict[Any, Any]) -> dict[str, A
         "probe_results": normalized_probe_results,
     }
     result["repair_probe_gate_sha256"] = _sha256_payload(result)
+    return result
+
+
+def evaluate_v06e_repair_probe_gate(
+    probe_results: dict[Any, Any],
+    *,
+    capture_radius_m: float,
+) -> dict[str, Any]:
+    numeric_capture_radius = _numeric_capture_radius_m(capture_radius_m)
+    normalized = _normalize_v06_repair_probe_results(probe_results)
+    seed_results: dict[str, dict[str, Any]] = {}
+    non_seated_lateral_converged = True
+    lateral_env_native_pass_count = 0
+    for seed, result in normalized.items():
+        env_native_pass = bool(result.get("env_native_rollout_success")) or int(
+            result.get("env_native_max_consecutive_success_steps", 0)
+        ) >= V06_ENV_NATIVE_STABLE_STEPS_REQUIRED
+        is_lateral_seed = seed in {16042, 16096}
+        seed_payload = {
+            **result,
+            "env_native_seed_pass": env_native_pass,
+            "seed_pass": env_native_pass,
+            "divergence_diagnostic_authority": "report_only" if env_native_pass else "non_seated_lateral_gate",
+        }
+        if env_native_pass and is_lateral_seed:
+            lateral_env_native_pass_count += 1
+        if (not env_native_pass) and is_lateral_seed:
+            convergence = evaluate_v06e_non_seated_lateral_convergence(
+                lateral_errors_m=_v06e_lateral_errors_from_probe_result(result),
+                capture_radius_m=capture_radius_m,
+            )
+            seed_payload["convergence"] = convergence
+            seed_payload["seed_pass"] = bool(convergence["non_seated_lateral_converged"])
+            non_seated_lateral_converged = non_seated_lateral_converged and bool(
+                convergence["non_seated_lateral_converged"]
+            )
+        elif (not env_native_pass) and seed == 16023:
+            seed_payload["seed_pass"] = False
+        seed_results[str(seed)] = seed_payload
+
+    hold_passed = bool(seed_results["16023"]["env_native_seed_pass"])
+    green = (
+        numeric_capture_radius is not None
+        and hold_passed
+        and lateral_env_native_pass_count >= 1
+        and non_seated_lateral_converged
+        and all(bool(payload["seed_pass"]) for payload in seed_results.values())
+    )
+    result = {
+        "schema_version": "rdf_mvp2e_v06e_repair_probe_gate_v0.1.0",
+        "proof_authority": False,
+        "capture_radius_m": numeric_capture_radius if numeric_capture_radius is not None else capture_radius_m,
+        "capture_radius_numeric": numeric_capture_radius is not None,
+        "probe_seeds": list(V06_REPAIR_PROBE_SEEDS),
+        "hold_mode_passed": hold_passed,
+        "lateral_success_mode_passed": lateral_env_native_pass_count >= 1,
+        "non_seated_lateral_converged": non_seated_lateral_converged,
+        "green_light_for_40_run_gate": bool(green),
+        "hard_stop": not bool(green),
+        "seed_results": seed_results,
+        "fixed_40_run_gate_opened": False,
+        "heldout_opened": False,
+    }
+    result["repair_probe_gate_sha256"] = _sha256_payload_excluding(result, "repair_probe_gate_sha256")
     return result
 
 
@@ -813,6 +946,10 @@ def build_v06a_capture_radius_probe_artifact(
         "geometry_probe_seed": V06A_CAPTURE_RADIUS_PRIMARY_SEED,
         "offset_sweep_m": list(V06A_CAPTURE_RADIUS_OFFSET_SWEEP_M),
         "directions": list(V06A_CAPTURE_RADIUS_DIRECTIONS),
+        "geometry_isolated": True,
+        "xy_correction_enabled": False,
+        "yaw_correction_enabled": False,
+        "z_push_mode": "straight_down_bounded",
         "prior_static_preflight_branch": prior_static_preflight.get("preflight_branch"),
         "prior_static_inspection_method": prior_static_preflight.get("inspection_method"),
         "pre_registered_insert_envelope": dict(V06A_PRE_REGISTERED_INSERT_ENVELOPE),
@@ -949,6 +1086,59 @@ def validate_v06a_verified_chamfer_preflight(
     if not isinstance(probe_non_claims, dict) or any(bool(value) for value in probe_non_claims.values()):
         raise ValueError("invalid v0_6a capture radius probe non_claims")
     return preflight
+
+
+def validate_v06e_numeric_capture_radius_preflight(
+    *,
+    preflight: dict[str, Any],
+    capture_radius_probe: dict[str, Any],
+) -> dict[str, Any]:
+    capture_radius = _numeric_capture_radius_m(preflight.get("capture_radius_m"))
+    probe_capture_radius = _numeric_capture_radius_m(capture_radius_probe.get("capture_radius_m"))
+    required_probe_fields = {
+        "geometry_isolated": True,
+        "xy_correction_enabled": False,
+        "yaw_correction_enabled": False,
+        "z_push_mode": "straight_down_bounded",
+        "geometry_probe_seed": V06A_CAPTURE_RADIUS_PRIMARY_SEED,
+    }
+    reasons: list[str] = []
+    if capture_radius is None or probe_capture_radius is None:
+        reasons.append("capture_radius_not_numeric")
+    elif abs(capture_radius - probe_capture_radius) > 1.0e-12:
+        reasons.append("capture_radius_probe_mismatch")
+    if preflight.get("inspection_method") != "runtime_empirical_capture_radius_probe":
+        reasons.append("inspection_method_not_runtime_empirical_capture_radius_probe")
+    for key, expected in required_probe_fields.items():
+        if capture_radius_probe.get(key) != expected:
+            reasons.append(f"capture_radius_probe_{key}")
+    if capture_radius_probe.get("directions") != list(V06A_CAPTURE_RADIUS_DIRECTIONS):
+        reasons.append("capture_radius_probe_directions")
+    if capture_radius_probe.get("offset_sweep_m") != list(V06A_CAPTURE_RADIUS_OFFSET_SWEEP_M):
+        reasons.append("capture_radius_probe_offset_sweep")
+
+    if reasons:
+        reason = "capture_radius_not_numeric" if "capture_radius_not_numeric" in reasons else ";".join(reasons)
+        return {
+            **preflight,
+            "repair_probe_allowed": False,
+            "insert_parameter_freeze_allowed": False,
+            "train_generation_gate_allowed": False,
+            "capture_radius_probe_geometry_isolated": False,
+            "reason": reason,
+            "v0_6e_numeric_capture_radius_preflight_valid": False,
+            "v0_6e_numeric_capture_radius_preflight_reasons": reasons,
+        }
+    return {
+        **preflight,
+        "capture_radius_m": capture_radius,
+        "capture_radius_source": "empirical_runtime_probe",
+        "capture_radius_probe_geometry_isolated": True,
+        "repair_probe_allowed": True,
+        "insert_parameter_freeze_allowed": True,
+        "v0_6e_numeric_capture_radius_preflight_valid": True,
+        "v0_6e_numeric_capture_radius_preflight_reasons": [],
+    }
 
 
 def resolve_v06_repair_probe_preflight(
@@ -1229,6 +1419,22 @@ def _v06a_capture_radius_action(env: Any, torch: Any) -> Any:
     return torch.as_tensor(action_np, dtype=torch.float32, device=env.device)
 
 
+def build_v06a_capture_radius_trial_schedule() -> list[tuple[str, float]]:
+    """Return a delta-major capture-radius schedule.
+
+    The probe must sample every direction at the smaller deltas before spending
+    the runtime budget on larger offsets in one direction.
+    """
+
+    schedule: list[tuple[str, float]] = []
+    for delta_m in V06A_CAPTURE_RADIUS_OFFSET_SWEEP_M:
+        if float(delta_m) == 0.0:
+            continue
+        for direction in V06A_CAPTURE_RADIUS_DIRECTIONS:
+            schedule.append((direction, float(delta_m)))
+    return schedule
+
+
 def _run_v06a_capture_radius_trial(
     *,
     env: Any,
@@ -1370,65 +1576,69 @@ def _run_v06a_capture_radius_probe_isaaclab(
                 "error": zero_trial.get("timeout_reason") if zero_trial.get("timed_out") else None,
             }
 
-        direction_results: dict[str, dict[str, Any]] = {}
-        for direction in V06A_CAPTURE_RADIUS_DIRECTIONS:
-            max_successful_delta = 0.0
-            direction_trials: list[dict[str, Any]] = []
-            for delta_m in V06A_CAPTURE_RADIUS_OFFSET_SWEEP_M:
-                if float(delta_m) == 0.0:
-                    continue
-                trial = _run_v06a_capture_radius_trial(
-                    env=env,
-                    simulation_app=simulation_app,
-                    torch=torch,
-                    seed=V06A_CAPTURE_RADIUS_PRIMARY_SEED,
-                    direction=direction,
-                    delta_m=float(delta_m),
-                    max_steps=int(V06A_PRE_REGISTERED_INSERT_ENVELOPE["max_insert_steps"]),
-                    deadline_at=started_at + V06A_CAPTURE_RADIUS_RUNTIME_DEADLINE_S,
-                )
-                trial_results.append(trial)
-                direction_trials.append(trial)
-                if trial.get("env_native_success_mask_available") is not True:
-                    return {
-                        "runtime_loaded": True,
-                        "env_native_success_mask_available": False,
-                        "zero_offset_passed": True,
-                        "direction_results": direction_results,
-                        "trial_results": trial_results,
-                        "isaac_task_or_scene_id": isaac_task,
-                        "device": device,
-                        "headless": headless,
-                        "error": trial.get("timeout_reason") if trial.get("timed_out") else None,
-                    }
-                if trial.get("rollout_success") is True:
-                    max_successful_delta = float(delta_m)
-                write_json(output_dir / "capture_radius_probe_trials.json", {"trial_results": trial_results})
-                if trial.get("timed_out") is True:
-                    direction_results[direction] = {
-                        "max_successful_delta_m": max_successful_delta,
-                        "trial_count": len(direction_trials),
-                        "trials": direction_trials,
-                        "partial_due_to_timeout": True,
-                    }
-                    return {
-                        "runtime_loaded": True,
-                        "env_native_success_mask_available": True,
-                        "zero_offset_passed": True,
-                        "direction_results": direction_results,
-                        "trial_results": trial_results,
-                        "partial_due_to_timeout": True,
-                        "error": trial.get("timeout_reason"),
-                        "isaac_task_or_scene_id": isaac_task,
-                        "device": device,
-                        "headless": headless,
-                    }
-                assert_deadline()
-            direction_results[direction] = {
-                "max_successful_delta_m": max_successful_delta,
-                "trial_count": len(direction_trials),
-                "trials": direction_trials,
-            }
+        direction_trials_by_direction: dict[str, list[dict[str, Any]]] = {
+            direction: [] for direction in V06A_CAPTURE_RADIUS_DIRECTIONS
+        }
+        max_successful_delta_by_direction = {
+            direction: 0.0 for direction in V06A_CAPTURE_RADIUS_DIRECTIONS
+        }
+
+        def direction_results_snapshot(*, partial_due_to_timeout: bool = False) -> dict[str, dict[str, Any]]:
+            snapshot: dict[str, dict[str, Any]] = {}
+            for direction in V06A_CAPTURE_RADIUS_DIRECTIONS:
+                item: dict[str, Any] = {
+                    "max_successful_delta_m": max_successful_delta_by_direction[direction],
+                    "trial_count": len(direction_trials_by_direction[direction]),
+                    "trials": direction_trials_by_direction[direction],
+                }
+                if partial_due_to_timeout and not direction_trials_by_direction[direction]:
+                    item["partial_due_to_timeout"] = True
+                snapshot[direction] = item
+            return snapshot
+
+        for direction, delta_m in build_v06a_capture_radius_trial_schedule():
+            trial = _run_v06a_capture_radius_trial(
+                env=env,
+                simulation_app=simulation_app,
+                torch=torch,
+                seed=V06A_CAPTURE_RADIUS_PRIMARY_SEED,
+                direction=direction,
+                delta_m=float(delta_m),
+                max_steps=int(V06A_PRE_REGISTERED_INSERT_ENVELOPE["max_insert_steps"]),
+                deadline_at=started_at + V06A_CAPTURE_RADIUS_RUNTIME_DEADLINE_S,
+            )
+            trial_results.append(trial)
+            direction_trials_by_direction[direction].append(trial)
+            if trial.get("env_native_success_mask_available") is not True:
+                return {
+                    "runtime_loaded": True,
+                    "env_native_success_mask_available": False,
+                    "zero_offset_passed": True,
+                    "direction_results": direction_results_snapshot(),
+                    "trial_results": trial_results,
+                    "isaac_task_or_scene_id": isaac_task,
+                    "device": device,
+                    "headless": headless,
+                    "error": trial.get("timeout_reason") if trial.get("timed_out") else None,
+                }
+            if trial.get("rollout_success") is True:
+                max_successful_delta_by_direction[direction] = float(delta_m)
+            write_json(output_dir / "capture_radius_probe_trials.json", {"trial_results": trial_results})
+            if trial.get("timed_out") is True:
+                return {
+                    "runtime_loaded": True,
+                    "env_native_success_mask_available": True,
+                    "zero_offset_passed": True,
+                    "direction_results": direction_results_snapshot(partial_due_to_timeout=True),
+                    "trial_results": trial_results,
+                    "partial_due_to_timeout": True,
+                    "error": trial.get("timeout_reason"),
+                    "isaac_task_or_scene_id": isaac_task,
+                    "device": device,
+                    "headless": headless,
+                }
+            assert_deadline()
+        direction_results = direction_results_snapshot()
         write_json(output_dir / "capture_radius_probe_trials.json", {"trial_results": trial_results})
         return {
             "runtime_loaded": True,
@@ -1541,7 +1751,11 @@ def _v06_repair_probe_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     return probe_manifest
 
 
-def derive_v06_repair_probe_gate_from_probe_result(probe_result: BackendResult) -> dict[str, Any]:
+def derive_v06_repair_probe_gate_from_probe_result(
+    probe_result: BackendResult,
+    *,
+    capture_radius_m: float | None = None,
+) -> dict[str, Any]:
     probe_results: dict[int, dict[str, Any]] = {}
     trace_rows: list[dict[str, Any]] = []
     for trace_path in list(probe_result.baseline_trace_paths) + list(probe_result.candidate_trace_paths):
@@ -1553,8 +1767,12 @@ def derive_v06_repair_probe_gate_from_probe_result(probe_result: BackendResult) 
         lateral_errors = [float(row["lateral_error_m"]) for row in trace if isinstance(row, dict) and "lateral_error_m" in row]
         trace_rows.extend(row for row in trace if isinstance(row, dict))
         divergence = evaluate_lateral_divergence_stopped(lateral_errors_m=lateral_errors)
-        probe_results[seed] = {**summary, **divergence}
-    gate = evaluate_v06_repair_probe_gate(probe_results)
+        probe_results[seed] = {**summary, **divergence, "lateral_errors_m": lateral_errors}
+    if _numeric_capture_radius_m(capture_radius_m) is not None:
+        gate = evaluate_v06e_repair_probe_gate(probe_results, capture_radius_m=float(capture_radius_m))
+    else:
+        gate = evaluate_v06_repair_probe_gate(probe_results)
+        gate["v0_6e_numeric_capture_radius_missing"] = True
     validation = validate_v06b_native_metric_trace_rows(trace_rows)
     gate["v0_6b_native_metric_trace_validation"] = validation
     gate["v0_6c_controller_action_diagnosis"] = summarize_v06c_controller_action_diagnosis(trace_rows)
@@ -1697,10 +1915,48 @@ def run_v06_repair_probe_runtime(
         }
         write_json(output_dir / "repair_probe_gate.json", gate)
         return gate
+    capture_probe_path = output_dir / "capture_radius_probe.json"
+    if capture_probe_path.exists():
+        preflight = validate_v06e_numeric_capture_radius_preflight(
+            preflight=preflight,
+            capture_radius_probe=read_json(capture_probe_path),
+        )
+    else:
+        preflight = {
+            **preflight,
+            "repair_probe_allowed": False,
+            "insert_parameter_freeze_allowed": False,
+            "train_generation_gate_allowed": False,
+            "reason": "missing_numeric_v0_6e_capture_radius_probe",
+            "v0_6e_numeric_capture_radius_preflight_valid": False,
+            "v0_6e_numeric_capture_radius_preflight_reasons": ["missing_capture_radius_probe"],
+        }
+    if preflight["repair_probe_allowed"] is not True:
+        gate = {
+            "proof_authority": False,
+            "probe_seeds": list(V06_REPAIR_PROBE_SEEDS),
+            "green_light_for_40_run_gate": False,
+            "hard_stop": True,
+            "runtime_backend": "isaac_runtime_not_started",
+            "proof_runtime": "isaac_scripted_expert_repair_probe",
+            "chamfer_preflight": preflight,
+            "reason": preflight.get(
+                "reason",
+                "numeric capture-radius preflight blocked v0.6e repair probe.",
+            ),
+            "fixed_40_run_gate_opened": False,
+            "heldout_opened": False,
+        }
+        write_json(output_dir / "repair_probe_gate.json", gate)
+        return gate
+    capture_radius_m = float(preflight["capture_radius_m"])
+    controller_repair_config = build_v06e_controller_repair_config(capture_radius_m=capture_radius_m)
+    write_json(output_dir / "controller_repair_config.json", controller_repair_config)
     expert_policy = _scripted_expert_probe_policy_artifact(
         selected_adapter_id=selected_adapter_id,
         selected_adapter_config=selected_adapter_config,
         scenario_profile="v0_6",
+        controller_repair_config=controller_repair_config,
     )
     try:
         probe_result = IsaacConnectorInsertionEvaluatorBackend(
@@ -1730,8 +1986,15 @@ def run_v06_repair_probe_runtime(
         }
         write_json(output_dir / "repair_probe_gate.json", gate)
         return gate
-    gate = derive_v06_repair_probe_gate_from_probe_result(probe_result)
+    gate = derive_v06_repair_probe_gate_from_probe_result(
+        probe_result,
+        capture_radius_m=capture_radius_m,
+    )
     gate["chamfer_preflight"] = preflight
+    gate["controller_repair_config"] = controller_repair_config
+    gate["controller_repair_config_sha256"] = controller_repair_config["controller_repair_config_sha256"]
+    gate["fixed_40_run_gate_opened"] = False
+    gate["heldout_opened"] = False
     gate["v0_6a_post_repair_probe_gate"] = evaluate_v06a_post_repair_probe_gate(
         preflight=preflight,
         repair_probe_gate=gate,
@@ -3356,11 +3619,35 @@ def _train_generation_probe_manifest(manifest: dict[str, Any]) -> dict[str, Any]
     return probe_manifest
 
 
+def build_v06e_controller_repair_config(*, capture_radius_m: float) -> dict[str, Any]:
+    numeric_capture_radius = _numeric_capture_radius_m(capture_radius_m)
+    if numeric_capture_radius is None:
+        raise ValueError("v0_6e controller repair config requires numeric capture_radius_m")
+    config = {
+        "controller_version": "v0_6_active_state_controller",
+        "success_authority": "isaac_env_native_consecutive_success_v0",
+        "capture_radius_m": numeric_capture_radius,
+        "align_lateral_gate_m": numeric_capture_radius,
+        "tol_align_source": "empirical_capture_radius_m",
+        "z_push_gate": "lateral_error_m <= capture_radius_m",
+        "align_orientation_gate_rad": 0.25,
+        "continued_xy_yaw_correction": True,
+        "bounded_monotonic_downward_push": True,
+        "retry_recover_withdraw_search": False,
+        "force_reactive_control": False,
+        "per_seed_tuning": False,
+        "horizon_increase": False,
+    }
+    config["controller_repair_config_sha256"] = _sha256_payload_excluding(config, "controller_repair_config_sha256")
+    return config
+
+
 def _scripted_expert_probe_policy_artifact(
     *,
     selected_adapter_id: str,
     selected_adapter_config: dict[str, Any],
     scenario_profile: str = "v0_1",
+    controller_repair_config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     del selected_adapter_config
     train_generation_controller_config = {
@@ -3391,6 +3678,8 @@ def _scripted_expert_probe_policy_artifact(
                 "force_reactive_control": False,
             }
         )
+        if isinstance(controller_repair_config, dict):
+            train_generation_controller_config.update(controller_repair_config)
     payload = {
         "policy_id": "mvp2c_isaac_runtime_scripted_expert_train_generation_probe",
         "policy_class": "scripted_expert_probe_policy_v0",
