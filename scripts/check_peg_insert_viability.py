@@ -372,6 +372,29 @@ def _trajectory_task_state_config(trajectory: dict[str, Any]) -> dict[str, Any] 
     return None
 
 
+def default_rdf_peg_in_hole_trajectory() -> dict[str, Any]:
+    return {
+        "summary": {
+            "task_type": "peg_in_hole",
+            "task_state_config": {
+                "task_type": "peg_in_hole",
+                "peg_asset_name": "held_asset",
+                "hole_asset_name": "fixed_asset",
+                "peg_tip_local_offset": [0.0, 0.0, 0.0],
+                "hole_target_local_offset": [0.0, 0.0, 0.0],
+                "peg_axis_local": [0.0, 0.0, -1.0],
+                "hole_axis_local": [0.0, 0.0, -1.0],
+                "insertion_axis_world": [0.0, 0.0, 1.0],
+                "success_criteria": {
+                    "peg_tip_distance_to_target_max": 0.015,
+                    "peg_axis_alignment_error_max_rad": 0.25,
+                    "insertion_depth_min": 0.025,
+                },
+            },
+        },
+    }
+
+
 def _rdf_peg_in_hole_task_state(env: Any, trajectory: dict[str, Any]) -> dict[str, Any] | None:
     config = _trajectory_task_state_config(trajectory)
     if config is None:
@@ -448,6 +471,18 @@ def _rdf_peg_in_hole_task_state(env: Any, trajectory: dict[str, Any]) -> dict[st
     }
 
 
+def oracle_success_metrics(env: Any) -> dict[str, Any]:
+    native = success_metrics(env)
+    rdf_task_state = _rdf_peg_in_hole_task_state(env, default_rdf_peg_in_hole_trajectory())
+    metrics = dict(native)
+    metrics["env_native_success"] = native["success"]
+    metrics["selected_success_evaluator"] = "rdf_peg_in_hole" if rdf_task_state is not None else "env_native"
+    if rdf_task_state is not None:
+        metrics["rdf_peg_in_hole"] = rdf_task_state
+        metrics["success"] = bool(rdf_task_state["success"])
+    return metrics
+
+
 def replay_success_metrics(env: Any, trajectory: dict[str, Any], evaluator: str) -> dict[str, Any]:
     native = success_metrics(env)
     rdf_task_state = _rdf_peg_in_hole_task_state(env, trajectory)
@@ -463,6 +498,81 @@ def replay_success_metrics(env: Any, trajectory: dict[str, Any], evaluator: str)
     if selected == "rdf_peg_in_hole" and rdf_task_state is not None:
         metrics["success"] = bool(rdf_task_state["success"])
     return metrics
+
+
+def _scalar_int(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if hasattr(value, "detach"):
+        value = value.detach()
+    if hasattr(value, "cpu"):
+        value = value.cpu()
+    if hasattr(value, "tolist"):
+        value = value.tolist()
+    if isinstance(value, list):
+        if not value:
+            return None
+        value = value[0]
+        if isinstance(value, list):
+            if not value:
+                return None
+            value = value[0]
+    if isinstance(value, (int, float)):
+        return int(value)
+    return None
+
+
+def oracle_step_budget(env: Any, requested_steps: int, *, horizon_margin_steps: int = 5) -> dict[str, Any]:
+    requested = max(int(requested_steps), 1)
+    max_episode_length = _scalar_int(getattr(env, "max_episode_length", None))
+    if max_episode_length is None:
+        return {
+            "requested_steps": requested,
+            "steps": requested,
+            "max_episode_length": None,
+            "horizon_margin_steps": horizon_margin_steps,
+            "horizon_limited": False,
+        }
+
+    safe_horizon = max(1, max_episode_length - max(int(horizon_margin_steps), 1))
+    return {
+        "requested_steps": requested,
+        "steps": min(requested, safe_horizon),
+        "max_episode_length": max_episode_length,
+        "horizon_margin_steps": horizon_margin_steps,
+        "horizon_limited": requested > safe_horizon,
+    }
+
+
+def build_scripted_oracle_phase_target_values(
+    env: Any,
+    *,
+    target_held_base_pos: list[float],
+    phase_lift_m: float,
+) -> list[float]:
+    fingertip_pos = vec(getattr(env, "fingertip_midpoint_pos", []), 3)
+    held_pos = vec(getattr(env, "held_pos", []), 3)
+    if len(fingertip_pos) != 3 or len(held_pos) != 3 or len(target_held_base_pos) != 3:
+        return []
+    fingertip_to_held_offset = _vec_sub(fingertip_pos, held_pos)
+    target = _vec_add(target_held_base_pos, fingertip_to_held_offset)
+    if len(target) != 3:
+        return []
+    return [target[0], target[1], target[2] + float(phase_lift_m)]
+
+
+def target_jump_diagnostics(
+    *,
+    initial_fixed_pos: list[float],
+    current_fixed_pos: list[float],
+    jump_threshold_m: float = 0.005,
+) -> dict[str, Any]:
+    delta = _vec_norm(_vec_sub(current_fixed_pos, initial_fixed_pos))
+    return {
+        "fixed_pos_delta_m": delta,
+        "fixed_pos_jump_threshold_m": float(jump_threshold_m),
+        "reset_or_target_jump_detected": bool(delta is not None and delta > float(jump_threshold_m)),
+    }
 
 
 def step_sim_no_action(env: Any) -> None:
@@ -535,60 +645,86 @@ def run_scripted_oracle_check(env: Any, seed: int, max_steps: int) -> dict[str, 
         env.reset()
     set_ema_one(env)
     refresh_env(env)
-    before = success_metrics(env)
-    target_held_base_pos, _target_held_base_quat = factory_utils.get_target_held_base_pose(
-        env.fixed_pos,
-        env.fixed_quat,
-        env.cfg_task.name,
-        env.cfg_task.fixed_asset_cfg,
-        env.num_envs,
-        env.device,
-    )
-    fingertip_to_held_offset = env.fingertip_midpoint_pos[0] - env.held_pos[0]
-    final_fingertip_target = target_held_base_pos[0] + fingertip_to_held_offset
-    phase_targets = [
-        final_fingertip_target + torch.tensor([0.0, 0.0, 0.045], dtype=torch.float32, device=env.device),
-        final_fingertip_target + torch.tensor([0.0, 0.0, 0.020], dtype=torch.float32, device=env.device),
-        final_fingertip_target + torch.tensor([0.0, 0.0, 0.006], dtype=torch.float32, device=env.device),
-        final_fingertip_target,
-    ]
+    before = oracle_success_metrics(env)
+    step_budget = oracle_step_budget(env, max_steps)
+    effective_steps = int(step_budget["steps"])
+    phase_lifts_m = [0.045, 0.020, 0.006, 0.0]
+    initial_fixed_pos = list(before.get("fixed_pos") or [])
     success_seen = False
     success_step: int | None = None
     samples: list[dict[str, Any]] = []
-    for step in range(max(max_steps, 1)):
-        phase_index = min(len(phase_targets) - 1, int(step / max(max_steps, 1) * len(phase_targets)))
-        target = phase_targets[phase_index]
+    for step in range(effective_steps):
+        refresh_env(env)
+        target_held_base_pos, _target_held_base_quat = factory_utils.get_target_held_base_pose(
+            env.fixed_pos,
+            env.fixed_quat,
+            env.cfg_task.name,
+            env.cfg_task.fixed_asset_cfg,
+            env.num_envs,
+            env.device,
+        )
+        phase_index = min(len(phase_lifts_m) - 1, int(step / max(effective_steps, 1) * len(phase_lifts_m)))
+        target_values = build_scripted_oracle_phase_target_values(
+            env,
+            target_held_base_pos=vec(target_held_base_pos, 3),
+            phase_lift_m=phase_lifts_m[phase_index],
+        )
+        if len(target_values) != 3:
+            break
+        target = torch.tensor(target_values, dtype=torch.float32, device=env.device)
         action = build_native_action_to_target(env, target)
         env.step(action)
-        if step % 20 == 0 or step == max_steps - 1:
-            metrics = success_metrics(env)
+        metrics = oracle_success_metrics(env)
+        jump = target_jump_diagnostics(
+            initial_fixed_pos=initial_fixed_pos,
+            current_fixed_pos=list(metrics.get("fixed_pos") or []),
+        )
+        if step % 20 == 0 or step == effective_steps - 1 or metrics["success"] or jump["reset_or_target_jump_detected"]:
             samples.append(
                 {
                     "step": step + 1,
                     "phase_index": phase_index,
+                    "phase_lift_m": phase_lifts_m[phase_index],
                     "target_fingertip_pos": vec(target, 3),
+                    "target_held_base_pos": vec(target_held_base_pos, 3),
                     "action_xyz": vec(action, 3),
                     "success": metrics["success"],
+                    "env_native_success": metrics.get("env_native_success"),
+                    "selected_success_evaluator": metrics.get("selected_success_evaluator"),
+                    "rdf_peg_in_hole": metrics.get("rdf_peg_in_hole"),
                     "xy_dist_m": metrics["xy_dist_m"],
                     "z_disp_m": metrics["z_disp_m"],
                     "fingertip_pos": metrics["fingertip_pos"],
                     "held_pos": metrics["held_pos"],
+                    "fixed_pos": metrics["fixed_pos"],
+                    "episode_length_step": _scalar_int(getattr(env, "episode_length_buf", None)),
+                    **jump,
                 }
             )
-        metrics = success_metrics(env)
         if metrics["success"]:
             success_seen = True
             success_step = step + 1
             break
-    after = success_metrics(env)
+        if jump["reset_or_target_jump_detected"]:
+            initial_fixed_pos = list(metrics.get("fixed_pos") or [])
+    after = oracle_success_metrics(env)
     return {
         "name": "closed_loop_scripted_oracle",
         "passed": success_seen,
         "success_step": success_step,
+        "requested_steps": int(max_steps),
+        "effective_steps": effective_steps,
+        "horizon_limited": bool(step_budget["horizon_limited"]),
+        "max_episode_length": step_budget["max_episode_length"],
+        "horizon_margin_steps": step_budget["horizon_margin_steps"],
+        "selected_success_evaluator": after.get("selected_success_evaluator"),
         "before": before,
         "after": after,
         "samples": samples,
-        "interpretation": "Uses env native actions in a closed-loop controller targeting the held asset success pose.",
+        "interpretation": (
+            "Uses env native actions in a closed-loop controller that recomputes the target pose every step, "
+            "stays inside the env timeout horizon when exposed, and gates success with the RDF peg-in-hole metric."
+        ),
     }
 
 
