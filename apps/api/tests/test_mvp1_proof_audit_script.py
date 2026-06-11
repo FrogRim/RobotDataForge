@@ -32,6 +32,38 @@ def write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
+def external_rollout_evidence() -> dict:
+    return {
+        "source_kind": "external_heldout_policy_eval",
+        "proof_grade": True,
+        "heldout_suite": {
+            "id": "external_ur_heldout_policy_eval_suite",
+            "held_out": True,
+            "task_type": "connector_insertion",
+            "scenario_ids": ["scenario_0"],
+            "scenario_set_sha256": "external_scenario_set_sha256",
+            "source_kind": "external_trainer_eval_suite",
+            "proof_role": "external_policy_eval_suite",
+        },
+        "baseline_policy_artifact_sha256": "baseline_policy_sha256",
+        "candidate_policy_artifact_sha256": "candidate_policy_sha256",
+        "baseline_training_artifact_sha256": "baseline_training_sha256",
+        "candidate_training_artifact_sha256": "candidate_training_sha256",
+        "baseline_external_evaluator_run": {
+            "run_id": "baseline_external_eval_run",
+            "runner_version": "external_eval_runner_v1",
+            "run_log_uri": "file:///external/baseline.jsonl",
+            "generated_outside_rdf_local_proxy": True,
+        },
+        "candidate_external_evaluator_run": {
+            "run_id": "candidate_external_eval_run",
+            "runner_version": "external_eval_runner_v1",
+            "run_log_uri": "file:///external/candidate.jsonl",
+            "generated_outside_rdf_local_proxy": True,
+        },
+    }
+
+
 def build_readiness(output_dir: Path) -> None:
     report = readiness.build_bundle(output_dir, clean=True)
     assert report["passed"] is True
@@ -67,6 +99,26 @@ def audit_with_mvp2_harness(
         learning_manifest_path=learning_manifest or output_dir / "curated_vs_uncurated_experiment_manifest.json",
         output_path=output_dir / "proof_audit.json",
         mvp2_policy_ab_harness_report_path=harness_report,
+    )
+
+
+def audit_with_mvp2_learning_proven(
+    output_dir: Path,
+    *,
+    trajectory_dir: Path,
+    learning_proven_report: Path,
+    learning_manifest: Path | None = None,
+) -> dict:
+    return proof.build_audit(
+        readiness_report_path=output_dir / "readiness_report.json",
+        curation_manifest_path=output_dir / "curation_manifest.json",
+        split_manifest_path=output_dir / "split_manifest.json",
+        dataset_card_path=output_dir / "dataset_card.json",
+        hdf5_inspection_path=output_dir / "hdf5_inspection.json",
+        trajectory_dir=trajectory_dir,
+        learning_manifest_path=learning_manifest or output_dir / "curated_vs_uncurated_experiment_manifest.json",
+        output_path=output_dir / "proof_audit.json",
+        mvp2_learning_proven_report_path=learning_proven_report,
     )
 
 
@@ -160,6 +212,26 @@ def test_proof_audit_summarizes_mvp2_harness_without_learning_proven_claim(tmp_p
                 "learning_proven": False,
                 "proof_eligible": False,
             },
+            "mvp2a_transition_policy_readiness": {
+                "schema_version": "rdf_mvp2a_transition_policy_readiness_v0.1.0",
+                "passed": True,
+                "mvp2a_policy_ab_ready": True,
+                "stronger_policy_trainer_selected": True,
+                "next_recommended_gate": "external_heldout_policy_rollout_generation",
+                "candidate_curated_train": {
+                    "transition_coverage_passed": True,
+                    "train_set_overfit_passed": True,
+                    "dataset_present_required_phases": ["APPROACH", "CONTACT", "INSERT", "SEAT"],
+                    "dataset_missing_required_phases": [],
+                    "transition_rich_episode_count": 1,
+                },
+                "policy_trainer_selection": {
+                    "schema_version": "rdf_mvp2a_policy_trainer_selection_v0.1.0",
+                    "selected": True,
+                    "policy_class": "phase_conditioned_sequence_bc_policy_v0",
+                    "trainer": "rdf_phase_conditioned_sequence_bc_trainer_contract_v0",
+                },
+            },
         },
     )
 
@@ -178,9 +250,216 @@ def test_proof_audit_summarizes_mvp2_harness_without_learning_proven_claim(tmp_p
     assert harness["learning_results_measured"] is False
     assert harness["learning_proven"] is False
     assert harness["proof_eligible"] is False
+    assert harness["mvp2a_policy_ab_ready"] is True
+    assert harness["stronger_policy_trainer_selected"] is True
+    assert harness["selected_policy_class"] == "phase_conditioned_sequence_bc_policy_v0"
+    assert harness["selected_trainer"] == "rdf_phase_conditioned_sequence_bc_trainer_contract_v0"
+    assert harness["mvp2a_next_recommended_gate"] == "external_heldout_policy_rollout_generation"
+    assert harness["candidate_transition_coverage_passed"] is True
+    assert harness["candidate_train_set_overfit_passed"] is True
+    stronger_gate = next(
+        gate for gate in report["mvp2_policy_uplift_proof"]["gates"] if gate["name"] == "stronger_policy_trainer"
+    )
+    assert stronger_gate["passed"] is True
+    assert stronger_gate["evidence"]["selected_policy_class"] == "phase_conditioned_sequence_bc_policy_v0"
+    assert stronger_gate["evidence"]["selected_trainer"] == "rdf_phase_conditioned_sequence_bc_trainer_contract_v0"
     assert report["learning_proven_policy_uplift_achieved"] is False
     assert report["policy_uplift_required_for_mvp1"] is False
     assert report["summary"]["do_not_claim_policy_uplift"] is True
+
+
+def test_proof_audit_summarizes_mvp2_learning_proven_positive_report(tmp_path: Path) -> None:
+    output_dir = tmp_path / "mvp1_readiness"
+    trajectory_dir = tmp_path / "real_trajectories"
+    build_readiness(output_dir)
+    mvp2_report = tmp_path / "mvp2_learning_proven_report.json"
+    policy_eval_report = tmp_path / "mvp2_policy_eval_report.json"
+    write_json(
+        policy_eval_report,
+        {
+            "passed": True,
+            "learning_results_measured": True,
+            "proof_eligible": True,
+            "evidence_tier": "heldout_policy_eval",
+            "primary_metric": "policy_success_rate",
+            "baseline_success_rate": 0.4,
+            "candidate_success_rate": 0.8,
+            "curated_vs_uncurated_uplift": 0.4,
+            "eval_suite": {
+                "id": "external_ur_heldout_policy_eval_suite",
+                "held_out": True,
+                "task_type": "connector_insertion",
+                "scenario_ids": ["scenario_0"],
+                "source_kind": "external_trainer_eval_suite",
+                "proof_role": "external_policy_eval_suite",
+            },
+        },
+    )
+    write_json(
+        mvp2_report,
+        {
+            "schema_version": "rdf_mvp2_learning_proven_policy_eval_v0.1.0",
+            "passed": True,
+            "learning_results_measured": True,
+            "learning_proven": True,
+            "proof_eligible": True,
+            "evidence_tier": "external_heldout_policy_eval",
+            "validator_evidence_tier": "heldout_policy_eval",
+            "primary_metric": "policy_success_rate",
+            "baseline_success_rate": 0.4,
+            "candidate_success_rate": 0.8,
+            "curated_vs_uncurated_uplift": 0.4,
+            "proof_source": {"adapter_id": "universal_robots_ur_industrial_arm"},
+            "artifact_paths": {"policy_eval_report": str(policy_eval_report)},
+            "external_rollout_evidence": external_rollout_evidence(),
+            "blockers": [],
+            "limitations": ["external held-out policy eval proof"],
+        },
+    )
+
+    report = audit_with_mvp2_learning_proven(
+        output_dir,
+        trajectory_dir=trajectory_dir,
+        learning_proven_report=mvp2_report,
+    )
+
+    mvp2 = report["mvp2_learning_proven_policy_eval"]
+    assert mvp2["available"] is True
+    assert mvp2["validator_report_compatible"] is True
+    assert mvp2["learning_results_measured"] is True
+    assert mvp2["learning_proven"] is True
+    assert mvp2["proof_eligible"] is True
+    assert mvp2["evidence_tier"] == "external_heldout_policy_eval"
+    assert mvp2["validator_evidence_tier"] == "heldout_policy_eval"
+    assert mvp2["curated_vs_uncurated_uplift"] == 0.4
+    assert report["learning_proven_policy_uplift_achieved"] is True
+    assert report["summary"]["learning_proven"] is True
+    assert report["summary"]["policy_uplift_positive"] is True
+    assert report["policy_uplift_required_for_mvp1"] is False
+    proof_status = report["mvp2_policy_uplift_proof"]
+    assert proof_status["learning_proven"] is True
+    assert proof_status["summary"]["heldout_policy_ab_recorded"] is True
+    assert proof_status["summary"]["evidence_tier"] == "external_heldout_policy_eval"
+    heldout_gate = next(
+        gate for gate in proof_status["gates"] if gate["name"] == "heldout_policy_ab_recorded"
+    )
+    uplift_gate = next(
+        gate for gate in proof_status["gates"] if gate["name"] == "curated_vs_uncurated_policy_uplift_positive"
+    )
+    assert heldout_gate["passed"] is True
+    assert uplift_gate["passed"] is True
+
+
+def test_proof_audit_does_not_promote_local_offline_proxy_report(tmp_path: Path) -> None:
+    output_dir = tmp_path / "mvp1_readiness"
+    trajectory_dir = tmp_path / "real_trajectories"
+    build_readiness(output_dir)
+    mvp2_report = tmp_path / "mvp2_learning_proven_report.json"
+    write_json(
+        mvp2_report,
+        {
+            "schema_version": "rdf_mvp2_learning_proven_policy_eval_v0.1.0",
+            "passed": True,
+            "learning_results_measured": True,
+            "learning_proven": True,
+            "proof_eligible": True,
+            "evidence_tier": "local_offline_policy_eval_proxy",
+            "validator_evidence_tier": None,
+            "primary_metric": "policy_success_rate",
+            "baseline_success_rate": 0.4,
+            "candidate_success_rate": 0.8,
+            "curated_vs_uncurated_uplift": 0.4,
+            "blockers": ["Local offline deterministic proxy cannot close MVP-2."],
+            "limitations": ["proxy evidence only"],
+        },
+    )
+
+    report = audit_with_mvp2_learning_proven(
+        output_dir,
+        trajectory_dir=trajectory_dir,
+        learning_proven_report=mvp2_report,
+    )
+
+    mvp2 = report["mvp2_learning_proven_policy_eval"]
+    assert mvp2["available"] is True
+    assert mvp2["reported_learning_results_measured"] is True
+    assert mvp2["learning_results_measured"] is False
+    assert mvp2["learning_proven"] is False
+    assert mvp2["proof_eligible"] is False
+    assert mvp2["negative_or_tie_result_recorded"] is False
+    assert mvp2["validator_report_compatible"] is False
+    assert report["learning_proven_policy_uplift_achieved"] is False
+    assert report["summary"]["policy_uplift_positive"] is False
+    assert report["policy_uplift_required_for_mvp1"] is False
+
+
+def test_proof_audit_summarizes_mvp2_learning_proven_negative_report_without_mvp1_blocker(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "mvp1_readiness"
+    trajectory_dir = tmp_path / "real_trajectories"
+    build_readiness(output_dir)
+    mvp2_report = tmp_path / "mvp2_learning_proven_report.json"
+    policy_eval_report = tmp_path / "mvp2_policy_eval_report.json"
+    write_json(
+        policy_eval_report,
+        {
+            "passed": True,
+            "learning_results_measured": True,
+            "proof_eligible": False,
+            "evidence_tier": "heldout_policy_eval",
+            "primary_metric": "policy_success_rate",
+            "baseline_success_rate": 0.8,
+            "candidate_success_rate": 0.4,
+            "curated_vs_uncurated_uplift": -0.4,
+            "eval_suite": {
+                "id": "external_ur_heldout_policy_eval_suite",
+                "held_out": True,
+                "task_type": "connector_insertion",
+                "scenario_ids": ["scenario_0"],
+                "source_kind": "external_trainer_eval_suite",
+                "proof_role": "external_policy_eval_suite",
+            },
+        },
+    )
+    write_json(
+        mvp2_report,
+        {
+            "schema_version": "rdf_mvp2_learning_proven_policy_eval_v0.1.0",
+            "passed": True,
+            "learning_results_measured": True,
+            "learning_proven": False,
+            "proof_eligible": False,
+            "evidence_tier": "external_heldout_policy_eval",
+            "validator_evidence_tier": "heldout_policy_eval",
+            "primary_metric": "policy_success_rate",
+            "baseline_success_rate": 0.8,
+            "candidate_success_rate": 0.4,
+            "curated_vs_uncurated_uplift": -0.4,
+            "artifact_paths": {"policy_eval_report": str(policy_eval_report)},
+            "external_rollout_evidence": external_rollout_evidence(),
+            "blockers": ["Curated held-out policy success rate did not exceed baseline."],
+            "limitations": ["negative result is preserved as evidence"],
+        },
+    )
+
+    report = audit_with_mvp2_learning_proven(
+        output_dir,
+        trajectory_dir=trajectory_dir,
+        learning_proven_report=mvp2_report,
+    )
+
+    mvp2 = report["mvp2_learning_proven_policy_eval"]
+    assert mvp2["available"] is True
+    assert mvp2["learning_results_measured"] is True
+    assert mvp2["learning_proven"] is False
+    assert mvp2["proof_eligible"] is False
+    assert mvp2["negative_or_tie_result_recorded"] is True
+    assert mvp2["blockers"] == ["Curated held-out policy success rate did not exceed baseline."]
+    assert report["learning_proven_policy_uplift_achieved"] is False
+    assert report["summary"]["learning_proven"] is False
+    assert report["summary"]["policy_uplift_negative_evidence_recorded"] is True
+    assert report["policy_uplift_required_for_mvp1"] is False
 
 
 def test_mvp1_proof_audit_reports_partial_until_live_and_learning_evidence_exist(tmp_path: Path) -> None:
