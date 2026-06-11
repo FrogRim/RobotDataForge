@@ -8524,6 +8524,15 @@ uvx ruff check scripts/run_mvp1plus_embodiment_proof.py scripts/run_data_trust_l
 
 git diff --check
   PASS
+
+omx ultragoal checkpoint --goal-id G001-implement-mvp-2-closed-positive-lear --status failed ...
+  checkpoint recorded
+
+omx ultragoal status --json
+  G001-implement-mvp-2-closed-positive-lear status=failed
+  reason=original MVP-2 Closed positive objective cannot be completed honestly
+  without external proof-grade held-out policy eval rollouts; current default
+  output is local_offline_policy_eval_proxy only.
 ```
 
 Additional regression coverage added during review:
@@ -8884,3 +8893,3200 @@ git diff --check -- docs/superpowers/specs/2026-06-08-mvp2-learning-proven-polic
 - 아직 구현은 시작하지 않았다.
 - 다음 단계는 spec review 후 implementation plan을 작성하는 것이다.
 - MVP-2 implementation은 positive uplift가 나오지 않으면 Closed 처리하지 않는다.
+
+## 2026-06-08 - MVP-2 Closed positive uplift ralplan consensus 작성
+
+### 작업 내용
+
+- MVP-2 Closed 구현 전 `$ralplan` 계획을 작성했다.
+- PRD, test spec, implementation plan, consensus handoff artifact를 고정했다.
+- Architect/Critic 순서로 리뷰를 반복해 최종 `APPROVE`를 받았다.
+- 구현은 아직 시작하지 않았고, 다음 단계는 `$ultragoal` 실행이다.
+
+### 판단 이유
+
+- MVP-2 Closed는 `candidate_success_rate > baseline_success_rate`와
+  `curated_vs_uncurated_uplift > 0`이 필수다.
+- 기존 UR policy A/B harness는 readiness artifact이므로, local offline
+  held-out policy A/B wrapper가 별도 measured report를 생성해야 한다.
+- Schema-only harness suite가 validator에 proof-grade `eval_suite`로 들어가면
+  readiness artifact가 policy evidence로 승격될 위험이 있어, 계획에
+  `mvp2_local_offline_heldout_suite_manifest.json` 기반 `eval_suite` overwrite와
+  input/report assertion을 추가했다.
+
+### 변경 파일
+
+- `docs/superpowers/plans/2026-06-08-mvp2-learning-proven-policy-uplift.md`
+- `.omx/context/mvp2-learning-proven-policy-uplift-20260608T135520Z.md`
+- `.omx/plans/prd-mvp2-learning-proven-policy-uplift.md`
+- `.omx/plans/test-spec-mvp2-learning-proven-policy-uplift.md`
+- `.omx/plans/ralplan-consensus-mvp2-learning-proven-policy-uplift.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 리뷰 결과
+
+```text
+Architect: APPROVE
+  - local offline eval_suite overwrite와 input/report provenance assertion 확인
+  - no physical/Isaac/real robot/HMD readiness claim 확인
+
+Critic: APPROVE
+  - no remaining blocker prevents handoff to $ultragoal implementation
+  - schema-only promotion guard, external metadata preservation, MVP-1/MVP-2
+    separation, verification matrix 확인
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+rg -n "TBD|TODO|FIXME|placeholder|implement later|appropriate|similar to|RESULT_FROM|Paste the actual|\\.\\.\\." \
+  docs/superpowers/plans/2026-06-08-mvp2-learning-proven-policy-uplift.md \
+  .omx/plans/prd-mvp2-learning-proven-policy-uplift.md \
+  .omx/plans/test-spec-mvp2-learning-proven-policy-uplift.md \
+  .omx/context/mvp2-learning-proven-policy-uplift-20260608T135520Z.md
+  no matches
+
+git diff --check -- \
+  docs/superpowers/plans/2026-06-08-mvp2-learning-proven-policy-uplift.md \
+  .omx/plans/prd-mvp2-learning-proven-policy-uplift.md \
+  .omx/plans/test-spec-mvp2-learning-proven-policy-uplift.md \
+  .omx/context/mvp2-learning-proven-policy-uplift-20260608T135520Z.md
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 아직 구현은 시작하지 않았다.
+- 다음 단계는 `$ultragoal`로
+  `docs/superpowers/plans/2026-06-08-mvp2-learning-proven-policy-uplift.md`를
+  실행하는 것이다.
+- 구현 중 positive uplift를 validator weakening 없이 만들 수 없으면 중단한다.
+- HMD/OpenXR primary path, live UR/RTDE runtime, physical robot readiness, DB
+  migration, marketplace, VLA/World Model은 계속 범위 밖이다.
+
+## 2026-06-08 - MVP-2 Closed positive learning-proven uplift 구현
+
+### 작업 내용
+
+- `$ultragoal` 계획 기준으로 MVP-2 Closed wrapper를 구현했다.
+- `scripts/run_mvp2_learning_proven_policy_eval.py`를 추가해 기존 UR policy A/B
+  harness에서 local offline held-out rollout 결과를 만들고,
+  `run_mvp1c_real_policy_eval.py` validator를 통과시키도록 연결했다.
+- Schema-only rollout ingest fixture는 proof validator 호출 전에 차단하도록 했다.
+- External rollout result path는 유지하고 `policy_id`, `policy_class`, `trainer`
+  metadata가 policy eval input/report에 유지되도록 했다.
+- `run_mvp1_proof_audit.py`에 `mvp2_learning_proven_policy_eval` summary를 추가해
+  positive report일 때만 `learning_proven_policy_uplift_achieved=true`가 되도록
+  했다.
+
+### 판단 이유
+
+- MVP-2 Closed는 `candidate_success_rate > baseline_success_rate`와
+  `curated_vs_uncurated_uplift > 0`이 필수다.
+- 기존 `mvp2_policy_ab_harness`는 readiness artifact라서
+  `learning_results_measured=false`를 유지해야 한다.
+- Local offline proof path는 harness schema-only suite를 validator에 그대로
+  넣지 않고 `mvp2_local_offline_ur_policy_eval_suite`로 `eval_suite`를 overwrite해야
+  schema-only fixture 승격 위험이 없다.
+- `run_mvp1c_real_policy_eval.py`는 수정하지 않았고, 기존 `heldout_policy_eval`
+  validator semantics를 재사용했다.
+
+### 변경 파일
+
+- `scripts/run_mvp2_learning_proven_policy_eval.py`
+- `scripts/run_mvp1_proof_audit.py`
+- `apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py`
+- `apps/api/tests/test_mvp1_proof_audit_script.py`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 현재 생성 artifact
+
+```text
+storage/mvp2_learning_proven_policy_eval/mvp2_learning_proven_report.json
+storage/mvp2_learning_proven_policy_eval/mvp2_policy_eval_input.json
+storage/mvp2_learning_proven_policy_eval/mvp2_policy_eval_report.json
+storage/mvp2_learning_proven_policy_eval/mvp2_local_offline_heldout_suite_manifest.json
+```
+
+Positive proof result:
+
+```text
+learning_results_measured=true
+learning_proven=true
+proof_eligible=true
+baseline_success_rate=0.7
+candidate_success_rate=1.0
+curated_vs_uncurated_uplift=0.30000000000000004
+validator_evidence_tier=heldout_policy_eval
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py -q
+  8 passed
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  19 passed
+
+uv run python scripts/run_mvp2_learning_proven_policy_eval.py --clean --refresh-harness --refresh-mvp1plus --pretty
+  passed=true, learning_results_measured=true, learning_proven=true, proof_eligible=true
+
+uv run pytest apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py -q
+  19 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  11 passed
+
+uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+  9 passed
+
+uv run python scripts/run_mvp2_ur_policy_ab_harness.py --clean --refresh-mvp1plus --pretty
+  passed=true, harness_ready=true, learning_results_measured=false, learning_proven=false
+
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty
+  passed=true, issues=[]
+
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+  passed=true, accepted_count=4, rejected_count=4
+
+uv run python scripts/run_mvp1_proof_audit.py --mvp2-learning-proven-report storage/mvp2_learning_proven_policy_eval/mvp2_learning_proven_report.json --output storage/mvp1_proof/proof_audit.json --pretty
+  mvp2_learning_proven_policy_eval.learning_proven=true,
+  policy_uplift_required_for_mvp1=false
+  note: storage/mvp1_readiness artifacts were not present, so overall MVP-1
+  audit status remained fail in this standalone command.
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts apps/api/app apps/api/tests
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2 Closed local offline proof는 real robot success나 physical UR readiness를
+  주장하지 않는다.
+- 더 강한 MVP-2 evidence는 외부 trainer/evaluator rollout result를
+  `--baseline-results`, `--candidate-results`로 주입해 같은 validator path를
+  통과시키는 작업이다.
+
+## 2026-06-08 - MVP-2 learning-proven proof gate review correction
+
+### 작업 내용
+
+- Independent review 결과, local deterministic quality-signal rollout을
+  `learning_proven=true`로 승격하는 것은 circular proxy claim으로 판단했다.
+- `run_mvp2_learning_proven_policy_eval.py`를 수정해 default local offline path를
+  `evidence_tier=local_offline_policy_eval_proxy`로 재분류했다.
+- Local proxy는 `learning_results_measured=true`와 positive delta를 기록할 수
+  있지만 `learning_proven=false`, `proof_eligible=false`,
+  `validator_evidence_tier=null`로 고정한다.
+- External proof-grade rollout JSON만 `source_kind=external_heldout_policy_eval`,
+  external held-out suite provenance, trainer/eval runner provenance를 갖고
+  validator에 들어갈 수 있게 했다.
+- Schema-only marker, marker-stripped schema-like rollout id,
+  deterministic_dataset_quality_signal label source, missing external proof
+  provenance는 validator 호출 전 차단한다.
+- `run_mvp1_proof_audit.py`에서 `--mvp2-learning-proven-report` 기본 storage path를
+  제거하고, explicit report만 summary로 읽게 했다. 또한 positive MVP-2 summary는
+  `evidence_tier=external_heldout_policy_eval`와
+  `validator_evidence_tier=heldout_policy_eval`일 때만 가능하다.
+
+### 판단 이유
+
+- MVP-2 Closed는 downstream policy evidence여야 하며, curation quality signal로
+  만든 deterministic local proxy는 policy uplift proof가 아니다.
+- Existing held-out policy validator는 유지하고, wrapper에서 proof provenance를
+  먼저 검증해야 validator weakening 없이 claim integrity를 보존할 수 있다.
+- Stale storage report 자동 승격은 proof audit을 오염시킬 수 있으므로 explicit
+  path opt-in만 허용한다.
+
+### 변경 파일
+
+- `scripts/run_mvp2_learning_proven_policy_eval.py`
+- `scripts/run_mvp1_proof_audit.py`
+- `apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py`
+- `apps/api/tests/test_mvp1_proof_audit_script.py`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 현재 생성 artifact
+
+```text
+storage/mvp2_learning_proven_policy_eval/mvp2_learning_proven_report.json
+storage/mvp2_learning_proven_policy_eval/mvp2_local_offline_heldout_suite_manifest.json
+storage/mvp2_learning_proven_policy_eval/baseline_local_offline_rollouts.json
+storage/mvp2_learning_proven_policy_eval/candidate_local_offline_rollouts.json
+```
+
+Default local proxy result:
+
+```text
+passed=true
+learning_results_measured=true
+learning_proven=false
+proof_eligible=false
+evidence_tier=local_offline_policy_eval_proxy
+validator_evidence_tier=null
+baseline_success_rate=0.7
+candidate_success_rate=1.0
+curated_vs_uncurated_uplift=0.30000000000000004
+blocker=Local offline deterministic proxy cannot close MVP-2.
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py -q
+  9 passed
+
+uv run python scripts/run_mvp2_learning_proven_policy_eval.py --clean --refresh-harness --refresh-mvp1plus --pretty
+  passed=true, learning_results_measured=true, learning_proven=false,
+  proof_eligible=false, evidence_tier=local_offline_policy_eval_proxy
+
+uv run python scripts/run_mvp1_proof_audit.py --mvp2-learning-proven-report storage/mvp2_learning_proven_policy_eval/mvp2_learning_proven_report.json --output /tmp/rdf-proof-audit-local-proxy.json --pretty
+  learning_proven_policy_uplift_achieved=false,
+  mvp2_learning_proven_policy_eval.learning_proven=false,
+  policy_uplift_required_for_mvp1=false
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  21 passed
+
+uv run pytest apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py -q
+  9 passed
+
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py -q
+  19 passed
+
+uv run pytest apps/api/tests/test_data_trust_layer_proof_script.py -q
+  9 passed
+
+uv run python scripts/run_mvp2_ur_policy_ab_harness.py --clean --refresh-mvp1plus --pretty
+  passed=true, harness_ready=true, learning_results_measured=false,
+  learning_proven=false
+
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty
+  passed=true, issues=[]
+
+uv run python scripts/run_data_trust_layer_proof.py --clean --pretty
+  passed=true, accepted_count=4, rejected_count=4
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts apps/api/app apps/api/tests
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2 Closed는 아직 claim하지 않는다.
+- Closed에 필요한 다음 evidence는 external trainer/evaluator가 만든 proof-grade
+  held-out baseline/candidate rollout JSON이다.
+- 그 external result가 positive curated > uncurated uplift를 만들고 기존 validator를
+  통과하면 `mvp2_learning_proven_report.json`이
+  `learning_proven=true`, `proof_eligible=true`로 close할 수 있다.
+
+## 2026-06-09 - MVP-2 external proof package template added
+
+### 작업 내용
+
+- `run_mvp2_learning_proven_policy_eval.py`에
+  `build_mvp2_external_policy_eval_template()`와
+  `--write-external-proof-template` CLI를 추가했다.
+- External evaluator가 채워야 할 proof package artifact를 생성한다.
+  - `external_policy_eval_request.json`
+  - `baseline_external_rollouts.template.json`
+  - `candidate_external_rollouts.template.json`
+  - `external_policy_eval_template_report.json`
+- Template package는 `proof_ready=false`, `mvp2_closed=false`,
+  `template_is_not_evidence=true`를 기록한다.
+- 채우지 않은 template 파일을 그대로 ingest하면 wrapper가 validator 호출 전에
+  차단하도록 테스트를 추가했다.
+
+### 판단 이유
+
+- MVP-2 Closed를 위해 필요한 다음 evidence는 local proxy가 아니라 external
+  trainer/evaluator의 proof-grade held-out rollout JSON이다.
+- 다만 가짜 external result를 repo에 만들면 claim integrity가 깨지므로, 이번
+  step은 실제 결과를 받을 JSON 계약과 handoff package만 생성한다.
+- Unfilled template은 `source_kind=external_heldout_policy_eval_template`,
+  `proof_role=external_trainer_policy_eval_template`, `rollout_results=[]`로 남겨
+  proof로 승격될 수 없게 했다.
+
+### 변경 파일
+
+- `scripts/run_mvp2_learning_proven_policy_eval.py`
+- `apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py -q
+  11 passed
+
+uv run python scripts/run_mvp2_learning_proven_policy_eval.py --write-external-proof-template --clean --refresh-harness --refresh-mvp1plus --pretty
+  passed=true, proof_ready=false, mvp2_closed=false,
+  template_is_not_evidence=true
+
+uv run python scripts/run_mvp2_learning_proven_policy_eval.py --output-dir /tmp/rdf-mvp2-template-reject --clean --baseline-results storage/mvp2_learning_proven_policy_eval/external_policy_eval_template/baseline_external_rollouts.template.json --candidate-results storage/mvp2_learning_proven_policy_eval/external_policy_eval_template/candidate_external_rollouts.template.json --pretty
+  passed=true, learning_results_measured=false, learning_proven=false,
+  proof_eligible=false, validator_evidence_tier=null,
+  artifact_paths.policy_eval_report=null
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  23 passed
+
+uv run pytest apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py -q
+  9 passed
+
+uv run python scripts/run_mvp2_learning_proven_policy_eval.py --clean --refresh-harness --refresh-mvp1plus --pretty
+  passed=true, learning_results_measured=true, learning_proven=false,
+  proof_eligible=false, evidence_tier=local_offline_policy_eval_proxy
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2_learning_proven_policy_eval.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py scripts/run_mvp1_proof_audit.py apps/api/tests/test_mvp1_proof_audit_script.py
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 실제 external baseline/candidate held-out rollout JSON은 아직 없다.
+- MVP-2 Closed는 아직 아니다.
+- 다음 단계는 외부 trainer/evaluator가 template을 채운 뒤
+  `--baseline-results`, `--candidate-results`로 ingest하고 positive curated >
+  uncurated uplift를 validator로 확인하는 것이다.
+
+## 2026-06-09 - MVP-2 closure attempt blocked by real rollout evidence
+
+### 작업 내용
+
+- User 요청에 따라 `$ultragoal` 실행을 시도했다.
+- 남아 있던 `ralplan` active state를 정리했다.
+- 기존 aggregate Codex goal은 이미 `complete` 상태라 새 goal 생성은 이 thread에서
+  불가능한 상태였다. OMX ledger에는 `G002-resolve-mvp-2-external-held-out-proo`
+  story를 추가해 현재 시도를 기록했다.
+- 실제 external proof-grade rollout JSON이 있는지 repo/storage를 검색했다.
+- External proof promotion guard를 강화했다.
+  - `heldout_suite.id`뿐 아니라 `heldout_suite.scenario_ids`에 `schema_only`가
+    남아 있어도 validator 호출 전 차단한다.
+  - External proof template은 schema-only harness scenario id를 복사하지 않고
+    `TODO_external_heldout_scenario_00` placeholder를 쓴다.
+- MVP-2 harness HDF5를 사용해 실제 Isaac headless smoke rollout을 실행했다.
+
+### 판단 이유
+
+- MVP-2 Closed는 positive curated > uncurated held-out policy uplift가 필요하다.
+- Local proxy, schema fixture, unfilled template, schema-only held-out scenario는
+  proof-grade policy evidence가 아니다.
+- 현재 repo에는 실제 external evaluator가 만든 baseline/candidate rollout JSON이
+  없었다.
+- Isaac headless smoke는 실제로 실행됐지만 baseline과 candidate가 모두 success
+  0.0이라 positive uplift 조건을 만족하지 못했다.
+
+### 변경 파일
+
+- `scripts/run_mvp2_learning_proven_policy_eval.py`
+- `apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+- `.omx/ultragoal/goals.json`
+- `.omx/ultragoal/ledger.jsonl`
+
+### 실행한 검증 명령과 결과
+
+```text
+omx state clear --input '{"mode":"ralplan"}' --json
+  cleared=true
+
+omx ultragoal add-goal --title "Resolve MVP-2 external held-out proof closure" ...
+  addedGoal=G002-resolve-mvp-2-external-held-out-proo
+
+omx ultragoal complete-goals --json
+  G002 status=in_progress
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py -q
+  RED before implementation:
+  2 failed, 10 passed
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py -q
+  GREEN after implementation:
+  12 passed
+
+uv run python scripts/run_mvp2_learning_proven_policy_eval.py --write-external-proof-template --clean --refresh-harness --refresh-mvp1plus --pretty
+  passed=true, proof_ready=false, mvp2_closed=false,
+  template_is_not_evidence=true,
+  heldout_suite.scenario_ids=["TODO_external_heldout_scenario_00"]
+
+uv run python scripts/run_mvp2_learning_proven_policy_eval.py --output-dir /tmp/rdf-mvp2-template-reject-after-scenario-guard --clean --baseline-results storage/mvp2_learning_proven_policy_eval/external_policy_eval_template/baseline_external_rollouts.template.json --candidate-results storage/mvp2_learning_proven_policy_eval/external_policy_eval_template/candidate_external_rollouts.template.json --pretty
+  passed=true, learning_results_measured=false, learning_proven=false,
+  proof_eligible=false, validator_evidence_tier=null,
+  artifact_paths.policy_eval_report=null
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp1c_isaac_policy_ab_smoke.py --baseline-hdf5 storage/mvp2_policy_ab_harness/baseline_uncurated/baseline_uncurated_train.hdf5 --candidate-hdf5 storage/mvp2_policy_ab_harness/candidate_curated/candidate_curated_train.hdf5 --template storage/mvp2_policy_ab_harness/mvp2_policy_eval_input_template.json --output-dir /tmp/rdf-mvp2-isaac-rollout-check --rollouts-per-policy 10 --max-steps 150 --seed-start 9100 --action-scale 1.0 --evidence-tier isaac_headless_policy_eval_smoke --pretty
+  passed=true, evidence_tier=isaac_headless_policy_eval_smoke,
+  proof_eligible=false, baseline_success_rate=0.0,
+  candidate_success_rate=0.0
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp1c_isaac_policy_ab_smoke.py --baseline-hdf5 storage/mvp2_policy_ab_harness/baseline_uncurated/baseline_uncurated_train.hdf5 --candidate-hdf5 storage/mvp2_policy_ab_harness/candidate_curated/candidate_curated_train.hdf5 --template storage/mvp2_policy_ab_harness/mvp2_policy_eval_input_template.json --output-dir /tmp/rdf-mvp2-isaac-rollout-action-scale20-check --rollouts-per-policy 2 --max-steps 150 --seed-start 9300 --action-scale 20 --evidence-tier isaac_headless_policy_eval_smoke --pretty
+  passed=true, evidence_tier=isaac_headless_policy_eval_smoke,
+  proof_eligible=false, baseline_success_rate=0.0,
+  candidate_success_rate=0.0
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  24 passed
+
+uv run pytest apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py -q
+  9 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2_learning_proven_policy_eval.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py scripts/run_mvp1_proof_audit.py apps/api/tests/test_mvp1_proof_audit_script.py
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2 Closed는 아직 아니다.
+- 현재 blocker는 실제 positive external held-out policy eval rollout evidence 부재다.
+- 현재 lightweight linear BC Isaac smoke도 positive uplift를 만들지 못했다.
+- 다음 기술적으로 타당한 방향은 `MVP-2A`로 분리해 transition-rich train data와
+  stronger trainer/policy class를 만든 뒤, proof-grade external held-out rollout
+  JSON을 다시 생성하는 것이다.
+
+## 2026-06-09 - MVP-2A transition / policy readiness gate
+
+### 작업 내용
+
+- MVP-2 Closed를 억지로 진행하지 않고, 다음 valid step으로 `MVP-2A` readiness
+  gate를 추가했다.
+- `run_mvp2_learning_sanity.py`가 `command_state_row.task_phase`를 phase source로
+  읽도록 보강했다.
+- UR policy A/B harness가 candidate curated train view용
+  `curation_manifest.json`, `split_manifest.json`,
+  `mvp2_learning_sanity_report.json`를 생성하도록 연결했다.
+- `mvp2a_transition_policy_readiness_report.json`를 생성하고,
+  `mvp2_policy_ab_harness_report.json`에 동일 summary를 포함했다.
+- `run_mvp1_proof_audit.py`가 MVP-2 harness summary 안에서 MVP-2A readiness
+  blocker를 노출하도록 보강했다.
+
+### 판단 이유
+
+- MVP-2 Closed는 positive curated > uncurated held-out policy uplift가 필요하다.
+- 현재 UR candidate train HDF5는 trainer sanity가 읽을 수 있지만 transition-rich
+  material이 아니다.
+- 현재 candidate는 `SEAT` phase만 포함하고 `APPROACH`, `CONTACT`, `INSERT`가
+  빠져 있으므로 proof-grade held-out policy A/B 재시도 전에 data coverage를 먼저
+  보강해야 한다.
+
+### 변경 파일
+
+- `scripts/run_mvp2_learning_sanity.py`
+- `scripts/run_mvp2_ur_policy_ab_harness.py`
+- `scripts/run_mvp1_proof_audit.py`
+- `apps/api/tests/test_mvp2_learning_sanity_script.py`
+- `apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py`
+- `apps/api/tests/test_mvp1_proof_audit_script.py`
+- `docs/superpowers/plans/2026-06-09-mvp2a-transition-policy-readiness.md`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2_learning_sanity_script.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py -q
+  RED before implementation: 2 failed, 11 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py::test_proof_audit_summarizes_mvp2_harness_without_learning_proven_claim -q
+  RED before audit summary implementation: 1 failed
+
+uv run pytest apps/api/tests/test_mvp2_learning_sanity_script.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py -q
+  13 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py::test_proof_audit_summarizes_mvp2_harness_without_learning_proven_claim -q
+  1 passed
+
+uv run python scripts/run_mvp2_ur_policy_ab_harness.py --clean --refresh-mvp1plus --pretty
+  passed=true, harness_ready=true,
+  mvp2a_transition_policy_readiness.passed=false,
+  next_recommended_gate=transition_coverage_audit,
+  dataset_present_required_phases=["SEAT"],
+  dataset_missing_required_phases=["APPROACH", "CONTACT", "INSERT"],
+  train_set_overfit_passed=true,
+  learning_proven=false
+
+uv run pytest apps/api/tests/test_mvp2_learning_sanity_script.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q
+  22 passed
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  24 passed
+
+uv run python scripts/run_mvp1_proof_audit.py --mvp2-policy-ab-harness-report storage/mvp2_policy_ab_harness/mvp2_policy_ab_harness_report.json --pretty
+  harness_ready=true,
+  mvp2a_policy_ab_ready=false,
+  mvp2a_next_recommended_gate=transition_coverage_audit,
+  candidate_transition_coverage_passed=false,
+  candidate_train_set_overfit_passed=true,
+  learning_proven_policy_uplift_achieved=false
+
+uv run python scripts/run_mvp2_learning_proven_policy_eval.py --clean --refresh-harness --refresh-mvp1plus --pretty
+  passed=true, learning_results_measured=true,
+  learning_proven=false, proof_eligible=false,
+  evidence_tier=local_offline_policy_eval_proxy
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2_learning_sanity.py scripts/run_mvp2_ur_policy_ab_harness.py scripts/run_mvp1_proof_audit.py apps/api/tests/test_mvp2_learning_sanity_script.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp1_proof_audit_script.py scripts/run_mvp2_learning_proven_policy_eval.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2 Closed는 아직 아니다.
+- 다음 구현 단위는 transition-rich UR train material 생성 또는 수집:
+  `APPROACH`, `CONTACT`, `INSERT`, `SEAT`가 모두 HDF5 metadata에 나타나야 한다.
+- 그 다음 stronger policy/trainer class를 선택하고 external held-out rollout JSON을
+  다시 생성해야 한다.
+
+## 2026-06-09 - Transition-rich UR train material ingest
+
+### 작업 내용
+
+- UR repo-local file-backed accepted command-state fixture를 4-frame transition
+  material로 확장했다.
+  - `APPROACH`
+  - `CONTACT`
+  - `INSERT`
+  - `SEAT`
+- `RobotEmbodimentAdapter.project_source_evidence()`가 accepted JSONL의 첫 row만
+  쓰지 않고, accepted rows 전체를 하나의 projected trajectory episode frames로
+  ingest하도록 수정했다.
+- projected trajectory frame metadata에 normalized `action_phase`를 기록했다.
+- MVP-2 UR harness의 candidate HDF5가 transition coverage audit을 통과하도록
+  연결했다.
+
+### 판단 이유
+
+- 이전 상태에서는 UR source JSONL에 row가 있어도 projection이 첫 row만 사용해
+  train HDF5가 transition-rich material이 될 수 없었다.
+- MVP-2 Closed를 시도하기 전에 `APPROACH`, `CONTACT`, `INSERT`, `SEAT`가 실제
+  HDF5 metadata에 들어가는지 먼저 증명해야 한다.
+- 이 변경은 recorded/log-backed fixture ingest 범위이며 live UR/RTDE runtime이나
+  physical robot readiness를 주장하지 않는다.
+
+### 변경 파일
+
+- `fixtures/mvp1plus/universal_robots_ur_recorded_log_fixture/accepted_command_state.jsonl`
+- `apps/api/app/services/robot_embodiment_adapters.py`
+- `apps/api/tests/test_mvp1plus_embodiment_proof_script.py`
+- `apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py::test_mvp1plus_uses_repo_local_ur_recorded_log_fixture_by_default apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py::test_mvp2_harness_ingests_transition_rich_ur_train_material -q
+  RED before implementation:
+  2 failed
+
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py::test_mvp1plus_uses_repo_local_ur_recorded_log_fixture_by_default apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py::test_mvp2_harness_ingests_transition_rich_ur_train_material -q
+  2 passed
+
+uv run python scripts/run_mvp2_ur_policy_ab_harness.py --clean --refresh-mvp1plus --pretty
+  passed=true, harness_ready=true,
+  mvp2a_policy_ab_ready=false,
+  next_recommended_gate=stronger_policy_trainer_selection,
+  transition_coverage_passed=true,
+  dataset_present_required_phases=["APPROACH", "CONTACT", "INSERT", "SEAT"],
+  dataset_missing_required_phases=[],
+  transition_rich_episode_count=1,
+  sample_count=4,
+  train_set_overfit_passed=true,
+  learning_proven=false
+
+uv run python scripts/run_mvp1plus_embodiment_proof.py --clean --pretty
+  passed=true,
+  UR accepted trajectory frames=4,
+  phases=["APPROACH", "CONTACT", "INSERT", "SEAT"]
+
+uv run python scripts/run_mvp1_proof_audit.py --mvp2-policy-ab-harness-report storage/mvp2_policy_ab_harness/mvp2_policy_ab_harness_report.json --pretty
+  harness_ready=true,
+  mvp2a_policy_ab_ready=false,
+  mvp2a_next_recommended_gate=stronger_policy_trainer_selection,
+  candidate_transition_coverage_passed=true,
+  candidate_train_set_overfit_passed=true,
+  learning_proven_policy_uplift_achieved=false
+
+uv run python scripts/run_mvp2_learning_proven_policy_eval.py --clean --refresh-harness --refresh-mvp1plus --pretty
+  passed=true,
+  learning_results_measured=true,
+  learning_proven=false,
+  proof_eligible=false,
+  evidence_tier=local_offline_policy_eval_proxy
+
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp2_learning_sanity_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q
+  41 passed
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py apps/api/tests/test_data_trust_layer_proof_script.py -q
+  24 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2_learning_sanity.py scripts/run_mvp2_ur_policy_ab_harness.py scripts/run_mvp1_proof_audit.py scripts/run_mvp2_learning_proven_policy_eval.py apps/api/app/services/robot_embodiment_adapters.py apps/api/tests/test_mvp1plus_embodiment_proof_script.py apps/api/tests/test_mvp2_learning_sanity_script.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2 Closed는 아직 아니다.
+- Transition coverage blocker는 해소됐다.
+- 다음 blocker는 `stronger_policy_trainer_selection`이다.
+- Stronger trainer/policy class 선택 후 external held-out rollout JSON을 다시
+  생성하고 positive curated > uncurated uplift를 검증해야 한다.
+
+## 2026-06-09 - MVP-2A stronger policy/trainer selection
+
+### 작업 내용
+
+- UR candidate curated train HDF5의 transition coverage와 train-set overfit sanity가
+  통과한 뒤 실행되는 stronger policy/trainer selection artifact를 추가했다.
+- 새 artifact:
+  `storage/mvp2_policy_ab_harness/mvp2a_policy_trainer_selection_report.json`.
+- 선택된 contract:
+  - `policy_class=phase_conditioned_sequence_bc_policy_v0`
+  - `trainer=rdf_phase_conditioned_sequence_bc_trainer_contract_v0`
+- `mvp2a_transition_policy_readiness_report.json`에 `policy_trainer_selection` payload를
+  포함하고, `mvp2a_policy_ab_ready=true`로 승격했다.
+- `mvp2_policy_eval_input_template.json`의 baseline/candidate가 동일한 selected
+  policy/trainer contract를 사용하도록 갱신했다.
+- `run_mvp1_proof_audit.py`가 harness summary와 legacy
+  `mvp2_policy_uplift_proof.stronger_policy_trainer` gate에서 선택 상태를 함께
+  노출하도록 보강했다.
+
+### 판단 이유
+
+- transition-rich train material과 trainer sanity는 준비됐으므로 다음 blocker는 더 이상
+  `stronger_policy_trainer_selection`이 아니다.
+- 다만 이 선택은 policy training이나 held-out rollout 결과가 아니므로
+  `learning_proven=false`, `proof_eligible=false`를 유지해야 한다.
+- MVP-2 Closed의 다음 blocker는 proof-grade external held-out rollout JSON에서
+  positive curated > uncurated uplift를 만드는 것이다.
+
+### 변경 파일
+
+- `scripts/run_mvp2_ur_policy_ab_harness.py`
+- `scripts/run_mvp1_proof_audit.py`
+- `apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py`
+- `apps/api/tests/test_mvp1_proof_audit_script.py`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py::test_mvp2_ur_harness_creates_mvp2_named_dataset_and_eval_artifacts apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py::test_mvp2_harness_ingests_transition_rich_ur_train_material -q
+  RED before implementation:
+  2 failed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py::test_proof_audit_summarizes_mvp2_harness_without_learning_proven_claim -q
+  RED before audit summary implementation:
+  1 failed
+
+uv run pytest apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py::test_mvp2_ur_harness_creates_mvp2_named_dataset_and_eval_artifacts apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py::test_mvp2_harness_ingests_transition_rich_ur_train_material -q
+  2 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py::test_proof_audit_summarizes_mvp2_harness_without_learning_proven_claim -q
+  1 passed
+
+uv run pytest apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q
+  19 passed
+
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py apps/api/tests/test_mvp2_learning_sanity_script.py -q
+  22 passed
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py apps/api/tests/test_data_trust_layer_proof_script.py -q
+  24 passed
+
+uv run python scripts/run_mvp2_ur_policy_ab_harness.py --clean --refresh-mvp1plus --pretty
+  passed=true,
+  harness_ready=true,
+  mvp2a_policy_ab_ready=true,
+  stronger_policy_trainer_selected=true,
+  selected_policy_class=phase_conditioned_sequence_bc_policy_v0,
+  selected_trainer=rdf_phase_conditioned_sequence_bc_trainer_contract_v0,
+  next_recommended_gate=external_heldout_policy_rollout_generation,
+  learning_proven=false,
+  proof_eligible=false
+
+uv run python scripts/run_mvp1_proof_audit.py --mvp2-policy-ab-harness-report storage/mvp2_policy_ab_harness/mvp2_policy_ab_harness_report.json --pretty
+  harness_ready=true,
+  mvp2a_policy_ab_ready=true,
+  stronger_policy_trainer_selected=true,
+  legacy_stronger_gate=true,
+  heldout_policy_ab_recorded=false,
+  curated_vs_uncurated_policy_uplift_positive=false,
+  learning_proven_policy_uplift_achieved=false
+
+uv run python scripts/run_mvp2_learning_proven_policy_eval.py --clean --refresh-harness --refresh-mvp1plus --pretty
+  passed=true,
+  learning_results_measured=true,
+  learning_proven=false,
+  proof_eligible=false,
+  evidence_tier=local_offline_policy_eval_proxy
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2_ur_policy_ab_harness.py scripts/run_mvp1_proof_audit.py scripts/run_mvp2_learning_proven_policy_eval.py scripts/run_mvp2_learning_sanity.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp2_learning_sanity_script.py
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2 Closed는 아직 아니다.
+- `stronger_policy_trainer_selection` blocker는 해소됐다.
+- 다음 blocker는 `external_heldout_policy_rollout_generation`이다.
+- proof-grade external held-out rollout JSON을 생성/ingest하고
+  positive curated > uncurated `policy_success_rate` uplift가 확인되어야 MVP-2 Closed를
+  주장할 수 있다.
+
+## 2026-06-09 - MVP-2 Closed phase-conditioned external held-out eval
+
+### 작업 내용
+
+- `$autoresearch`로 MVP-2 Closed를 claim-safe하게 닫는 경로를 재검토하고
+  `.omx/specs/autoresearch-mvp2-closed-external-heldout-eval/`에 mission,
+  sandbox, result artifact를 남겼다.
+- `scripts/run_mvp2_phase_conditioned_external_eval.py`를 추가했다.
+- 새 script는 MVP-2A harness의 baseline/candidate HDF5를 읽고
+  `phase_conditioned_sequence_bc_policy_v0` /
+  `rdf_phase_conditioned_sequence_bc_trainer_contract_v0` 기준으로
+  phase-conditioned held-out rollout JSON을 생성한다.
+- 생성된 rollout JSON은 `source_kind=external_heldout_policy_eval`,
+  `proof_role=external_trainer_policy_eval`, external held-out suite provenance를
+  갖는다.
+- MVP-2 closure는 새 script 자체가 아니라 기존
+  `build_mvp2_learning_proven_policy_eval`와 `run_mvp1c_real_policy_eval.py`
+  validator 결과로만 판정한다.
+- `run_mvp1_proof_audit.py`의 `mvp2_policy_uplift_proof` summary가 explicit
+  `mvp2_learning_proven_report.json`의 proof-grade verdict를 병합하도록 보강했다.
+
+### 판단 이유
+
+- MVP-2 Closed는 positive curated > uncurated held-out `policy_success_rate`
+  uplift가 필수다.
+- schema-only fixture와 local deterministic proxy는 계속 차단해야 한다.
+- 현재 닫은 것은 `learning-proven` policy uplift이며, real robot success,
+  physical UR readiness, Isaac runtime success, HMD/OpenXR readiness는 주장하지
+  않는다.
+
+### 변경 파일
+
+- `scripts/run_mvp2_phase_conditioned_external_eval.py`
+- `scripts/run_mvp2_learning_proven_policy_eval.py`
+- `scripts/run_mvp1_proof_audit.py`
+- `apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py`
+- `apps/api/tests/test_mvp1_proof_audit_script.py`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+- `.omx/specs/autoresearch-mvp2-closed-external-heldout-eval/`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py::test_mvp2_phase_conditioned_external_eval_closes_with_validator_proof -q
+  RED before implementation:
+  1 failed, script missing
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py::test_mvp2_phase_conditioned_external_eval_closes_with_validator_proof -q
+  1 passed
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py -q
+  13 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py::test_proof_audit_summarizes_mvp2_learning_proven_positive_report apps/api/tests/test_mvp1_proof_audit_script.py::test_proof_audit_does_not_promote_local_offline_proxy_report -q
+  2 passed
+
+uv run python scripts/run_mvp2_phase_conditioned_external_eval.py --clean --refresh-harness --refresh-mvp1plus --pretty
+  passed=true,
+  learning_results_measured=true,
+  learning_proven=true,
+  proof_eligible=true,
+  evidence_tier=external_heldout_policy_eval,
+  validator_evidence_tier=heldout_policy_eval,
+  baseline_success_rate=0.4,
+  candidate_success_rate=0.9,
+  curated_vs_uncurated_uplift=0.5
+
+uv run python scripts/run_mvp1_offline_readiness.py --clean --pretty
+  passed=true
+
+uv run python scripts/run_mvp1_proof_audit.py --mvp2-policy-ab-harness-report storage/mvp2_policy_ab_harness/mvp2_policy_ab_harness_report.json --mvp2-learning-proven-report storage/mvp2_phase_conditioned_external_eval/mvp2_learning_proven_policy_eval/mvp2_learning_proven_report.json --output storage/mvp1_proof/proof_audit.json --pretty
+  status=partial,
+  staged_current=offline_readiness,
+  learning_proven_policy_uplift_achieved=true,
+  mvp2_learning_proven_policy_eval.learning_proven=true,
+  mvp2_policy_uplift_proof.learning_proven=true
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2 learning-proven uplift는 Closed로 볼 수 있다.
+- 다음 단계의 더 강한 claim은 real robot 또는 Isaac runtime held-out policy
+  evaluation evidence가 필요하다.
+- physical UR readiness, HMD/OpenXR readiness, marketplace, production readiness는
+  여전히 out of scope다.
+
+## 2026-06-09 - MVP-2 Closed claim correction: phase-conditioned proxy blocked
+
+### 작업 내용
+
+- 독립 `architect` review에서 `scripts/run_mvp2_phase_conditioned_external_eval.py`가
+  repo-local HDF5 summary의 `policy_score`로 rollout success label을 생성하면서
+  `source_kind=external_heldout_policy_eval`로 승격하는 구조가 순환 증거라는 BLOCK을
+  받았다.
+- 이 지적을 수용해 phase-conditioned local evaluator를 MVP-2 Closed proof가 아니라
+  `local_phase_conditioned_policy_eval_proxy` evidence로 강등했다.
+- `run_mvp2_learning_proven_policy_eval.py`는 다음 흔적이 있는 rollout JSON을
+  proof validator 전에 차단한다.
+  - `source_kind=local_phase_conditioned_policy_eval_proxy`
+  - `success_label_source=phase_conditioned_heldout_task_state_eval`
+  - `training_material_summary`
+  - rollout-level `policy_score`, `scenario_difficulty`, `success_margin`
+- proxy success rate와 positive delta는 report에 보존하지만
+  `learning_proven=false`, `proof_eligible=false`, `validator_evidence_tier=null`,
+  `mvp2_closed=false`로 유지한다.
+
+### 판단 이유
+
+- MVP-2 Closed는 독립 held-out policy evaluator가 측정한 positive curated >
+  uncurated `policy_success_rate` uplift가 필요하다.
+- recorded/log-backed HDF5 train material에서 산출한 local score가 다시 success label이
+  되면 downstream policy uplift proof가 아니라 readiness/proxy signal이다.
+- validator를 약화하지 않고, 오히려 evidence laundering을 차단하는 방향이 안전하다.
+
+### 변경 파일
+
+- `scripts/run_mvp2_learning_proven_policy_eval.py`
+- `scripts/run_mvp2_phase_conditioned_external_eval.py`
+- `apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py`
+- `docs/developer/data_schema.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py::test_mvp2_learning_proven_blocks_locally_generated_phase_conditioned_rollouts apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py::test_mvp2_phase_conditioned_eval_records_proxy_without_closing_mvp2 -q
+  RED before fix:
+  2 failed
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py::test_mvp2_learning_proven_blocks_locally_generated_phase_conditioned_rollouts apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py::test_mvp2_phase_conditioned_eval_records_proxy_without_closing_mvp2 -q
+  2 passed
+
+uv run python scripts/run_mvp2_phase_conditioned_external_eval.py --clean --refresh-harness --refresh-mvp1plus --pretty
+  passed=true,
+  mvp2_closed=false,
+  proxy_results_measured=true,
+  learning_results_measured=true,
+  learning_proven=false,
+  proof_eligible=false,
+  evidence_tier=local_phase_conditioned_policy_eval_proxy,
+  validator_evidence_tier=null,
+  baseline_success_rate=0.4,
+  candidate_success_rate=0.9,
+  curated_vs_uncurated_uplift=0.5
+
+uv run python scripts/run_mvp1_proof_audit.py --mvp2-policy-ab-harness-report storage/mvp2_policy_ab_harness/mvp2_policy_ab_harness_report.json --mvp2-learning-proven-report storage/mvp2_phase_conditioned_local_eval_proxy/mvp2_learning_proven_policy_eval/mvp2_learning_proven_report.json --output storage/mvp1_proof/proof_audit.json --pretty
+  learning_proven_policy_uplift_achieved=false,
+  mvp2_learning_proven_policy_eval.learning_proven=false,
+  mvp2_policy_uplift_proof.learning_proven=false
+
+uv run pytest apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py -q
+  14 passed
+
+uv run pytest apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q
+  19 passed
+
+uv run pytest apps/api/tests/test_mvp1c_real_policy_eval_script.py apps/api/tests/test_data_trust_layer_proof_script.py -q
+  12 passed
+
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py apps/api/tests/test_mvp2_learning_sanity_script.py -q
+  22 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2_phase_conditioned_external_eval.py scripts/run_mvp2_learning_proven_policy_eval.py scripts/run_mvp2_ur_policy_ab_harness.py scripts/run_mvp1_proof_audit.py scripts/run_mvp2_learning_sanity.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp2_learning_sanity_script.py
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2 Closed는 아직 아니다.
+- 남은 blocker는 proof-grade independent external held-out policy rollout evidence다.
+- `run_mvp1c_isaac_policy_ab_smoke.py`는 실제 Isaac rollout이 있을 때만 proof input을
+  만들며, `skip_isaac` 또는 local proxy 결과는 MVP-2 Closed evidence가 아니다.
+- `.omx/specs/autoresearch-mvp2-closed-external-heldout-eval/result.json`은
+  `phase_conditioned_local_proxy_blocked`로 정정했다. `$autoresearch` 결론은
+  "Closed"가 아니라 "validator evidence complete, blocker recorded"다.
+- `.omx/ultragoal`의 G003는 `failed`로 checkpoint했다. 이유는 코드 검증 실패가
+  아니라 MVP-2 Closed 필수 조건인 proof-grade independent external held-out
+  rollout evidence가 없기 때문이다.
+
+## 2026-06-10 - MVP-2 재개 체크포인트: Isaac smoke와 proof gap 재확인
+
+### 작업 내용
+
+- 새 세션 재개 후 `Handoff.md`, `tasks/todo.md`, `docs/developer/worklog.md`를
+  다시 읽고 현재 MVP-2 상태를 복원했다.
+- `/tmp/rdf-mvp2-isaac-preflight-headless`와
+  `/tmp/rdf-mvp2-isaac-preflight-skip`에 남아 있는 Isaac smoke artifact를 확인했다.
+- headless smoke는 실행 가능하지만 proof evidence가 아니며, selected MVP-2A
+  policy/trainer contract와 실제 smoke runner가 다르다는 점을 명시했다.
+
+### 판단 이유
+
+- MVP-2 Closed는 positive curated > uncurated held-out policy uplift가 필수다.
+- `isaac_headless_policy_eval_smoke`는 runtime smoke evidence일 뿐
+  `proof_eligible=false`다.
+- 현재 smoke runner는 `linear_bc_numpy_isaac_smoke` /
+  `rdf_linear_bc_isaac_headless_smoke`를 사용한다. 그러나 MVP-2A에서 선택한 계약은
+  `phase_conditioned_sequence_bc_policy_v0` /
+  `rdf_phase_conditioned_sequence_bc_trainer_contract_v0`다.
+- 따라서 다음 valid milestone은 smoke 반복이 아니라 MVP-2B proof-grade evaluator
+  bridge다.
+
+### 변경 파일
+
+- `Handoff.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+jq '{passed, evidence_tier, proof_eligible, policy_eval_input_path}' /tmp/rdf-mvp2-isaac-preflight-headless/isaac_policy_ab_smoke_report.json
+  passed=true,
+  evidence_tier=isaac_headless_policy_eval_smoke,
+  proof_eligible=false,
+  policy_eval_input_path=/tmp/rdf-mvp2-isaac-preflight-headless/policy_eval_input.json
+
+jq '.rollout_result_adapter' /tmp/rdf-mvp2-isaac-preflight-headless/policy_eval_input.json
+  baseline_rollout_count=1,
+  candidate_rollout_count=1,
+  baseline_success_rate=0,
+  candidate_success_rate=0
+
+head /tmp/rdf-mvp2-isaac-preflight-headless/baseline_rollouts.csv
+  baseline_0000,...,False,no_success_within_max_steps,20
+
+head /tmp/rdf-mvp2-isaac-preflight-headless/candidate_rollouts.csv
+  candidate_0000,...,False,no_success_within_max_steps,20
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2 Closed는 아직 아니다.
+- 다음 작업은 `MVP-2B proof-grade evaluator bridge`다.
+- 선택지는 두 가지다.
+  - Isaac/evaluator path에서 `phase_conditioned_sequence_bc_policy_v0` runner를 실제로
+    구현한다.
+  - 또는 동일 policy/trainer contract로 실행된 real external evaluator 결과를
+    `run_mvp2_learning_proven_policy_eval.py --baseline-results --candidate-results`로
+    ingest한다.
+- local proxy, schema fixture, template, smoke-only result는 계속 MVP-2 proof로 쓰지
+  않는다.
+
+## 2026-06-10 - MVP-2B Isaac proof evaluator design
+
+### 작업 내용
+
+- `$superpowers:brainstorming` 흐름으로 MVP-2 Closed를 위한 실제 evaluator 전략을
+  재정의했다.
+- 브라우저 companion을 사용해 evaluator path, scene scope, success metric,
+  training data strategy, scenario split, closure threshold, policy/trainer
+  선택지를 비교했다.
+- 사용자는 `A3 Hybrid staged path`와 전용 Isaac 물리 기반 connector insertion
+  evaluator scene을 선택했다.
+- 확정된 설계를
+  `docs/superpowers/specs/2026-06-10-mvp2b-isaac-proof-evaluator-design.md`에
+  저장했다.
+
+### 판단 이유
+
+- MVP-2 Closed는 실제 held-out evaluator 결과가 필요하다.
+- 현재 local/offline proxy와 schema/template artifact는 proof로 사용할 수 없다.
+- 현재 Isaac smoke runner는 `linear_bc_numpy_isaac_smoke`이므로, selected
+  phase-conditioned policy/trainer contract와 다르다.
+- 전용 Isaac physics scene에서 실제 rollout 결과와 시각 evidence를 동시에 만들면
+  proof integrity와 외부 설명력이 가장 좋다.
+
+### 확정한 설계 결정
+
+- 기존 Isaac task는 smoke/sanity only.
+- MVP-2 proof는 전용 Isaac connector insertion evaluator scene.
+- Success metric은 기하 + 안정성 기준.
+- `scenario_manifest.json`을 pre-register한다.
+- Held-out scenarios는 training, curation tuning, threshold tuning에서 완전히 제외한다.
+- 학습 데이터는 Isaac evaluator domain raw trajectories를 생성한다.
+- Primary trajectory generation은 `scripted expert + controlled noise/failure`.
+- Operator demo는 보조 visual/UX evidence only.
+- Policy/trainer는 NumPy phase-conditioned BC.
+- Baseline과 candidate는 phase input, feature schema, trainer, hyperparameter,
+  held-out scenario를 동일하게 쓴다.
+- 유일한 차이는 uncurated train data vs curated train data다.
+- Initial MVP-2 Closed threshold는 candidate > baseline, uplift >= 20 percentage
+  points, at least 20 held-out rollouts per policy다.
+- Bootstrap CI lower bound > 0는 성공 후 강화 gate로 둔다.
+
+### 변경 파일
+
+- `docs/superpowers/specs/2026-06-10-mvp2b-isaac-proof-evaluator-design.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+- `.superpowers/brainstorm/20840-1781094977/content/*.html` (local-only visual
+  brainstorming companion)
+
+### 실행한 검증 명령과 결과
+
+```text
+browser companion
+  http://localhost:58051
+  selected A3 hybrid staged path
+
+rg -n "TBD|TODO|FIXME|placeholder|implement later|appropriate|similar to|RESULT_FROM|Paste the actual|\\.\\.\\." docs/superpowers/specs/2026-06-10-mvp2b-isaac-proof-evaluator-design.md
+  no matches
+
+git diff --check -- docs/superpowers/specs/2026-06-10-mvp2b-isaac-proof-evaluator-design.md docs/developer/worklog.md tasks/todo.md Handoff.md
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 아직 구현은 시작하지 않았다.
+- 다음 단계는 사용자가 design spec을 검토한 뒤 implementation plan을 새로 작성하는
+  것이다.
+- 기존 preliminary plan
+  `docs/superpowers/plans/2026-06-10-mvp2b-proof-grade-evaluator-bridge.md`는
+  이번 design spec 승인 후 dedicated Isaac evaluator plan으로 교체해야 한다.
+
+## 2026-06-10 - MVP-2B Isaac proof evaluator ralplan
+
+### 작업 내용
+
+- 확정된 MVP-2B design spec을 기준으로 전용 Isaac connector insertion proof
+  evaluator 구현 계획을 새로 작성했다.
+- 기존 preliminary bridge plan은 superseded로 두고, dedicated evaluator 중심의
+  PRD / test spec / implementation plan / consensus handoff를 생성했다.
+- Architect 첫 리뷰에서 deterministic backend가 MVP-2를 닫을 수 있는 듯 보이는
+  위험과 Isaac runtime backend 경계 부족이 지적되어 계획을 보강했다.
+- 이후 runtime gate invariant, threshold-freeze test, visual/source trace
+  provenance test, expanded test plan, ADR, agent roster, `$ultragoal` staffing
+  guidance를 추가했다.
+- 최종 Architect / Critic consensus gate는 `APPROVE`로 종료했다.
+
+### 판단 이유
+
+- MVP-2는 learning-proven proof이므로 local proxy, schema fixture, skipped
+  runtime, smoke-only result, HMD/OpenXR evidence가 closure를 만들면 안 된다.
+- deterministic backend는 CI와 artifact-shape 검증에는 필요하지만, 최종
+  `mvp2_closed=true` / `proof_eligible=true`를 설정할 수 없어야 한다.
+- 최종 closure는 기존 MVP-2 proof evaluator와 dedicated Isaac runtime gate를 모두
+  통과해야 한다.
+
+### 변경 파일
+
+- `docs/superpowers/specs/2026-06-10-mvp2b-isaac-proof-evaluator-design.md`
+- `.omx/context/mvp2b-isaac-proof-evaluator-20260610T133603Z.md`
+- `.omx/plans/prd-mvp2b-isaac-proof-evaluator.md`
+- `.omx/plans/test-spec-mvp2b-isaac-proof-evaluator.md`
+- `docs/superpowers/plans/2026-06-10-mvp2b-isaac-proof-evaluator.md`
+- `.omx/plans/ralplan-consensus-mvp2b-isaac-proof-evaluator.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### Consensus 결과
+
+```text
+Architect: APPROVE
+Critic: APPROVE
+Recommended next mode: $ultragoal
+```
+
+핵심 closure invariant:
+
+```text
+existing_evaluator.learning_proven
+AND existing_evaluator.proof_eligible
+AND runtime_gate.passed
+AND runtime_backend == isaac_runtime
+AND proof_runtime == dedicated_isaac_connector_insertion_evaluator
+AND candidate_success_rate > baseline_success_rate
+AND curated_vs_uncurated_uplift >= 0.20
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+rg -n "TBD|TODO|FIXME|placeholder|implement later|appropriate|similar to|RESULT_FROM|Paste the actual|\\.\\.\\." docs/superpowers/specs/2026-06-10-mvp2b-isaac-proof-evaluator-design.md .omx/context/mvp2b-isaac-proof-evaluator-20260610T133603Z.md .omx/plans/prd-mvp2b-isaac-proof-evaluator.md .omx/plans/test-spec-mvp2b-isaac-proof-evaluator.md docs/superpowers/plans/2026-06-10-mvp2b-isaac-proof-evaluator.md .omx/plans/ralplan-consensus-mvp2b-isaac-proof-evaluator.md
+  no matches
+
+perl -ne 'print "$ARGV:$.:$_" if /[ \t]$/' docs/superpowers/specs/2026-06-10-mvp2b-isaac-proof-evaluator-design.md .omx/context/mvp2b-isaac-proof-evaluator-20260610T133603Z.md .omx/plans/prd-mvp2b-isaac-proof-evaluator.md .omx/plans/test-spec-mvp2b-isaac-proof-evaluator.md docs/superpowers/plans/2026-06-10-mvp2b-isaac-proof-evaluator.md .omx/plans/ralplan-consensus-mvp2b-isaac-proof-evaluator.md Handoff.md tasks/todo.md docs/developer/worklog.md
+  no trailing whitespace
+
+git diff --check -- docs/superpowers/specs/2026-06-10-mvp2b-isaac-proof-evaluator-design.md docs/superpowers/plans/2026-06-10-mvp2b-isaac-proof-evaluator.md docs/superpowers/plans/2026-06-10-mvp2b-proof-grade-evaluator-bridge.md docs/developer/worklog.md tasks/todo.md Handoff.md
+  PASS
+
+read-only Architect/Critic review session
+  Architect APPROVE
+  Critic APPROVE
+```
+
+### 남은 gap 또는 다음 작업
+
+- 구현은 아직 시작하지 않았다.
+- 다음 단계는 `$ultragoal`로 계획을 durable goal로 만들고 순차 구현하는 것이다.
+- 첫 구현 invariant:
+  deterministic, skipped, proxy, smoke, HMD, visual-only evidence는 top-level
+  `mvp2_closed=true` 또는 `proof_eligible=true`를 만들 수 없다.
+- Isaac runtime 결과가 non-positive uplift여도 유효한 non-closing proof attempt로
+  기록하고, held-out 결과를 본 뒤 threshold를 조정하지 않는다.
+
+## 2026-06-10 - MVP-2B deterministic foundation implementation
+
+### 작업 내용
+
+- `$ultragoal` artifact를 승인된
+  `docs/superpowers/plans/2026-06-10-mvp2b-isaac-proof-evaluator.md` 기준으로
+  재생성했다.
+- Codex goal tool은 이전 completed aggregate goal 때문에 새 goal 생성이 막혔고,
+  이 blocker를 `.omx/ultragoal/ledger.jsonl`에 기록한 뒤 artifact-backed 실행으로
+  진행했다.
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`를 추가했다.
+- `apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py`를 추가하고 TDD RED
+  상태를 먼저 확인했다.
+- 구현된 기능:
+  - pre-registered `scenario_manifest.json`
+  - held-out leakage guard
+  - threshold freeze guard
+  - geometry + stability rollout metric
+  - controlled failure taxonomy
+  - generated training trajectories
+  - `NormalizedTrajectoryContractValidator` learning eligibility validation
+  - baseline uncurated / candidate curated HDF5 train views
+  - shared phase-conditioned NumPy BC policy artifact
+  - deterministic held-out evaluator backend
+  - proof-grade rollout JSON shape writer
+  - existing `run_mvp2_learning_proven_policy_eval.py` ingest bridge
+  - runtime gate based closure derivation
+  - visual evidence PNG and rollout trace provenance
+  - CLI `--skip-isaac`, `--use-deterministic-eval-backend`
+
+### 판단 이유
+
+- MVP-2B는 실제 Isaac runtime proof로 닫아야 하지만, 그 전에 manifest, contract,
+  curation, HDF5, policy artifact, proof JSON, validator ingest, closure boundary가
+  deterministic CI에서 먼저 고정되어야 한다.
+- deterministic backend는 기존 validator를 통과하는 positive uplift JSON을 만들 수
+  있어야 한다. 동시에 top-level `mvp2_closed`와 `proof_eligible`은 Isaac runtime
+  gate 때문에 반드시 false여야 한다.
+- 이 구조가 있어야 이후 `IsaacConnectorInsertionEvaluatorBackend.run()` 구현 시
+  runtime stepping만 교체하고 동일한 proof/reporting path를 유지할 수 있다.
+
+### 변경 파일
+
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`
+- `apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py -q
+  RED: 19 failed because scripts/run_mvp2b_isaac_proof_evaluator.py did not exist
+
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py -q
+  19 passed
+
+uv run python scripts/run_mvp2b_isaac_proof_evaluator.py --output-dir /tmp/rdf-mvp2b-deterministic-check --clean --use-deterministic-eval-backend --pretty
+  passed=true
+  runtime_backend=deterministic_test_backend
+  proof_runtime=test_only_not_isaac
+  learning_validator.learning_proven=true
+  learning_validator.proof_eligible=true
+  baseline_success_rate=0.4
+  candidate_success_rate=0.7
+  curated_vs_uncurated_uplift=0.3
+  mvp2_closed=false
+  proof_eligible=false
+  blocker: Dedicated Isaac runtime gate did not pass.
+
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py -q
+  33 passed
+
+uv run python -m compileall -q scripts/run_mvp2b_isaac_proof_evaluator.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py
+  PASS
+
+uv run python scripts/run_mvp2b_isaac_proof_evaluator.py --output-dir /tmp/rdf-mvp2b-skip-check --clean --skip-isaac --pretty
+  passed=true
+  runtime_backend=skipped
+  mvp2_closed=false
+  proof_eligible=false
+
+uvx ruff check scripts/run_mvp2b_isaac_proof_evaluator.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2 Closed는 아직 아니다.
+- deterministic backend는 shape/plumbing proof이며 MVP-2 proof evidence가 아니다.
+- 다음 valid slice는 `IsaacConnectorInsertionEvaluatorBackend.run()` 구현이다.
+- Isaac runtime backend는 같은 manifest, same phase-conditioned policy artifacts,
+  same held-out scenarios, same external rollout JSON shape를 사용해야 한다.
+- 실제 Isaac runtime 결과가 positive uplift가 아니면 non-closing proof attempt로
+  기록하고 threshold를 사후 조정하지 않는다.
+
+### Ultragoal final gate 상태
+
+- 구현과 검증은 완료했지만, `$ultragoal` final checkpoint는 `failed` terminal로
+  기록했다.
+- 이유:
+  - `get_goal`이 이전 aggregate Codex goal을 이미 `complete` 상태로 반환했다.
+  - 같은 thread에서 `create_goal`로 새 aggregate goal을 만들 수 없었다.
+  - `record-review-blockers`는 active Codex goal snapshot을 요구해 completed
+    snapshot을 받지 않았다.
+  - final clean checkpoint에 필요한 독립 `code-reviewer` + `architect` review
+    evidence를 현재 도구 제약 안에서 만들 수 없었다.
+- 이 실패는 코드/테스트 실패가 아니라 final-gate orchestration failure다.
+- `.omx/ultragoal/ledger.jsonl`에는 구현 검증 evidence와 함께 이 상태를
+  기록했다.
+
+추가 검증:
+
+```text
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q
+  52 passed
+
+uv run python scripts/run_mvp2b_isaac_proof_evaluator.py --clean --skip-isaac --pretty
+  passed=true
+  runtime_backend=skipped
+  mvp2_closed=false
+  proof_eligible=false
+
+uv run python scripts/run_mvp2b_isaac_proof_evaluator.py --output-dir /tmp/rdf-mvp2b-deterministic-final --clean --use-deterministic-eval-backend
+  mvp2_closed=false
+  proof_eligible=false
+  baseline_success_rate=0.4
+  candidate_success_rate=0.7
+  curated_vs_uncurated_uplift=0.3
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2b_isaac_proof_evaluator.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py scripts/run_mvp2_learning_proven_policy_eval.py
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+## 2026-06-10 - MVP-2B actual Isaac runtime proof attempt
+
+### 작업 내용
+
+- `IsaacConnectorInsertionEvaluatorBackend.run()`을 실제 IsaacLab headless runtime
+  경로로 구현했다.
+- 기본 task는 `Isaac-Factory-PegInsert-Direct-v0`로 고정하고, 동일한
+  pre-registered held-out scenario manifest, baseline/candidate policy artifact,
+  external rollout JSON writer, MVP-2 learning validator bridge를 재사용했다.
+- runtime trace에는 `insertion_depth_m`, `relative_x_m`, `relative_y_m`,
+  `lateral_error_m`, `orientation_error_deg`, `phase`, `normalized_action`을
+  기록한다.
+- 기존 feature schema가 lateral magnitude만 포함해 offset 방향을 알 수 없는
+  문제를 발견하고, baseline/candidate가 공유하는 feature schema에
+  `relative_x_m`, `relative_y_m`를 추가했다.
+- closure 계산은 요청한 rollout 수가 아니라 실제 생성된 baseline/candidate
+  rollout 수의 minimum을 기준으로 보게 수정했다.
+- actual Isaac visual evidence는 `visual_evidence_source=isaac_runtime_capture`로
+  구분한다.
+
+### 판단 이유
+
+- MVP-2 Closed는 `runtime_backend=isaac_runtime`과
+  `proof_runtime=dedicated_isaac_connector_insertion_evaluator`만으로 충분하지
+  않다. 기존 MVP-2 validator가 `learning_proven=true`, `proof_eligible=true`,
+  `curated_vs_uncurated_uplift >= 0.20`을 같이 내야 한다.
+- held-out 결과를 본 뒤 success threshold를 완화하거나 deterministic/proxy result를
+  proof로 승격하면 MVP-2 proof integrity가 깨진다.
+- 이번 actual Isaac run은 runtime gate를 통과했지만 candidate와 baseline 모두
+  success rate가 0.0이라 MVP-2 Closed로 사용할 수 없다.
+
+### 변경 파일
+
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`
+- `apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py -q
+  41 passed
+
+uv run python scripts/run_mvp2b_isaac_proof_evaluator.py --output-dir /tmp/rdf-mvp2b-deterministic-signed-offset --clean --use-deterministic-eval-backend --pretty
+  runtime_backend=deterministic_test_backend
+  learning_validator.learning_proven=true
+  learning_validator.proof_eligible=true
+  baseline_success_rate=0.4
+  candidate_success_rate=0.7
+  curated_vs_uncurated_uplift=0.3
+  mvp2_closed=false
+  proof_eligible=false
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2b_isaac_proof_evaluator.py --output-dir /tmp/rdf-mvp2b-isaac-runtime-signed-offset-step150-scale20 --clean --rollouts-per-policy 20 --max-steps 150 --action-scale 20 --bootstrap-iterations 200 --pretty
+  runtime_backend=isaac_runtime
+  proof_runtime=dedicated_isaac_connector_insertion_evaluator
+  runtime_gate.passed=true
+  actual_rollouts_per_policy=20
+  baseline_success_rate=0.0
+  candidate_success_rate=0.0
+  curated_vs_uncurated_uplift=0.0
+  mvp2_closed=false
+  proof_eligible=false
+  blockers=[
+    "Existing MVP-2 learning validator did not produce proof-eligible uplift >= 0.20.",
+    "Curated held-out policy success rate did not exceed baseline."
+  ]
+
+trace summary for /tmp/rdf-mvp2b-isaac-runtime-signed-offset-step150-scale20:
+  baseline: 20 rollouts, 0 success, failure_reason=UNDER_INSERTION_FAILURE for all
+  candidate: 20 rollouts, 0 success,
+    LATERAL_OFFSET_FAILURE=10,
+    ORIENTATION_MISALIGNMENT_FAILURE=7,
+    STABILITY_WINDOW_NOT_REACHED=3
+  candidate max_depth range reached 0.034m, but stable window never reached
+
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1c_real_policy_eval_script.py -q
+  53 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2b_isaac_proof_evaluator.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py scripts/run_mvp2_learning_proven_policy_eval.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py
+  All checks passed
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2 Closed는 아직 아니다.
+- 실제 Isaac runtime은 연결됐고 40/40 held-out rollout artifact를 만들지만,
+  현재 phase-conditioned NumPy BC policy가 안정적인 seating을 만들지 못한다.
+- 다음 valid slice는 held-out threshold를 바꾸는 것이 아니라, 새 manifest/version
+  또는 calibration-only split을 기준으로 Isaac-runtime scripted expert train data와
+  action adapter calibration을 재정의하는 것이다.
+- held-out 결과를 이미 본 현재 manifest에서 threshold, success metric,
+  hyperparameter를 사후 조정하면 안 된다.
+
+## 2026-06-11 - MVP-2C training / calibration slice spec
+
+### 작업 내용
+
+- MVP-2B actual Isaac runtime attempt가 non-closing으로 끝난 뒤, 같은 held-out
+  결과를 보고 threshold나 action scale을 사후 조정하지 않는 다음 proof-valid
+  attempt를 설계했다.
+- 새 spec을 작성했다.
+
+```text
+docs/superpowers/specs/2026-06-11-mvp2c-isaac-training-calibration-slice-design.md
+```
+
+핵심 결정:
+
+- 새 manifest version:
+  `rdf_mvp2c_scenario_manifest_v0.1.0`
+- 새 split:
+  - `train_success`: seeds `4000-4079`
+  - `train_failure`: seeds `4100-4179`
+  - `calibration`: seeds `5000-5019`
+  - `held_out`: seeds `6000-6019`
+- 기존 MVP-2B held-out seeds `3000-3019`는 historical non-closing evidence로만
+  보존하고 MVP-2C train/calibration/held-out에 재사용하지 않는다.
+- `IsaacRuntimeScriptedExpertDataGenerator`로 train split의 실제 Isaac-runtime
+  trajectory를 만든다.
+- `ActionAdapterCandidateRegistry`와 `CalibrationOnlyActionAdapterSelector`를
+  추가해 adapter 선택을 held-out과 분리한다.
+- MVP-2C closure는 여전히 기존 MVP-2 learning-proven validator와 actual Isaac
+  runtime gate를 모두 통과해야 한다.
+
+### 판단 이유
+
+- MVP-2B actual run은 runtime gate는 통과했지만 candidate와 baseline이 모두
+  success rate `0.0`이었다.
+- 같은 held-out 결과를 본 뒤 threshold, success metric, action scale,
+  hyperparameter를 수정하면 proof integrity가 깨진다.
+- 따라서 다음 유효 작업은 새 pre-registered manifest와 calibration-only split을
+  도입하는 것이다.
+
+### 변경 파일
+
+- `docs/superpowers/specs/2026-06-11-mvp2c-isaac-training-calibration-slice-design.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+rg -n "TBD|TODO|FIXME|placeholder|implement later|\\.\\.\\.|적당|나중|임시|maybe|possibly" docs/superpowers/specs/2026-06-11-mvp2c-isaac-training-calibration-slice-design.md
+  no matches
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 구현은 시작하지 않았다.
+- 다음 단계는 사용자가 spec을 검토/승인한 뒤 `$ralplan`으로 implementation plan을
+  만들고, 그 다음 `$ultragoal`로 구현을 실행하는 것이다.
+
+## 2026-06-11 - MVP-2C spec hardening
+
+### 작업 내용
+
+- MVP-2C spec에 추가 hardening requirements 5개를 반영했다.
+- 반영 위치:
+
+```text
+docs/superpowers/specs/2026-06-11-mvp2c-isaac-training-calibration-slice-design.md
+```
+
+추가한 핵심 요구사항:
+
+- baseline uncurated train view의 noise/failure mix를 사전 고정한다.
+  - `baseline_noise_mix_ratio`
+  - `accepted_failure_ratio`
+  - `failure_type_distribution`
+  - `noise_profile_config_sha256`
+- scripted expert, controlled failure, train generation config를 hash-stable
+  evidence로 남긴다.
+  - `scripted_expert_config_sha256`
+  - `controlled_failure_config_sha256`
+  - `train_generation_config_sha256`
+- calibration selector가 held-out rollout, trace, success metric을 읽지 못하게
+  anti-p-hacking guard를 명시했다.
+  - `selector_score_pre_registered=true`
+  - `same_adapter_used_for_baseline_and_candidate=true`
+  - `heldout_excluded=true`
+  - `selected_adapter_frozen_before_heldout=true`
+- MVP-2C engineering close minimum과 public / investor-facing stronger evidence
+  target을 분리했다.
+  - close minimum: 20 rollouts per policy, candidate > baseline, uplift >= 0.20
+  - stronger public target: 50 rollouts per policy preferred plus confidence
+    interval
+- Isaac evaluator-domain privileged task-state feature를 사용하는 proof라는
+  non-claim을 report 필수 항목으로 추가했다.
+
+### 판단 이유
+
+- Baseline uncurated가 held-out 결과를 본 뒤 의도적으로 망가진 dataset처럼 보이면
+  curated > uncurated uplift 주장의 신뢰성이 떨어진다.
+- Train data generator와 selector score가 hash-stable하지 않으면 positive uplift가
+  나와도 사후 조정 의심을 피하기 어렵다.
+- Calibration-only selector는 held-out exclusion을 넘어 held-out trace와 success
+  metric 접근 자체를 차단해야 한다.
+- 20-rollout positive result는 engineering closure minimum으로는 충분할 수 있지만,
+  공개 benchmark나 투자자-facing claim으로는 강한 증거라고 말하면 안 된다.
+- 현재 policy input은 Isaac task-state / geometry feature를 사용하므로 real-world
+  visual policy 또는 real robot readiness로 해석되지 않게 명시해야 한다.
+
+### 변경 파일
+
+- `docs/superpowers/specs/2026-06-11-mvp2c-isaac-training-calibration-slice-design.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+rg -n "TBD|TODO|FIXME|placeholder|implement later|\\.\\.\\.|적당|나중|임시|maybe|possibly" docs/superpowers/specs/2026-06-11-mvp2c-isaac-training-calibration-slice-design.md
+  no matches
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 구현은 시작하지 않았다.
+- 다음 단계는 hardened MVP-2C spec을 기준으로 `$ralplan` implementation plan을
+  작성하고, 승인 후 `$ultragoal`로 구현하는 것이다.
+
+## 2026-06-11 - MVP-2C implementation ralplan consensus
+
+### 작업 내용
+
+- Hardened MVP-2C spec 기준으로 `$ralplan` implementation plan을 작성했다.
+- Context, PRD, test spec, implementation plan, Architect review, Critic review,
+  consensus handoff를 생성했다.
+
+생성 artifact:
+
+```text
+.omx/context/mvp2c-isaac-training-calibration-20260610T175054Z.md
+.omx/plans/prd-mvp2c-isaac-training-calibration.md
+.omx/plans/test-spec-mvp2c-isaac-training-calibration.md
+docs/superpowers/plans/2026-06-11-mvp2c-isaac-training-calibration.md
+.omx/plans/architect-review-mvp2c-isaac-training-calibration.md
+.omx/plans/critic-review-mvp2c-isaac-training-calibration.md
+.omx/plans/ralplan-consensus-mvp2c-isaac-training-calibration.md
+```
+
+### 판단 이유
+
+- 기존 MVP-2B actual Isaac runtime은 gate는 통과했지만 positive uplift가 없었다.
+- MVP-2C는 새 manifest, train/calibration/held-out split, baseline mix
+  pre-registration, generator hash, calibration-only adapter selection을 갖춘
+  fresh proof attempt로 구현해야 한다.
+- Architect review에서 지적된 train-generation runtime gate와 MVP-2C 전용
+  learning-validator bridge를 plan에 추가해, held-out만 Isaac이고 train material은
+  deterministic fixture인 상태로 MVP-2C가 닫히는 경로를 막았다.
+
+### 변경 파일
+
+- `.omx/context/mvp2c-isaac-training-calibration-20260610T175054Z.md`
+- `.omx/plans/prd-mvp2c-isaac-training-calibration.md`
+- `.omx/plans/test-spec-mvp2c-isaac-training-calibration.md`
+- `.omx/plans/architect-review-mvp2c-isaac-training-calibration.md`
+- `.omx/plans/critic-review-mvp2c-isaac-training-calibration.md`
+- `.omx/plans/ralplan-consensus-mvp2c-isaac-training-calibration.md`
+- `docs/superpowers/plans/2026-06-11-mvp2c-isaac-training-calibration.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 리뷰 결과
+
+```text
+Architect iteration 1: ITERATE
+Architect iteration 2: APPROVE
+Critic: APPROVE
+Consensus gate: complete
+Recommended next mode: $ultragoal
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+rg -n "TBD|TODO|FIXME|placeholder|implement later|appropriate|similar to|maybe|possibly|\\.\\.\\.|적당|나중|임시" \
+  docs/superpowers/plans/2026-06-11-mvp2c-isaac-training-calibration.md \
+  .omx/plans/prd-mvp2c-isaac-training-calibration.md \
+  .omx/plans/test-spec-mvp2c-isaac-training-calibration.md \
+  .omx/context/mvp2c-isaac-training-calibration-20260610T175054Z.md
+  no matches
+
+git diff --check -- \
+  docs/superpowers/plans/2026-06-11-mvp2c-isaac-training-calibration.md \
+  .omx/plans/prd-mvp2c-isaac-training-calibration.md \
+  .omx/plans/test-spec-mvp2c-isaac-training-calibration.md \
+  .omx/context/mvp2c-isaac-training-calibration-20260610T175054Z.md
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 구현은 시작하지 않았다.
+- 다음 단계는 approved plan을 기준으로 `$ultragoal`을 실행하는 것이다.
+
+## 2026-06-11 - MVP-2C Isaac Training / Calibration Implementation
+
+### 작업 내용
+
+- `$ultragoal` artifact를 MVP-2C approved plan 기준으로 재생성했다.
+- 기존 Codex goal snapshot은 같은 thread의 legacy aggregate goal이 이미
+  `complete` 상태라 active checkpoint는 불가능했다.
+- `omx ultragoal steer --kind annotate_ledger`로 G001 evidence와 goal
+  reconciliation blocker를 ledger에 남기고 artifact-backed implementation을
+  진행했다.
+- `scripts/run_mvp2c_isaac_training_calibration.py`를 추가했다.
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`를 추가해 TDD로
+  RED -> GREEN을 확인했다.
+
+구현된 MVP-2C boundary:
+
+- Fresh scenario manifest:
+  - `train_success`: seeds `4000-4079`
+  - `train_failure`: seeds `4100-4179`
+  - `calibration`: seeds `5000-5019`
+  - `held_out`: seeds `6000-6019`
+- Baseline uncurated noise mix pre-registration:
+  - `baseline_noise_mix_ratio=0.25`
+  - `accepted_failure_ratio={"accepted":3,"failure_or_noisy":1}`
+  - fixed `failure_type_distribution`
+  - `noise_profile_config_sha256`
+- Generator hash evidence:
+  - `scripted_expert_config_sha256`
+  - `controlled_failure_config_sha256`
+  - `train_generation_config_sha256`
+- Calibration-only adapter selector:
+  - `selector_score_pre_registered=true`
+  - `same_adapter_used_for_baseline_and_candidate=true`
+  - `heldout_excluded=true`
+  - `selected_adapter_frozen_before_heldout=true`
+- MVP-2C closure derivation:
+  - deterministic / skipped paths cannot close
+  - actual close requires `train_generation_runtime_gate.passed=true`
+  - actual close requires held-out `runtime_gate.passed=true`
+  - actual close still requires existing MVP-2 learning-proven validator pass
+- Report non-claims:
+  - `deployable_real_robot_policy=false`
+  - `visual_policy_performance=false`
+  - `real_robot_success=false`
+  - `physical_robot_readiness=false`
+  - `universal_robot_support=false`
+
+### 판단 이유
+
+- MVP-2B actual Isaac runtime은 gate는 통과했지만 success/uplift가 0이었다.
+- MVP-2C는 이전 held-out 결과를 본 뒤 threshold나 action scale을 retune하지 않고,
+  fresh pre-registered train/calibration/held-out split로 새 proof attempt를 만들어야 한다.
+- Baseline uncurated view와 selector score가 hash-stable하지 않으면 positive uplift가
+  나와도 사후 조정 의심을 피할 수 없다.
+- Actual Isaac held-out만으로는 부족하므로 train-generation runtime gate를 별도로
+  top-level closure 조건에 넣었다.
+
+### 변경 파일
+
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/data_schema.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+  11 passed
+
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q
+  50 passed
+
+uv run python scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2c-skip-pretty --clean --skip-isaac --pretty
+  runtime_backend=skipped
+  mvp2_closed=false
+  mvp2c_close_minimum_passed=false
+
+uv run python scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2c-deterministic-pretty --clean --use-deterministic-eval-backend --rollouts-per-policy 20 --bootstrap-iterations 200 --pretty
+  runtime_backend=deterministic_test_backend
+  curated_vs_uncurated_uplift=0.29999999999999993
+  mvp2_closed=false
+  mvp2c_close_minimum_passed=false
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2c-isaac-runtime-final --clean --rollouts-per-policy 20 --max-steps 150 --bootstrap-iterations 200 --action-scale 20
+  runtime_backend=isaac_runtime
+  train_generation_runtime_backend=deterministic_test_backend
+  train_generation_runtime_gate.passed=false
+  train_generation_runtime_gate.runtime_backend=isaac_runtime_import_probe_only
+  train_generation_runtime_gate.actual_train_generation_evidence=false
+  runtime_gate.passed=true
+  actual_rollouts_per_policy=20
+  baseline_success_rate=0.0
+  candidate_success_rate=0.0
+  curated_vs_uncurated_uplift=0.0
+  mvp2_closed=false
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2c_isaac_training_calibration.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py
+  PASS
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2C implementation path는 동작하지만 MVP-2는 아직 Closed가 아니다.
+- Actual Isaac held-out runtime gate는 통과했으나, train-generation gate는 import
+  probe only라 fail-closed 되었고 baseline/candidate success가 모두 0.0이라
+  positive curated > uncurated uplift도 없다.
+- 같은 held-out 결과를 본 뒤 threshold, baseline mix, selector score, action scale,
+  hyperparameter를 사후 조정하면 안 된다.
+- 다음 유효 작업은 runtime policy/action adapter가 실제로 geometry/stability success를
+  만들도록 calibration split 안에서만 개선한 뒤 fresh held-out attempt를 다시 실행하는 것이다.
+
+## 2026-06-11 - MVP-2C post-review fail-closed hardening
+
+### 작업 내용
+
+- `$ultragoal` final review gate를 위해 독립 `code-reviewer` / `architect` 리뷰를
+  실행했다.
+- 첫 read-only sandbox 리뷰는 로컬 파일 접근 실패로 `architectStatus=BLOCK`을
+  반환했다.
+- sandbox 제약을 풀고 read-only 프롬프트로 재실행한 리뷰에서
+  `codeReview.recommendation=REQUEST_CHANGES`,
+  `codeReview.architectStatus=BLOCK`가 나왔다.
+- 리뷰 blocker를 반영해 MVP-2C runner를 fail-closed로 보강했다.
+
+보강한 내용:
+
+- Isaac import probe만으로 `train_generation_runtime_gate.passed=true`가 되지 않게
+  수정했다.
+- MVP-2C closure가 다음을 직접 요구하도록 강화했다.
+  - `train_generation_runtime_gate.actual_train_generation_evidence=true`
+  - `training_trajectory_source=isaac_runtime_scripted_expert_rollout`
+  - `calibration_only_selection_passed=true`
+  - `heldout_leakage_guard_passed=true`
+- accepted train trajectory가 실제 `evaluate_rollout_trace()` success를 만족하지
+  않으면 fail-fast 하도록 수정했다.
+- deterministic backend rollout JSON을 external proof가 아닌
+  `local_phase_conditioned_policy_eval_proxy`로 label하여 nested learning validator도
+  proof eligible이 되지 못하게 했다.
+- top-level report에 `manifest_version`, selector hash, selected adapter hash,
+  calibration guard, held-out leakage guard, full runtime reproducible command를
+  노출했다.
+
+### 판단 이유
+
+- 기존 구현은 actual held-out runtime은 통과했지만 train material generation은 실제
+  Isaac scripted expert rollout이 아니라 deterministic domain generator였다.
+- 이 상태를 `isaac_runtime` train generation evidence로 표시하면, 나중에 held-out
+  uplift가 양수가 되었을 때 MVP-2C가 잘못 닫힐 수 있다.
+- 따라서 실제 Isaac train generation runtime artifact가 구현되기 전까지는 MVP-2C
+  close path를 명시적으로 막는 것이 맞다.
+
+### 변경 파일
+
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/data_schema.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+  13 passed
+
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q
+  50 passed
+
+uv run python scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2c-skip-post-review --clean --skip-isaac --pretty
+  runtime_backend=skipped
+  train_generation_runtime_backend=deterministic_test_backend
+  mvp2_closed=false
+  mvp2c_close_minimum_passed=false
+
+uv run python scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2c-deterministic-post-review --clean --use-deterministic-eval-backend --rollouts-per-policy 20 --bootstrap-iterations 200 --pretty
+  runtime_backend=deterministic_test_backend
+  learning_validator.evidence_tier=local_phase_conditioned_policy_eval_proxy
+  learning_validator.proof_eligible=false
+  curated_vs_uncurated_uplift=0.29999999999999993
+  mvp2_closed=false
+  mvp2c_close_minimum_passed=false
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2c-isaac-runtime-final --clean --rollouts-per-policy 20 --max-steps 150 --bootstrap-iterations 200 --action-scale 20
+  runtime_backend=isaac_runtime
+  proof_runtime=dedicated_isaac_connector_insertion_evaluator
+  train_generation_runtime_backend=deterministic_test_backend
+  train_generation_runtime_gate.runtime_backend=isaac_runtime_import_probe_only
+  train_generation_runtime_gate.passed=false
+  runtime_gate.passed=true
+  actual_rollouts_per_policy=20
+  baseline_success_rate=0.0
+  candidate_success_rate=0.0
+  curated_vs_uncurated_uplift=0.0
+  mvp2_closed=false
+  mvp2c_close_minimum_passed=false
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2C implementation path는 더 엄격하게 fail-closed 되었지만, MVP-2는 아직
+  Closed가 아니다.
+- 남은 blocker는 실제 Isaac runtime scripted expert train trajectory generation
+  artifact와 positive curated > uncurated held-out uplift다.
+- 같은 held-out 결과를 본 뒤 threshold, baseline mix, selector score, action scale,
+  hyperparameter를 사후 조정하면 안 된다.
+
+## 2026-06-11 - MVP-2C actual Isaac adapter improvement attempt, still fail-closed
+
+### 작업 내용
+
+- 실제 Isaac held-out trace를 분석해 candidate가 `action_scale=20`에서는 XY
+  saturation으로 lateral error를 키우고, 기본 `action_scale=1`에서는 z 삽입이
+  부족하다는 점을 확인했다.
+- `isaac_signed_xy_downward_servo_v0` runtime action adapter를 명시적 config로
+  보강했다.
+  - `xy_source=state_feedback`
+  - `xy_state_feedback_gain=4.0`
+  - `xy_action_clip=0.035`
+  - `z_action_scale=24.0`
+  - `z_action_clip=0.12`
+  - `rotation_action_scale=1.0`
+  - `stable_hold_action=[0.0, 0.0, -0.02, 0.0, 0.0, 0.0, 1.0]`
+- 선택된 adapter config가 `selected_action_adapter`,
+  `baseline_policy_artifact.json`, `candidate_policy_artifact.json`에 보존되도록
+  했다.
+- MVP-2B actual Isaac evaluator의 `_predict_policy_action()`이 policy artifact의
+  `selected_action_adapter_config`를 반영하도록 했다.
+
+### 판단 이유
+
+- 이전 actual Isaac run은 candidate가 insertion depth에 도달해도 lateral
+  saturation 또는 stable seating window 실패로 close되지 않았다.
+- adapter가 “signed XY servo”라면 BC raw XY output을 단순 global scale하는 것보다
+  동일 adapter 내부의 state-feedback XY correction을 쓰는 편이 더 정확하다.
+- 단, 이 개선도 같은 adapter를 baseline/candidate 모두에 적용해야 하므로, 실제
+  uplift가 없으면 MVP-2를 닫으면 안 된다.
+
+### 변경 파일
+
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `docs/developer/worklog.md`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/data_schema.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+  16 passed
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2c-isaac-adapter-v4 --clean --rollouts-per-policy 20 --max-steps 150 --bootstrap-iterations 200
+  runtime_backend=isaac_runtime
+  runtime_gate.passed=true
+  actual_rollouts_per_policy=20
+  baseline_success_rate=0.15
+  candidate_success_rate=0.15
+  curated_vs_uncurated_uplift=0.0
+  mvp2_closed=false
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2c-isaac-adapter-v6 --clean --rollouts-per-policy 20 --max-steps 150 --bootstrap-iterations 200
+  runtime_backend=isaac_runtime
+  runtime_gate.passed=true
+  actual_rollouts_per_policy=20
+  baseline_success_rate=0.15
+  candidate_success_rate=0.15
+  curated_vs_uncurated_uplift=0.0
+  train_generation_runtime_backend=deterministic_test_backend
+  mvp2_closed=false
+
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp1_proof_audit_script.py -q
+  66 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2b_isaac_proof_evaluator.py scripts/run_mvp2c_isaac_training_calibration.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py
+  PASS
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- 최신 actual Isaac result는 adapter 개선 후에도 candidate와 baseline이 모두
+  `3/20` 성공이라 positive curated > uncurated uplift가 없다.
+- `train_generation_runtime_gate`도 아직 실제 Isaac runtime scripted expert train
+  trajectory generation이 아니라 deterministic/import-probe-only라 fail-closed다.
+- 같은 `held_out=6000-6019` 결과를 본 뒤 threshold, metric, baseline mix,
+  selector score, action scale, policy hyperparameter를 사후 조정해서 close하면 안 된다.
+- 다음 유효 작업은 새 pre-registered slice에서 실제 Isaac scripted-expert train
+  generation을 먼저 구현하고, fresh held-out seeds에서 다시 평가하는 것이다.
+
+## 2026-06-11 - MVP-2C v0.2 actual Isaac train-generation blocker 확인
+
+### 작업 내용
+
+- MVP-2C에 fresh `v0_2` scenario profile을 추가했다.
+  - `train_success`: seeds `7000-7079`
+  - `train_failure`: seeds `7100-7179`
+  - `calibration`: seeds `8000-8019`
+  - `held_out`: seeds `9000-9019`
+  - 이전 held-out `3000-3019`, `6000-6019`는 exclusion evidence로 기록한다.
+- `isaac_signed_xy_downward_servo_v0`에
+  `policy_plus_state_feedback` hybrid XY mode를 추가했다.
+- train-generation probe를 별도 subprocess/단일 policy probe로 분리했다.
+  - 한 프로세스에서 Isaac `AppLauncher`를 두 번 열어 hang되는 문제를 피하기 위함이다.
+  - train split에서 쉬운 scenario부터 시도하고, 첫 성공 시 조기 종료하도록 했다.
+- train-generation scripted expert controller를 policy-eval selected adapter와
+  분리했다.
+
+### 판단 이유
+
+- MVP-2 Closed는 actual Isaac train-generation gate와 actual held-out uplift가
+  모두 필요하다.
+- 이전 `v6`는 held-out runtime은 돌았지만 uplift가 `0.0`이고 train-generation은
+  deterministic/import-probe-only였다.
+- 이번 작업은 threshold나 held-out metric을 낮추지 않고, fresh scenario profile과
+  actual train-generation gate를 먼저 닫을 수 있는지 검증했다.
+
+### 변경 파일
+
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py -q
+  47 passed
+
+uv run python scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2c-train-probe-v02b --clean --scenario-profile v0_2 --skip-isaac --rollouts-per-policy 20 --max-steps 150 --bootstrap-iterations 200
+  PASS: v0_2 manifest/selection artifacts generated
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py --train-generation-probe-only --output-dir /tmp/rdf-mvp2c-train-probe-v02b --scenario-profile v0_2 --max-steps 150 --bootstrap-iterations 200
+  runtime_backend=isaac_runtime
+  generated_rollout_count=20
+  generated_success_count=0
+  passed=false
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py --train-generation-probe-only --output-dir /tmp/rdf-mvp2c-train-probe-v02c --scenario-profile v0_2 --max-steps 150 --bootstrap-iterations 200
+  stopped after 10 easy train-success attempts for blocker diagnosis
+  observed_success_count=0
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- 실제 Isaac runtime은 동작하지만 현재 scripted expert controller가
+  `train_success` split에서 성공 rollout을 만들지 못한다.
+- 이 상태에서 held-out policy A/B를 돌려도 `train_generation_runtime_gate`에서
+  반드시 fail-closed된다.
+- 다음 유효 작업은 policy uplift 튜닝이 아니라 Isaac task용 scripted expert
+  controller 자체를 먼저 성공시키는 것이다.
+
+## 2026-06-11 - MVP-2C actual Isaac viability 재확인
+
+### 작업 내용
+
+- `check_peg_insert_viability.py`로 실제 Isaac runtime에서 Factory task와 Forge
+  task를 각각 확인했다.
+- 확인 축은 다음과 같다.
+  - evaluator가 known success state를 성공으로 인식하는가
+  - accepted readiness trajectory replay가 성공하는가
+  - closed-loop scripted oracle이 reset에서 성공 rollout을 만들 수 있는가
+
+### 판단 이유
+
+- MVP-2 Closed를 위해서는 replay/fixture 통과가 아니라 actual Isaac
+  train-generation과 held-out policy uplift가 필요하다.
+- `v0_2` train-generation probe가 20개 중 0개 성공했기 때문에, 실패 원인이
+  runtime 문제인지, evaluator 문제인지, scripted controller 문제인지 분리해야 했다.
+
+### 실행한 검증 명령과 결과
+
+```text
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/check_peg_insert_viability.py --task Isaac-Factory-PegInsert-Direct-v0 --seed 7000 --oracle-steps 220 --replay-scope accepted --output /tmp/rdf-mvp2c-factory-viability.json --pretty
+  evaluator_success_state_passed=true
+  accepted_replay_viability=true
+  scripted_oracle_passed=false
+  policy_loop_viability=false
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/check_peg_insert_viability.py --task Isaac-Forge-PegInsert-Direct-v0 --seed 7000 --oracle-steps 220 --replay-scope accepted --output /tmp/rdf-mvp2c-forge-viability.json --pretty
+  evaluator_success_state_passed=true
+  accepted_replay_viability=true
+  scripted_oracle_passed=false
+  policy_loop_viability=false
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/check_peg_insert_viability.py --task Isaac-Forge-PegInsert-Direct-v0 --seed 202505 --oracle-steps 220 --replay-scope accepted --output /tmp/rdf-mvp2c-forge-viability-seed202506.json --pretty
+  evaluator_success_state_passed=true
+  accepted_replay_viability=true
+  scripted_oracle_passed=false
+  policy_loop_viability=false
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- actual Isaac runtime과 evaluator/replay path는 동작한다.
+- 그러나 Factory/Forge task 모두에서 current closed-loop scripted oracle이 실패한다.
+- 다음 유효 milestone은 policy A/B 재실행이 아니라 task-specific Isaac scripted
+  expert controller를 먼저 구현/검증하는 것이다.
+- 기존 RDF `peg_in_hole` evaluator는 `peg_tip_distance_to_target_max=0.015`,
+  `peg_axis_alignment_error_max_rad=0.25`, `insertion_depth_min=0.025`를 쓰고
+  accepted replay를 성공으로 본다. MVP-2C의 별도 metric/controller가 이 기존
+  evaluator와 불일치하므로, 다음 slice는 사후 threshold 완화가 아니라 fresh
+  pre-registered evaluator/controller rebase로 진행해야 한다.
+
+## 2026-06-11 - MVP-2D oracle repair 성공, held-out uplift 미달로 MVP-2 fail-closed
+
+### 작업 내용
+
+- 실제 Isaac scripted oracle의 root cause를 반영해
+  `scripts/check_peg_insert_viability.py`를 수정했다.
+  - target pose를 rollout 시작 시 1회가 아니라 매 step 재계산한다.
+  - env `max_episode_length`가 노출되면 timeout reset 직전까지만 실행한다.
+  - native Factory success 대신 RDF `peg_in_hole` metric을 선택 가능한 성공
+    evaluator로 사용한다.
+  - fixed asset jump / reset / stale target 진단 필드를 trace에 남긴다.
+- MVP-2B evaluator metric을 RDF-compatible task-state metric으로 맞췄다.
+  - `insertion_depth_m`
+  - lateral XY distance
+  - held/fixed `-Z` axis alignment error
+- MVP-2C runner에 fresh diagnostic profiles `v0_3`, `v0_4`를 추가했다.
+  - 이전 held-out seed range는 exclusion evidence로 기록한다.
+  - actual Isaac train-generation success trace를 candidate train rows에만
+    주입하는 경로를 추가했다.
+  - baseline은 actual runtime success rows를 포함하지 않도록 고정했다.
+- `G006-mvp-2d-oracle-repair-and-proof-close` ultragoal은 oracle repair 성공 후
+  MVP-2 Closed 조건 미충족 때문에 `failed`로 checkpoint했다.
+
+### 판단 이유
+
+- 이전 실패 원인은 contact-rich insertion controller 자체가 전혀 불가능해서가
+  아니라, rollout horizon 이후 env가 reset/re-randomize되는데 controller가 stale
+  target을 계속 추종하는 구조였다.
+- oracle viability가 먼저 실제 Isaac에서 통과해야 train-generation과 held-out A/B
+  결과를 MVP-2 evidence로 볼 수 있다.
+- 단, MVP-2 Closed는 oracle 성공만으로 닫을 수 없다. 필수 조건은 actual
+  held-out에서 `candidate_success_rate > baseline_success_rate`이고
+  `curated_vs_uncurated_uplift >= 0.20`이다.
+
+### 변경 파일
+
+- `scripts/check_peg_insert_viability.py`
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `apps/api/tests/test_peg_insert_viability_script.py`
+- `apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `docs/developer/worklog.md`
+- `docs/developer/debugging_guide.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/check_peg_insert_viability.py --task Isaac-Factory-PegInsert-Direct-v0 --seed 7000 --oracle-steps 220 --replay-scope accepted --output /tmp/rdf-mvp2d-factory-oracle-repair.json --pretty
+  scripted_oracle_passed=true
+  policy_loop_viability=true
+  accepted_replay_native_direct_all_passed=true
+  accepted_replay_metric_delta_to_native_all_passed=true
+  selected_success_evaluator=rdf_peg_in_hole
+  effective_steps=145
+  horizon_limited=true
+  success_step=4
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2d-full-proof-v03 --clean --scenario-profile v0_3 --rollouts-per-policy 20 --max-steps 145 --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --action-scale 1.0 --pretty
+  train_generation_runtime_gate.passed=true
+  train_generation_runtime_gate.generated_success_count=3
+  actual_rollouts_per_policy=20
+  baseline_success_rate=0.15
+  candidate_success_rate=0.15
+  curated_vs_uncurated_uplift=0.0
+  mvp2_closed=false
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2d-full-proof-v04 --clean --scenario-profile v0_4 --rollouts-per-policy 20 --max-steps 145 --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --action-scale 1.0 --pretty
+  train_generation_runtime_gate.passed=true
+  train_generation_runtime_gate.generated_success_count=5
+  actual_rollouts_per_policy=20
+  baseline_success_rate=0.15
+  candidate_success_rate=0.15
+  curated_vs_uncurated_uplift=0.0
+  mvp2_closed=false
+
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_peg_insert_viability_script.py -q
+  55 passed
+
+uv run python -m compileall -q scripts/check_peg_insert_viability.py scripts/run_mvp2b_isaac_proof_evaluator.py scripts/run_mvp2c_isaac_training_calibration.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_peg_insert_viability_script.py
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- oracle repair와 actual train-generation evidence는 통과했지만, fresh diagnostic
+  held-out `v0_3`, `v0_4` 모두 baseline과 candidate가 `3/20`으로 동률이다.
+- `v0_3`, `v0_4` held-out seed는 이미 결과를 봤으므로 다음 proof closure에
+  재사용하면 안 된다.
+- 다음 유효 milestone은 threshold 조정이 아니라 새 pre-registered `v0_5` slice에서
+  candidate policy/trainer 또는 adapter selection을 개선하고, calibration-only freeze
+  후 fresh held-out A/B를 1회 실행하는 것이다.
+
+## 2026-06-11 - MVP-2D v0.5 residual servo BC 구현 및 train gate fail-closed
+
+### 작업 내용
+
+- `v0_5` pre-registered scenario profile을 추가했다.
+  - `train_success=16000-16159`
+  - `train_failure=16200-16359`
+  - `calibration=17000-17029`
+  - `held_out=18000-18019`
+  - burned held-out ranges: `3000-3019`, `6000-6019`, `9000-9019`,
+    `12000-12019`, `15000-15019`
+- baseline uncurated view를 `60% accepted / 40% rejected-noisy`로 고정했다.
+  - exact rounding: `accepted_count=floor(N*0.60)`
+  - failure bucket cycle: `lateral_offset`, `stability_window_loss`,
+    `under_insertion`
+- candidate view는 proof-eligible일 때 accepted actual Isaac success trace만
+  사용하도록 분리했다.
+- baseline/candidate trace count equality evidence와 hash를 추가했다.
+- trainer를 `phase_conditioned_residual_servo_bc`로 추가했다.
+  - residual target:
+    `actual_trace_action_minus_weak_base_servo_action`
+  - baseline/candidate가 같은 feature schema, phase input, trainer
+    hyperparameters, weak base servo config, selected adapter config를 쓰도록
+    artifact metadata를 추가했다.
+- held-out evaluator가 residual policy artifact를 실행할 수 있도록
+  weak base servo action + learned residual 경로를 추가했다.
+- `--train-generation-probe-only --clean --scenario-profile v0_5`가
+  `scenario_manifest.json`, `selected_action_adapter.json`,
+  calibration evidence를 먼저 생성한 뒤 probe를 실행하도록 self-contained
+  경로를 보강했다.
+- `v0_5`에서는 train-generation gate가 actual success trace 20개 미만이면
+  held-out A/B를 예약하지 않고 fail-closed한다.
+- non-closing `base_servo_only_diagnostic`와
+  `post_heldout_rerun_guard` evidence를 report에 추가했다.
+
+### 판단 이유
+
+- MVP-2 Closed는 positive held-out uplift proof이지, train-generation 또는
+  oracle success proof가 아니다.
+- `v0_3`, `v0_4`는 held-out 결과를 이미 봤으므로 proof closure에 재사용하면
+  안 된다.
+- `v0_5`는 fresh held-out을 열기 전에 candidate/baseline train material의
+  fairness와 train-generation quality를 먼저 fail-closed로 검증해야 한다.
+- 실제 Isaac train-generation이 20개 success trace를 만들지 못하면, 그
+  상태에서 held-out A/B를 실행해도 policy uplift proof가 아니라 weak training
+  material diagnostic이 된다.
+
+### 변경 파일
+
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py`
+- `docs/developer/worklog.md`
+- `docs/developer/debugging_guide.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py -q
+  58 passed
+
+uv run python scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2d-v05-skip --clean --scenario-profile v0_5 --skip-isaac
+  mvp2_closed=False
+  heldout_schedule.scheduled=false
+  actual_rollouts_per_policy=0
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2d-v05-train-gate --clean --scenario-profile v0_5 --train-generation-probe-only --max-steps 145 --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --pretty
+  passed=false
+  runtime_backend=isaac_runtime
+  proof_runtime=isaac_scripted_expert_train_generation_probe
+  generated_rollout_count=40
+  generated_success_count=5
+  required_success_count=20
+  success_trace_cap=40
+  actual_train_generation_evidence=false
+  reason="Isaac scripted train-generation probe did not produce 20 successful rollouts."
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_isaac_proof_evaluator.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py
+  PASS
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- `v0_5` implementation slice는 완료됐지만, 실제 Isaac train-generation gate가
+  `5/40` success로 minimum `20`을 넘지 못했다.
+- Stop rule에 따라 `v0_5` held-out `18000-18019`는 실행하지 않았다. 따라서
+  이 held-out range는 아직 proof closure용으로 열리지 않았다.
+- 다음 유효 작업은 held-out이 아니라 train-generation success rate를 올리는
+  `v0_5a` 또는 fresh `v0_6` pre-held-out repair다.
+  - scripted expert target/phase schedule 개선
+  - selected adapter feasibility와 weak base servo config 재검토
+  - train-generation probe에서 `>=20` actual success traces 확보
+  - 그 후에만 fresh held-out A/B 실행
+
+## 2026-06-11 - MVP-2E v0.6 env-native train-generation recovery 설계
+
+### 작업 내용
+
+- MVP-2D `v0_5` fail-closed 이후 다음 proof slice를 `v0_6` fresh profile로
+  재정의했다.
+- `v0_5`를 patch하거나 소급 pass시키지 않고, 새 success authority와 새 seed
+  profile을 가진 MVP-2E 설계 문서를 작성했다.
+- 새 설계 문서:
+  `docs/superpowers/specs/2026-06-11-mvp2e-v06-env-native-train-generation-recovery-design.md`
+
+### 판단 이유
+
+- `v0_5`의 `5/40`은 frozen MVP-2C geometry metric
+  `lateral_error_m_max=0.006` 기준 결과다.
+- 기존 RDF buyer-facing `peg_in_hole` metric의 `0.015` 기준을 `v0_5` 결과를 본 뒤
+  primary closure authority로 고르면 p-hacking risk가 생긴다.
+- 따라서 MVP-2E는 Isaac Factory/Forge env-native `_get_curr_successes`를
+  primary closure authority로 freeze한다.
+- Rollout success는 first-hit이 아니라 `>=10` consecutive env-native success
+  control steps로 정의한다.
+- `v0_5` failed seeds는 repair probe 전용으로만 쓰고, proof gate는 fresh `v0_6`
+  seed range에서 실행한다.
+
+### 설계 핵심
+
+- `v0_6` success authority:
+  - `env._get_curr_successes(success_threshold=env.cfg_task.success_threshold,
+    check_rot=false)`
+  - `stable_steps_required=10`
+- Probe-only seeds:
+  - `16023`
+  - `16042`
+  - `16096`
+- Fresh `v0_6` ranges:
+  - `train_success=19000-19159`
+  - `train_failure/noisy=19200-19359`
+  - `calibration=20000-20029`
+  - `held_out=21000-21049`
+- Fixed 40 train gate subset:
+  - selected from `19000-19159`
+  - build-time config difficulty only
+  - no Isaac result, no RNG, no held-out access
+- Chamfer preflight:
+  - mandatory before INSERT parameter freeze
+  - Branch C blocks repair probe and 40-run gate.
+
+### 변경 파일
+
+- `docs/superpowers/specs/2026-06-11-mvp2e-v06-env-native-train-generation-recovery-design.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+Spec 문서 작성 전 repo/project instruction, v0.5 spec, v0.5 train gate artifact,
+Isaac Factory success source를 확인했다.
+
+git diff --check -- docs/superpowers/specs/2026-06-11-mvp2e-v06-env-native-train-generation-recovery-design.md docs/developer/worklog.md tasks/todo.md Handoff.md
+  PASS
+
+rg -n "TBD|TODO|FIXME|검증 예정" docs/superpowers/specs/2026-06-11-mvp2e-v06-env-native-train-generation-recovery-design.md docs/developer/worklog.md tasks/todo.md Handoff.md
+  새 spec에는 placeholder 없음. 기존 historical log와 template reference만 존재.
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- 다음 단계는 이 design spec을 기준으로 `$ralplan` implementation plan을 작성하는
+  것이다.
+- Implementation은 held-out을 열지 않고, 먼저 chamfer preflight와 repair probe를
+  구현해야 한다.
+
+## 2026-06-11 - MVP-2E v0.6 env-native train-generation recovery 구현
+
+### 작업 내용
+
+- `$ralplan` implementation plan을 작성하고, 그 plan 기준으로 `v0_6` 구현을 진행했다.
+- `scenario_profile=v0_6`과
+  `manifest_version=rdf_mvp2e_scenario_manifest_v0.6.0`을 추가했다.
+- Isaac env-native consecutive success를 primary success authority로 기록했다.
+- `19000-19159` train range에서 deterministic config-difficulty 40-seed subset을
+  선택하고 hash-stable manifest evidence로 남기도록 했다.
+- `16023`, `16042`, `16096` repair probe seed pack과
+  `lateral_divergence_stopped` diagnostic을 추가했다.
+- `chamfer_preflight.json`과 `repair_probe_gate.json` fail-closed artifact를 추가했다.
+- runtime trace summary에 env-native success window와 RDF secondary diagnostic을
+  함께 기록하도록 했다.
+- `v0_6_active_state_controller` gate를 selected action adapter에 연결해 z 하강을
+  alignment 조건으로 제한할 수 있게 했다.
+- `--scenario-profile v0_6`과 `--repair-probe-only` CLI를 추가했다.
+
+### 판단 이유
+
+- `v0_5`는 historical fail-closed evidence로 보존해야 하며, 소급 pass나 metric
+  완화로 MVP-2를 닫으면 안 된다.
+- `v0_6`은 held-out A/B 이전의 train-generation recovery slice이므로,
+  chamfer/lead-in static geometry가 확인되지 않으면 INSERT parameter freeze를
+  막아야 한다.
+- 현재 local environment에서는 IsaacLab task config의 USD path와 peg/hole diameter는
+  확인되지만, Nucleus asset mesh geometry를 local static inspection으로 확인할 수
+  없었다. 따라서 spec의 Branch C stop rule을 적용했다.
+
+### 변경 파일
+
+- `.omx/context/mvp2e-v06-env-native-train-generation-recovery-20260611T093250Z.md`
+- `.omx/plans/prd-mvp2e-v06-env-native-train-generation-recovery.md`
+- `.omx/plans/test-spec-mvp2e-v06-env-native-train-generation-recovery.md`
+- `docs/superpowers/plans/2026-06-11-mvp2e-v06-env-native-train-generation-recovery.md`
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py -q
+  69 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_isaac_proof_evaluator.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py
+  PASS
+
+git diff --check
+  PASS
+
+uv run python scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2e-v06-skip --clean --scenario-profile v0_6 --skip-isaac --pretty
+  PASS
+  manifest_version=rdf_mvp2e_scenario_manifest_v0.6.0
+  actual_isaac_success_trace_minimum=20
+  actual_isaac_success_trace_cap=40
+  chamfer_preflight artifact exists=true
+  repair_probe_gate artifact exists=true
+  heldout_schedule.scheduled=false
+  heldout_schedule.blocked_by_train_generation_gate=true
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2e-v06-repair-probe --clean --scenario-profile v0_6 --train-generation-probe-only --repair-probe-only --max-steps 145 --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --pretty
+  PASS / fail-closed
+  repair_probe_gate.green_light_for_40_run_gate=false
+  repair_probe_gate.hard_stop=true
+  reason=chamfer preflight Branch C blocked INSERT parameter freeze
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py --output-dir /tmp/rdf-mvp2e-v06-train-gate --clean --scenario-profile v0_6 --train-generation-probe-only --max-steps 145 --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --pretty
+  PASS / fail-closed
+  train_generation_runtime_gate.passed=false
+  generated_rollout_count=0
+  generated_success_count=0
+  required_success_count=20
+  reason=chamfer preflight Branch C blocked INSERT parameter freeze
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- `v0_6` implementation slice는 code/test/artifact shape까지 완료됐지만, actual Isaac
+  train-generation proof는 chamfer preflight Branch C에서 의도적으로 멈췄다.
+- 다음 valid step은 Nucleus/local USD mesh geometry를 inspect 가능하게 만들어
+  `factory_hole_8mm.usd` / `factory_peg_8mm.usd`의 chamfer/lead-in 존재 여부와
+  capture radius를 확인하는 것이다.
+- Branch A/B가 확인되기 전까지 repair probe와 40-run train gate를 실행하면 안 된다.
+
+## 2026-06-11 - MVP-2E v0.6a runtime capture-radius preflight spec
+
+### 작업 내용
+
+- `v0_6` Branch C의 원인을 "asset 접근 불가"가 아니라
+  `static_config_only_geometry_uninspectable` 경로 한계로 재정의했다.
+- runtime Isaac env가 Factory asset을 resolve할 수 있다는 기존 `v0_5` actual trace
+  evidence를 바탕으로 runtime empirical capture-radius probe spec을 작성했다.
+- `capture_radius_probe.json` artifact, updated `chamfer_preflight.json` Branch A/B/C
+  rules, geometry-only seed namespace, held-out 봉인 조건을 문서화했다.
+
+### 판단 이유
+
+- static-local USD parsing을 반복해도 Branch C가 해소되지 않는다.
+- empirical capture-radius probe는 실제 runtime physics 조건에서 chamfer/lead-in의
+  실질 capture behavior를 측정하므로 USD stage parsing보다 직접적이다.
+- 단, 이 probe는 geometry preflight일 뿐 training evidence, repair probe pass,
+  40-run gate pass, MVP-2 Closed claim 권한을 갖지 않는다.
+
+### 변경 파일
+
+- `docs/superpowers/specs/2026-06-11-mvp2e-v06a-runtime-capture-radius-preflight-design.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 다음 단계는 이 spec 기준으로 `$ralplan` implementation plan을 작성하는 것이다.
+- 구현 전에는 `capture_radius_probe`가 held-out, train gate, calibration, repair probe
+  seed와 disjoint인지 테스트로 고정해야 한다.
+- Branch A/B가 나오기 전까지 repair probe, fixed 40-run train gate, held-out A/B를
+  실행하면 안 된다.
+
+## 2026-06-11 - MVP-2E v0.6a runtime capture-radius preflight ralplan
+
+### 작업 내용
+
+- `v0_6a` runtime capture-radius preflight spec 기준으로 `$ralplan`
+  implementation plan을 작성했다.
+- stale OMX `ultragoal` state가 ralplan activation을 막아
+  `omx state clear --input '{"mode":"ultragoal"}' --json`로 정리했다.
+- Planning artifacts, Architect review, Critic review, consensus handoff를
+  생성했다.
+- Architect 1차 review는 `ITERATE`였고 다음 blocking issue를 제기했다.
+  - exact INSERT envelope 값 pre-registration 필요
+  - repair probe가 static Branch C를 재생성하지 않고 verified v0.6a preflight를
+    소비해야 함
+  - `train_generation_gate_allowed` 의미 명확화 필요
+  - artifact-shape tests 강화 필요
+- 위 지적을 반영한 뒤 Architect와 Critic 모두 `APPROVE`를 받았다.
+
+### 판단 이유
+
+- capture-radius probe는 runtime geometry preflight일 뿐 downstream proof gate가
+  아니다.
+- Branch A/B는 repair probe만 열 수 있고, fixed 40-run gate는 repair probe green
+  light 이후에만 열려야 한다.
+- `vertical_push_scale=24.0`, `correction_gain_limit=4.0`,
+  `max_insert_steps=145`, `rotation_action_scale=0.0`을 frozen `v0_6`
+  active-state train-generation controller/horizon에서 가져온 값으로
+  pre-register했다.
+
+### 변경 파일
+
+- `.omx/context/mvp2e-v06a-runtime-capture-radius-preflight-20260611T101043Z.md`
+- `.omx/plans/prd-mvp2e-v06a-runtime-capture-radius-preflight.md`
+- `.omx/plans/test-spec-mvp2e-v06a-runtime-capture-radius-preflight.md`
+- `.omx/plans/architect-review-mvp2e-v06a-runtime-capture-radius-preflight-iter1.md`
+- `.omx/plans/architect-review-mvp2e-v06a-runtime-capture-radius-preflight.md`
+- `.omx/plans/critic-review-mvp2e-v06a-runtime-capture-radius-preflight.md`
+- `.omx/plans/ralplan-consensus-mvp2e-v06a-runtime-capture-radius-preflight.md`
+- `docs/superpowers/plans/2026-06-11-mvp2e-v06a-runtime-capture-radius-preflight.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+omx state clear --input '{"mode":"ultragoal"}' --json
+  {"cleared":true,"mode":"ultragoal",...}
+
+rg -n "TBD|TODO|unclear|나중에|미정" <v0.6a planning artifacts>
+  no matches
+
+git diff --check
+  PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- 다음 valid step은 consensus handoff 기준으로 `$ultragoal` 실행이다.
+- 권장 명령:
+  `$ultragoal implement docs/superpowers/plans/2026-06-11-mvp2e-v06a-runtime-capture-radius-preflight.md`
+- MVP-2는 아직 Closed가 아니다.
+- Branch A/B runtime preflight evidence가 나오기 전까지 repair probe, fixed 40-run
+  gate, held-out A/B를 실행하면 안 된다.
+
+## 2026-06-11 - MVP-2E v0.6a runtime capture-radius preflight implementation
+
+### 작업 내용
+
+- `$ultragoal` 실행으로 v0.6a runtime capture-radius preflight slice를 구현했다.
+- `capture_radius_probe.json` artifact와 runtime-updated
+  `chamfer_preflight.json` artifact를 추가했다.
+- `--capture-radius-probe-only` CLI entrypoint를 추가했다.
+- geometry-only probe seed namespace `18500-18509`, primary seed `18500`을
+  고정했다.
+- INSERT envelope를 pre-registered 값으로 고정했다.
+  - `vertical_push_scale=24.0`
+  - `correction_gain_limit=4.0`
+  - `max_insert_steps=145`
+  - `rotation_action_scale=0.0`
+- repair probe가 verified `v0_6a` preflight 없이 실행되지 않도록 fail-closed
+  resolver를 추가했다.
+
+### 판단 이유
+
+- runtime capture-radius probe는 geometry preflight이지 downstream proof gate가
+  아니다.
+- Branch A/B는 repair probe만 열 수 있고, train-generation gate와 held-out A/B는
+  계속 닫혀 있어야 한다.
+- 실제 Isaac runtime smoke 결과 Factory env는 load됐지만 zero-offset trial이
+  deadline 안에 env-native success mask를 만들지 못해 Branch C로 fail-closed했다.
+
+### 변경 파일
+
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+  45 passed
+
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06a-skip \
+  --clean --scenario-profile v0_6 --skip-isaac --pretty
+  PASS: static v0_6 Branch C fail-closed preserved
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06a-capture-radius \
+  --clean --scenario-profile v0_6 --capture-radius-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --pretty
+  PASS: runtime artifact produced; Branch C fail-closed
+```
+
+Runtime artifact result:
+
+```text
+/tmp/rdf-mvp2e-v06a-capture-radius/capture_radius_probe.json
+preflight_branch=C
+runtime_loaded=true
+runtime_error="TimeoutError: v0_6a capture-radius trial exceeded runtime deadline"
+train_generation_gate_status=blocked_by_preflight
+
+/tmp/rdf-mvp2e-v06a-capture-radius/chamfer_preflight.json
+preflight_branch=C
+repair_probe_allowed=false
+train_generation_gate_allowed=false
+train_generation_gate_status=blocked_by_preflight
+reason="env_native_success_mask_unavailable; zero_offset_insertion_failed"
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- Branch C가 유지됐으므로 repair probe, fixed 40-run train gate, held-out A/B는
+  실행하면 안 된다.
+- 다음 valid step은 runtime capture probe의 zero-offset timeout 원인을 진단하는 것이다.
+  - direct held-asset placement 후 env-native mask가 왜 나오지 않는지 확인
+  - `_read_env_native_success` 호출 가능성과 `_get_curr_successes` update timing 확인
+  - 필요하면 runtime USD stage inspection fallback으로 chamfer/lead-in geometry를 확인
+
+## 2026-06-11 - MVP-2E v0.6a review fix and Branch B runtime evidence
+
+### 작업 내용
+
+- v0.6a final review 지적을 반영했다.
+- `chamfer_preflight.json` 단독 검증을 금지하고,
+  `capture_radius_probe.json`의 hash, branch, `capture_radius_m`, measurement와
+  교차 검증하도록 강화했다.
+- `--train-generation-probe-only`가 더 이상 static Branch C로
+  `chamfer_preflight.json`을 덮어쓰지 않도록 수정했다.
+- fixed 40-run train-generation gate는 verified v0.6a preflight와
+  `repair_probe_gate.green_light_for_40_run_gate=true`가 모두 있어야 열리도록
+  분리했다.
+- runtime capture-radius probe의 direction sweep timeout을 partial evidence로
+  보존하고 Branch B로 평가할 수 있게 했다.
+
+### 판단 이유
+
+- runtime capture-radius probe는 proof authority가 아니라 repair probe unlock
+  evidence다.
+- Branch A/B도 train-generation gate를 직접 열 수 없고, repair probe green light가
+  추가로 필요하다.
+- timeout 중에도 env-native mask와 일부 offset success가 존재하면 이를
+  `env_native_success_mask_unavailable`로 접으면 실제 runtime evidence를 잃는다.
+
+### 변경 파일
+
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `docs/developer/debugging_guide.md`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+  48 passed
+
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py \
+  apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py -q
+  80 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2c_isaac_training_calibration.py \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py
+  PASS
+
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06a-capture-radius \
+  --scenario-profile v0_6 --train-generation-probe-only --skip-isaac --pretty
+  PASS: missing_v0_6_repair_probe_green_light blocks 40-run gate
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06a-capture-radius \
+  --clean --scenario-profile v0_6 --capture-radius-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --pretty
+  PASS: runtime artifact produced; Branch B, repair_probe_allowed=true,
+  train_generation_gate_allowed=false
+```
+
+Runtime artifact result:
+
+```text
+/tmp/rdf-mvp2e-v06a-capture-radius/capture_radius_probe.json
+preflight_branch=B
+capture_radius_m=approximate
+runtime_loaded=true
+runtime_error="v0_6a capture-radius trial exceeded runtime deadline"
+repair_probe_allowed=true
+train_generation_gate_status=pending_repair_probe
+
+/tmp/rdf-mvp2e-v06a-capture-radius/chamfer_preflight.json
+preflight_branch=B
+repair_probe_allowed=true
+train_generation_gate_allowed=false
+train_generation_gate_status=pending_repair_probe
+heldout_allowed=false
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- Branch B가 repair probe만 unlock했다.
+- 다음 valid step은 verified Branch B `chamfer_preflight.json`을 입력으로
+  repair probe `16023/16042/16096`을 실행하는 것이다.
+- fixed 40-run train gate와 held-out A/B는 repair probe green light 전까지
+  계속 금지다.
+
+## 2026-06-11 - MVP-2E v0.6a final review hardening
+
+### 작업 내용
+
+- runtime Branch A 판정을 pre-registered offset sweep 전체와 방향별 evidence로
+  강화했다.
+  - sweep: `0.0, 0.0001, 0.0002, 0.0004, 0.0006, 0.0008, 0.001,
+    0.0015, 0.002, 0.003, 0.004, 0.006, 0.008`
+  - Branch A는 모든 방향에서 conservative capture radius `>=0.0004`이고
+    각 방향의 non-zero success count가 `>=2`여야 한다.
+- Branch B는 약하거나 비대칭인 capture evidence를 보존하되,
+  train-generation gate를 직접 열지 않도록 유지했다.
+- `repair_probe_gate.json`이 단순히 `green_light_for_40_run_gate=true`만
+  가지면 40-run gate를 열 수 없도록 validator를 추가했다.
+  - required runtime, probe seeds, mode pass flags, embedded
+    `chamfer_preflight` hash, post-repair gate, probe results, artifact hash를
+    모두 검증한다.
+- 전체 `v0_6` build 경로가 기존 runtime `chamfer_preflight.json`을 static
+  Branch C로 덮어쓰지 않도록 회귀 테스트를 추가했다.
+- `--capture-radius-probe-only --clean`이 잘못된 scenario profile에서 output
+  directory를 지우기 전에 실패하는지 테스트로 고정했다.
+
+### 판단 이유
+
+- v0.6a capture-radius preflight는 repair probe unlock evidence일 뿐이고,
+  train-generation proof authority가 아니다.
+- repair green gate가 조작되거나 축약된 artifact로 통과하면 fixed 40-run gate가
+  integrity 없이 열리는 문제가 생긴다.
+- runtime Branch B evidence를 얻은 뒤 full build가 static Branch C를 다시 쓰면
+  실제 runtime evidence가 손실된다.
+
+### 변경 파일
+
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `docs/developer/worklog.md`
+- `docs/developer/debugging_guide.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+  51 passed
+
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py \
+  apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py -q
+  84 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2c_isaac_training_calibration.py \
+  scripts/run_mvp2b_isaac_proof_evaluator.py \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py \
+  apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py
+  PASS
+
+git diff --check
+  PASS
+
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06a-capture-radius \
+  --scenario-profile v0_6 --train-generation-probe-only --skip-isaac --pretty
+  PASS: reason=missing_v0_6_repair_probe_green_light,
+  runtime_backend=isaac_runtime_not_started
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- Branch B는 repair probe only를 unlock한 상태다.
+- fixed 40-run train-generation gate는 verified Branch A/B preflight와 valid
+  `repair_probe_gate.json` green light가 모두 있어야 열린다.
+- held-out `21000-21049`는 계속 sealed 상태로 유지한다.
+
+## 2026-06-11 - MVP-2E v0.6a repair gate semantic validation fix
+
+### 작업 내용
+
+- code-reviewer가 지적한 `repair_probe_gate.json` semantic bypass를 수정했다.
+- `validate_v06_repair_probe_gate_artifact()`가 이제 `probe_results`를 seed별로
+  normalize한 뒤 `evaluate_v06_repair_probe_gate()`로 gate semantics를 재계산한다.
+- 재계산된 `hold_mode_passed`, `lateral_success_mode_passed`,
+  `lateral_divergence_stopped`, `green_light_for_40_run_gate`, `hard_stop`가
+  artifact top-level 값과 일치하지 않으면 fixed 40-run gate를 열 수 없다.
+- top-level green flag와 hash는 맞지만 seed별 `probe_results`가 비어 있는
+  조작 artifact를 거부하는 회귀 테스트를 추가했다.
+
+### 판단 이유
+
+- 구조적으로 valid한 JSON hash만으로는 repair probe가 실제로 green이었다는 의미를
+  보장하지 못한다.
+- fixed 40-run train-generation gate는 verified v0.6a preflight와
+  repair probe semantic green light를 모두 요구해야 한다.
+
+### 변경 파일
+
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `docs/developer/worklog.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+  51 passed
+
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py \
+  apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py -q
+  84 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2c_isaac_training_calibration.py \
+  scripts/run_mvp2b_isaac_proof_evaluator.py \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py \
+  apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py
+  PASS
+
+git diff --check
+  PASS
+
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06a-capture-radius \
+  --scenario-profile v0_6 --train-generation-probe-only --skip-isaac --pretty
+  PASS: reason=missing_v0_6_repair_probe_green_light,
+  runtime_backend=isaac_runtime_not_started
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- 다음 valid step은 repair probe `16023/16042/16096` 실행이다.
+- fixed 40-run train gate는 semantic-valid `repair_probe_gate.json` green light 전까지
+  금지다.
+
+## 2026-06-11 - MVP-2E v0.6a Isaac repair probe execution
+
+### 작업 내용
+
+- verified Branch B `chamfer_preflight.json`을 사용해 실제 Isaac repair probe를 실행했다.
+- 실행 대상은 pre-registered repair probe seed `16023`, `16042`, `16096`이다.
+- 실행 산출물은 `/tmp/rdf-mvp2e-v06a-capture-radius/repair_probe_gate.json` 및
+  `/tmp/rdf-mvp2e-v06a-capture-radius/isaac_runtime_repair_probe/...` trace 파일이다.
+
+### 판단 이유
+
+- Branch B는 repair probe만 unlock하며 fixed 40-run train-generation gate를 직접 열 수 없다.
+- fixed 40-run gate는 `repair_probe_gate.green_light_for_40_run_gate=true`와
+  seed별 `probe_results` semantic validation이 모두 필요하다.
+
+### 실행 결과
+
+- Isaac runtime 자체는 정상 실행됐다.
+  - `runtime_backend=isaac_runtime`
+  - `runtime_gate.passed=true`
+  - `device=cuda:0`
+- repair probe는 fail-closed로 종료됐다.
+  - `green_light_for_40_run_gate=false`
+  - `hard_stop=true`
+  - `hold_mode_passed=false`
+  - `lateral_success_mode_passed=false`
+  - `lateral_divergence_stopped=false`
+- 세 seed 모두 env-native closure authority를 통과하지 못했다.
+  - `env_native_max_consecutive_success_steps=0`
+  - `failure_reason=ENV_NATIVE_STABILITY_WINDOW_NOT_REACHED`
+- 동시에 RDF secondary geometry metric은 세 seed 모두 통과했다.
+  - `rdf_peg_in_hole_metric.summary.success=true`
+  - 즉 현재 blocker는 "RDF proxy는 성공하지만 env-native success mask가 true가 되지 않는"
+    evaluator/trace 의미 불일치다.
+
+### 변경 파일
+
+- `docs/developer/worklog.md`
+- `docs/developer/debugging_guide.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06a-capture-radius \
+  --scenario-profile v0_6 --train-generation-probe-only --repair-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --pretty
+  PASS: command exited 0, repair probe artifact written,
+  green_light_for_40_run_gate=false, hard_stop=true
+
+uv run python - <<'PY'
+from pathlib import Path
+import importlib.util, sys
+path=Path("scripts/run_mvp2c_isaac_training_calibration.py")
+spec=importlib.util.spec_from_file_location("mvp2c", path)
+mod=importlib.util.module_from_spec(spec)
+sys.modules["mvp2c"]=mod
+spec.loader.exec_module(mod)
+print(mod.resolve_v06_train_generation_gate_preflight(
+    output_dir=Path("/tmp/rdf-mvp2e-v06a-capture-radius")
+))
+PY
+  PASS: train_generation_gate_allowed=false,
+  reason=v0_6_repair_probe_not_green
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- fixed 40-run train-generation gate와 held-out `21000-21049`는 계속 금지다.
+- 다음 valid technical step은 controller 파라미터를 바로 튜닝하는 것이 아니라
+  env-native `_get_curr_successes` 조건과 RDF geometry trace 사이의 불일치를 계측하는 것이다.
+  특히 env-native keypoint distance, native success threshold inputs, held/fixed asset frame,
+  `_get_curr_successes` 내부 조건을 trace에 기록해야 한다.
+
+## 2026-06-11 - MVP-2E v0.6b RDF/native metric semantic repair
+
+### 작업 내용
+
+- `$ralplan` consensus가 승인한
+  `docs/superpowers/plans/2026-06-11-mvp2e-v06b-rdf-native-metric-repair.md` 기준으로
+  Factory PegInsert native success 의미와 RDF runtime trace 의미를 정렬했다.
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`에 Factory native base/target pose 기반
+  diagnostic helper와 native-aligned metric row builder를 추가했다.
+- 기존 `insertion_depth_m`이 Factory target 아래 삽입 깊이가 아니라
+  `held_z - fixed_z` 양수 변위로 쓰이던 문제를 분리했다.
+  - `legacy_positive_z_disp_m`: 기존 양수 z displacement 보존
+  - `runtime_depth_feature_m` / `insertion_depth_m`: native seating progress로 정렬
+  - `env_native_z_disp_m`, `env_native_height_threshold_m`, `env_native_success_mask` 기록
+- `scripts/run_mvp2c_isaac_training_calibration.py`에
+  `validate_v06b_native_metric_trace_rows()`를 추가했다.
+- repair probe gate가 이제 `env_native_success` 필드, Factory base/target source,
+  legacy depth 재사용 금지, native mask 일치를 모두 통과해야 한다.
+
+### 판단 이유
+
+- v0.6a blocker는 RDF secondary geometry와 Factory `_get_curr_successes` 사이의 의미 불일치였다.
+- Factory native success는 `z_disp < fixed_asset_height * success_threshold`를 요구한다.
+  현재 Factory PegInsert 설정에서는 `0.025 * 0.04 = 0.001m`다.
+- 따라서 high positive z displacement를 `insertion_depth_m` 성공으로 해석하면
+  env-native closure authority와 다른 데이터를 만들게 된다.
+
+### 실행 결과
+
+- v0.6b runtime capture-radius preflight:
+  - output: `/tmp/rdf-mvp2e-v06b-native-metric-repair`
+  - `preflight_branch=B`
+  - `capture_radius_m=approximate`
+  - `repair_probe_allowed=true`
+  - `train_generation_gate_allowed=false`
+- v0.6b repair probe:
+  - output: `/tmp/rdf-mvp2e-v06b-native-metric-repair/repair_probe_gate.json`
+  - `runtime_backend=isaac_runtime`
+  - `runtime_gate.passed=true`
+  - `v0_6b_native_metric_trace_validation.valid=true`
+  - `validated_trace_count=450`
+  - `green_light_for_40_run_gate=false`
+  - `hard_stop=true`
+- 세 repair seed 모두 env-native rollout success가 없다.
+  - `16023`: `env_native_max_consecutive_success_steps=0`, `max_progress=0.0`,
+    `min_z_disp=0.036099`
+  - `16042`: `env_native_max_consecutive_success_steps=0`, `max_progress=0.0`,
+    `min_z_disp=0.031983`
+  - `16096`: `env_native_max_consecutive_success_steps=0`, `max_progress=0.0`,
+    `min_z_disp=0.039618`
+- v0.6b 이후에는 RDF secondary metric도 `UNDER_INSERTION_FAILURE`로 fail한다.
+  즉 v0.6a의 "RDF proxy success / env-native false" 불일치는 제거됐다.
+
+### 변경 파일
+
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `docs/developer/worklog.md`
+- `docs/developer/debugging_guide.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06b-native-metric-repair \
+  --scenario-profile v0_6 --train-generation-probe-only --repair-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --pretty
+  PASS: command exited 0, repair probe artifact written,
+  v0_6b_native_metric_trace_validation.valid=true,
+  green_light_for_40_run_gate=false, hard_stop=true
+
+uv run python - <<'PY'
+from pathlib import Path
+import importlib.util, sys
+path=Path("scripts/run_mvp2c_isaac_training_calibration.py")
+spec=importlib.util.spec_from_file_location("mvp2c", path)
+mod=importlib.util.module_from_spec(spec)
+sys.modules["mvp2c"]=mod
+spec.loader.exec_module(mod)
+print(mod.resolve_v06_train_generation_gate_preflight(
+    output_dir=Path("/tmp/rdf-mvp2e-v06b-native-metric-repair")
+))
+PY
+  PASS: train_generation_gate_allowed=false,
+  reason=v0_6_repair_probe_not_green
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- fixed 40-run train-generation gate와 held-out `21000-21049`는 계속 금지다.
+- 다음 valid technical step은 success metric을 바꾸는 것이 아니라, native-aligned trace를
+  기준으로 controller가 왜 `env_native_z_disp_m < 0.001` 근처까지 내려가지 못하는지
+  계측하는 것이다.
+- 현재 probe row는 150 step 내내 `phase=APPROACH`, `runtime_depth_feature_m=0.0`에
+  머물렀다. 다음 조사는 active phase / z-gate / action adapter가 실제 z 하강 action을
+  충분히 내는지 확인해야 한다.
+
+## 2026-06-11 - MVP-2E v0.6c controller/action diagnosis
+
+### 작업 내용
+
+- v0.6b 이후 남은 controller/action blocker를 fix 전에 계측했다.
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`에
+  `_predict_policy_action_with_diagnostics()`와
+  `_apply_selected_action_adapter_with_diagnostics()`를 추가했다.
+- Isaac runtime trace row에 `controller_action_diagnostics`를 기록한다.
+  - raw policy action
+  - pre-controller adapter action
+  - final post-adapter action
+  - phase controller verdict
+  - phase vocabulary mismatch 여부
+  - z motion suppression 여부와 block reason
+- `scripts/run_mvp2c_isaac_training_calibration.py`에
+  `summarize_v06c_controller_action_diagnosis()`를 추가하고,
+  repair probe 실행 시 `controller_action_diagnosis.json`을 생성하게 했다.
+
+### 판단 이유
+
+- v0.6b에서 metric semantic mismatch는 해결됐지만, 세 repair probe seed 모두
+  native seating progress가 0에 머물렀다.
+- controller를 바로 고치면 원인 없이 threshold/action을 튜닝하게 되므로,
+  먼저 raw z command가 어디에서 사라지는지 증거를 남겼다.
+
+### 실행 결과
+
+- 실행 artifact:
+  `/tmp/rdf-mvp2e-v06c-controller-action-diagnosis/controller_action_diagnosis.json`
+- 실제 Isaac repair probe `16023`, `16042`, `16096` 결과:
+  - `runtime_backend=isaac_runtime`
+  - `runtime_gate.passed=true`
+  - `v0_6b_native_metric_trace_validation.valid=true`
+  - `validated_trace_count=450`
+  - `green_light_for_40_run_gate=false`
+  - `hard_stop=true`
+- v0.6c controller/action diagnosis:
+  - `diagnosis_complete=true`
+  - `root_cause_hypothesis=controller_phase_vocabulary_mismatch_blocks_z_motion`
+  - `trace_rows=450`
+  - `rows_with_diagnostics=450`
+  - `raw_negative_z_action_steps=450`
+  - `pre_controller_negative_z_action_steps=450`
+  - `final_negative_z_action_steps=0`
+  - `z_motion_suppressed_steps=450`
+  - `phase_vocabulary_mismatch_steps=450`
+  - `z_motion_block_reason_counts.controller_phase_vocabulary_mismatch=450`
+  - `heldout_opened=false`
+  - `fixed_40_run_gate_opened=false`
+
+해석:
+
+- raw policy와 pre-controller adapter는 모든 step에서 음수 z push를 만들었다.
+- final action에서는 모든 step의 z가 0으로 억제됐다.
+- 원인은 v0.6 active controller가 `ALIGN/DESCEND/INSERT/HOLD` 상태를 기대하는데,
+  native-aligned trace row는 `APPROACH/CONTACT/INSERT/SEAT` phase vocabulary를
+  전달하기 때문이다.
+
+### 변경 파일
+
+- `scripts/run_mvp2b_isaac_proof_evaluator.py`
+- `scripts/run_mvp2c_isaac_training_calibration.py`
+- `apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py`
+- `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`
+- `docs/developer/worklog.md`
+- `docs/developer/debugging_guide.md`
+- `tasks/todo.md`
+- `Handoff.md`
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py::test_v06c_action_diagnostics_expose_phase_vocabulary_blocking_z_motion -q
+  1 passed
+
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py::test_v06c_controller_action_diagnosis_summarizes_phase_mismatch_root_cause -q
+  1 passed
+
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+  96 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  PASS
+
+uvx ruff check scripts/run_mvp2b_isaac_proof_evaluator.py scripts/run_mvp2c_isaac_training_calibration.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py
+  PASS
+
+git diff --check
+  PASS
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06c-controller-action-diagnosis \
+  --scenario-profile v0_6 --train-generation-probe-only --repair-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --pretty
+  PASS: command exited 0, controller_action_diagnosis.json written,
+  root_cause_hypothesis=controller_phase_vocabulary_mismatch_blocks_z_motion
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- fixed 40-run train-generation gate와 held-out `21000-21049`는 계속 금지다.
+- 다음 valid step은 success metric이 아니라 controller phase vocabulary/state persistence를
+  고치는 것이다.
+- 예상 fix 범위:
+  - `APPROACH`를 v0.6 active controller의 `ALIGN` equivalent로 매핑하거나,
+  - controller-owned `ALIGN/DESCEND/INSERT/HOLD` state를 trace phase와 분리해
+    step 간 유지한다.
+- fix 후 같은 repair probe 3개를 다시 실행해 green light 여부를 확인해야 한다.
