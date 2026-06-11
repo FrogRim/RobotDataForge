@@ -12143,3 +12143,117 @@ clean
 - MVP-2는 아직 Closed가 아니다.
 - 다음 기술 작업은 v0.6d controller phase vocabulary/state persistence fix다.
 - fixed 40-run train-generation gate와 held-out `21000-21049`는 아직 금지다.
+
+## 2026-06-11 - MVP-2E v0.6d controller phase vocabulary fix
+
+### 작업 내용
+
+- v0.6c에서 확인된 controller phase vocabulary mismatch를 TDD로 고쳤다.
+- trace/runtime phase vocabulary `APPROACH/CONTACT/INSERT/SEAT`를 active controller
+  vocabulary `ALIGN/DESCEND/INSERT/HOLD`로 변환하는
+  `normalize_v06_controller_phase()`를 추가했다.
+- `isaac_signed_xy_downward_servo_v0` action adapter diagnostics에 다음 필드를 추가했다.
+  - `controller_input_phase`
+  - `phase_normalized`
+  - mapped phase 기준 `phase_vocabulary_mismatch`
+- repair-probe-only Isaac run을 다시 실행했다.
+
+### 판단 이유
+
+- v0.6c evidence는 raw action과 pre-controller action이 모두 negative z를 만들지만,
+  `APPROACH`가 controller에서 인식되지 않아 final z가 전부 0으로 억제됨을 보였다.
+- success metric, env-native authority, held-out split, fixed 40-run gate는 건드리지 않고
+  adapter/controller vocabulary boundary만 수정했다.
+
+### 변경 파일
+
+```text
+scripts/run_mvp2b_isaac_proof_evaluator.py
+apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py
+docs/developer/worklog.md
+docs/developer/debugging_guide.md
+tasks/todo.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py::test_v06d_trace_phase_normalization_maps_runtime_phase_to_controller_phase apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py::test_v06d_action_diagnostics_allow_approach_phase_z_motion_when_aligned -q
+RED: 2 failed before implementation
+GREEN: 2 passed after implementation
+
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+97 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1plus_embodiment_proof_script.py apps/api/tests/test_mvp2_learning_sanity_script.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_peg_insert_viability_script.py -q
+156 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+PASS
+
+uvx ruff check scripts/run_mvp2b_isaac_proof_evaluator.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py
+PASS
+
+git diff --check
+PASS
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06d-controller-phase-fix \
+  --scenario-profile v0_6 --train-generation-probe-only --repair-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --pretty
+PASS: command exited 0, repair_probe_gate.json written
+```
+
+### runtime evidence
+
+Artifact:
+
+```text
+/tmp/rdf-mvp2e-v06d-controller-phase-fix/repair_probe_gate.json
+```
+
+Key evidence:
+
+```text
+green_light_for_40_run_gate=false
+hard_stop=true
+v0_6b_native_metric_trace_validation.valid=true
+
+v0_6c_controller_action_diagnosis:
+  root_cause_hypothesis=physics_or_action_mapping_does_not_convert_negative_z_to_seating_progress
+  raw_negative_z_action_steps=377
+  pre_controller_negative_z_action_steps=377
+  final_negative_z_action_steps=269
+  phase_vocabulary_mismatch_steps=0
+  z_motion_block_reason_counts.z_motion_allowed=269
+  z_motion_block_reason_counts.alignment_gate_not_satisfied=87
+  z_motion_block_reason_counts.phase_controller_z_motion_blocked=21
+```
+
+Probe seed 결과:
+
+```text
+16023: env_native_rollout_success=true, max_consec=10,
+       lateral_divergence_stopped=true
+16042: env_native_rollout_success=true, max_consec=10,
+       lateral_divergence_stopped=false,
+       initial_lateral_error_m=0.016754,
+       last_10_median_lateral_error_m=0.000365
+16096: env_native_rollout_success=false, max_consec=0,
+       lateral_divergence_stopped=false,
+       initial_lateral_error_m=0.023369,
+       last_10_median_lateral_error_m=0.005442
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 아직 Closed가 아니다.
+- v0.6d는 controller vocabulary blocker를 해결했지만 repair probe는 fail-closed다.
+- `16042`는 env-native success를 달성했지만 `max_lateral_error_m < 0.008` diagnostic cap이
+  초기 lateral 16.7mm인 probe에는 부적합해 `lateral_divergence_stopped=false`가 된다.
+- `16096`은 실제로 env-native 10-consec success를 달성하지 못했다.
+- 다음 valid step은 v0.6e로 분리하는 것이 안전하다.
+  - diagnostic-only divergence gate를 high-initial-lateral probe에 맞게 재정의할지 검토한다.
+  - severe seed `16096`의 align time/horizon 문제를 고친다.
+  - fixed 40-run train gate와 held-out `21000-21049`는 계속 금지다.

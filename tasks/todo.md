@@ -1562,3 +1562,50 @@ PASS
 - [ ] Do not run fixed 40-run train gate or held-out A/B yet.
 - [ ] Next valid step: minimal v0.6d fix for controller phase vocabulary/state
   persistence, then rerun only repair probe `16023/16042/16096`.
+
+### 2026-06-11 follow-up: MVP-2E v0.6d controller phase vocabulary fix
+
+- [x] Added RED tests for trace-to-controller phase normalization.
+- [x] Implemented `normalize_v06_controller_phase()`.
+  - `APPROACH -> ALIGN`
+  - `CONTACT -> DESCEND`
+  - `INSERT -> INSERT`
+  - `SEAT -> HOLD`
+- [x] Updated action adapter diagnostics with `controller_input_phase` and
+  `phase_normalized`.
+- [x] Confirmed focused RED -> GREEN:
+
+```text
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py::test_v06d_trace_phase_normalization_maps_runtime_phase_to_controller_phase apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py::test_v06d_action_diagnostics_allow_approach_phase_z_motion_when_aligned -q
+RED: 2 failed before implementation
+GREEN: 2 passed after implementation
+```
+
+- [x] Ran relevant regression:
+
+```text
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+97 passed
+
+uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test_mvp1plus_embodiment_proof_script.py apps/api/tests/test_mvp2_learning_sanity_script.py apps/api/tests/test_mvp2_ur_policy_ab_harness_script.py apps/api/tests/test_mvp2_learning_proven_policy_eval_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_peg_insert_viability_script.py -q
+156 passed
+```
+
+- [x] Ran actual Isaac repair probe:
+  `/tmp/rdf-mvp2e-v06d-controller-phase-fix/repair_probe_gate.json`
+- [x] Confirmed v0.6c blocker is resolved:
+  - `phase_vocabulary_mismatch_steps=0`
+  - `final_negative_z_action_steps=269`
+  - `z_motion_block_reason_counts.z_motion_allowed=269`
+- [x] Repair probe still failed closed:
+  - `green_light_for_40_run_gate=false`
+  - `hard_stop=true`
+  - `16023` env-native success: true
+  - `16042` env-native success: true, but diagnostic divergence false because
+    initial lateral is already above the 8mm cap
+  - `16096` env-native success: false
+- [ ] MVP-2 Closed remains blocked.
+- [ ] Do not run fixed 40-run train gate or held-out `21000-21049`.
+- [ ] Next valid step: v0.6e pre-registered diagnostic/repair slice.
+  - Separate high-initial-lateral diagnostic gate semantics from closure.
+  - Diagnose/fix severe seed `16096` align time / horizon exhaustion.

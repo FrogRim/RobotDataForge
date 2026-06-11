@@ -3300,3 +3300,73 @@ fixed_40_run_gate_opened=false
 - held-out `21000-21049` 접근 금지.
 - `env_native_success`, `stable_steps_required=10`, native height threshold 완화 금지.
 - 다음 변경은 controller phase vocabulary/state persistence만 겨냥해야 한다.
+
+## MVP-2E v0.6d controller phase vocabulary fix
+
+v0.6d는 success metric을 바꾸지 않고 trace phase vocabulary를 active controller
+vocabulary로 변환한다.
+
+핵심 변경:
+
+```text
+APPROACH -> ALIGN
+CONTACT  -> DESCEND
+INSERT   -> INSERT
+SEAT     -> HOLD
+```
+
+재현 명령:
+
+```bash
+rm -rf /tmp/rdf-mvp2e-v06d-controller-phase-fix
+mkdir -p /tmp/rdf-mvp2e-v06d-controller-phase-fix
+cp /tmp/rdf-mvp2e-v06c-controller-action-diagnosis/chamfer_preflight.json \
+  /tmp/rdf-mvp2e-v06d-controller-phase-fix/chamfer_preflight.json
+cp /tmp/rdf-mvp2e-v06c-controller-action-diagnosis/capture_radius_probe.json \
+  /tmp/rdf-mvp2e-v06d-controller-phase-fix/capture_radius_probe.json
+cp /tmp/rdf-mvp2e-v06c-controller-action-diagnosis/capture_radius_preflight_result.json \
+  /tmp/rdf-mvp2e-v06d-controller-phase-fix/capture_radius_preflight_result.json
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06d-controller-phase-fix \
+  --scenario-profile v0_6 \
+  --train-generation-probe-only \
+  --repair-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+핵심 artifact:
+
+```text
+/tmp/rdf-mvp2e-v06d-controller-phase-fix/repair_probe_gate.json
+```
+
+현재 v0.6d 결과:
+
+```text
+green_light_for_40_run_gate=false
+hard_stop=true
+v0_6b_native_metric_trace_validation.valid=true
+phase_vocabulary_mismatch_steps=0
+final_negative_z_action_steps=269
+root_cause_hypothesis=physics_or_action_mapping_does_not_convert_negative_z_to_seating_progress
+```
+
+해석:
+
+- v0.6c의 `controller_phase_vocabulary_mismatch_blocks_z_motion` blocker는 해결됐다.
+- final action에서 negative z가 실제로 나온다.
+- repair probe는 아직 green이 아니다.
+- `16042`는 env-native success를 달성했지만 diagnostic divergence cap이
+  high-initial-lateral probe에 부적합해 fail 처리된다.
+- `16096`은 align에 너무 오래 걸려 horizon 내 env-native 10-consec success에 실패한다.
+
+다음 진단 순서:
+
+- v0.6d 결과를 소급 통과 처리하지 않는다.
+- v0.6e를 별도 pre-registered slice로 분리한다.
+- diagnostic-only divergence rule을 high-initial-lateral probe에 맞게 재검토한다.
+- severe seed `16096`의 align authority / horizon usage를 trace로 먼저 분석한다.
+- 그 전까지 fixed 40-run train gate와 held-out `21000-21049`는 계속 금지다.

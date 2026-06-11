@@ -63,6 +63,15 @@ WEAK_BASE_SERVO_CONFIG = {
 XY_CORRECTION_GAIN = 0.8
 PHASES = ("APPROACH", "CONTACT", "INSERT", "SEAT")
 V06_ACTIVE_CONTROLLER_PHASES = ("ALIGN", "DESCEND", "INSERT", "HOLD")
+V06_TRACE_TO_CONTROLLER_PHASE = {
+    "APPROACH": "ALIGN",
+    "CONTACT": "DESCEND",
+    "INSERT": "INSERT",
+    "SEAT": "HOLD",
+    "ALIGN": "ALIGN",
+    "DESCEND": "DESCEND",
+    "HOLD": "HOLD",
+}
 CONTROLLED_FAILURE_REASONS = (
     "LATERAL_OFFSET_FAILURE",
     "UNDER_INSERTION_FAILURE",
@@ -1008,6 +1017,18 @@ def _phase_from_depth(insertion_depth_m: float) -> str:
     return "SEAT"
 
 
+def normalize_v06_controller_phase(phase: str | None) -> dict[str, Any]:
+    input_phase = str(phase or "ALIGN").upper()
+    controller_phase = V06_TRACE_TO_CONTROLLER_PHASE.get(input_phase, input_phase)
+    mismatch = controller_phase not in V06_ACTIVE_CONTROLLER_PHASES
+    return {
+        "input_phase": input_phase,
+        "controller_phase": controller_phase,
+        "phase_vocabulary_mismatch": mismatch,
+        "phase_normalized": input_phase != controller_phase and not mismatch,
+    }
+
+
 def v06_phase_controller_step(
     *,
     current_phase: str,
@@ -1347,10 +1368,12 @@ def _apply_selected_action_adapter_with_diagnostics(
     config = policy_artifact.get("selected_action_adapter_config")
     raw_vector = _rounded_action(raw_action)
     diagnostics: dict[str, Any] = {
-        "schema_version": "rdf_mvp2e_v06c_controller_action_diagnostics_v0.1.0",
+        "schema_version": "rdf_mvp2e_v06d_controller_action_diagnostics_v0.1.0",
         "selected_action_adapter_id": adapter_id,
         "controller_version": config.get("controller_version") if isinstance(config, dict) else None,
         "input_metric_phase": str(metric_row.get("phase")) if isinstance(metric_row, dict) else None,
+        "controller_input_phase": None,
+        "phase_normalized": False,
         "raw_action_vector": raw_vector,
         "phase_controller": None,
         "phase_vocabulary_mismatch": False,
@@ -1384,8 +1407,13 @@ def _apply_selected_action_adapter_with_diagnostics(
     phase_controller: dict[str, Any] | None = None
     input_phase = str(metric_row.get("phase") or _phase_from_depth(float(metric_row.get("insertion_depth_m", 0.0)))) if metric_row is not None else ""
     if metric_row is not None and config.get("controller_version") == "v0_6_active_state_controller":
+        phase_mapping = normalize_v06_controller_phase(input_phase)
+        diagnostics["input_metric_phase"] = phase_mapping["input_phase"]
+        diagnostics["controller_input_phase"] = phase_mapping["controller_phase"]
+        diagnostics["phase_normalized"] = phase_mapping["phase_normalized"]
+        diagnostics["phase_vocabulary_mismatch"] = phase_mapping["phase_vocabulary_mismatch"]
         phase_controller = v06_phase_controller_step(
-            current_phase=input_phase,
+            current_phase=phase_mapping["controller_phase"],
             lateral_error_m=float(metric_row.get("lateral_error_m", 1.0)),
             orientation_error_rad=float(metric_row.get("orientation_error_deg", 999.0)) * np.pi / 180.0,
             insertion_depth_m=float(metric_row.get("insertion_depth_m", 0.0)),
@@ -1395,7 +1423,6 @@ def _apply_selected_action_adapter_with_diagnostics(
             align_orientation_gate_rad=float(config.get("align_orientation_gate_rad", 0.25)),
         )
         diagnostics["phase_controller"] = phase_controller
-        diagnostics["phase_vocabulary_mismatch"] = input_phase.upper() not in V06_ACTIVE_CONTROLLER_PHASES
     xy_scale = float(config.get("xy_action_scale", 1.0))
     xy_clip = float(config.get("xy_action_clip", 0.035))
     z_scale = float(config.get("z_action_scale", action_scale))

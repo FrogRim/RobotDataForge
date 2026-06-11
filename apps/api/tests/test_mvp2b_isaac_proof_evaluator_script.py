@@ -121,7 +121,27 @@ def test_mvp2b_runtime_metric_uses_rdf_depth_and_axis_alignment() -> None:
     assert row["phase"] == "SEAT"
 
 
-def test_v06c_action_diagnostics_expose_phase_vocabulary_blocking_z_motion() -> None:
+def test_v06d_trace_phase_normalization_maps_runtime_phase_to_controller_phase() -> None:
+    script = load_script("run_mvp2b_isaac_proof_evaluator")
+
+    assert script.normalize_v06_controller_phase("APPROACH") == {
+        "input_phase": "APPROACH",
+        "controller_phase": "ALIGN",
+        "phase_vocabulary_mismatch": False,
+        "phase_normalized": True,
+    }
+    assert script.normalize_v06_controller_phase("CONTACT")["controller_phase"] == "DESCEND"
+    assert script.normalize_v06_controller_phase("INSERT")["controller_phase"] == "INSERT"
+    assert script.normalize_v06_controller_phase("SEAT")["controller_phase"] == "HOLD"
+    assert script.normalize_v06_controller_phase("UNKNOWN") == {
+        "input_phase": "UNKNOWN",
+        "controller_phase": "UNKNOWN",
+        "phase_vocabulary_mismatch": True,
+        "phase_normalized": False,
+    }
+
+
+def test_v06d_action_diagnostics_allow_approach_phase_z_motion_when_aligned() -> None:
     script = load_script("run_mvp2b_isaac_proof_evaluator")
     policy_artifact = {
         "selected_action_adapter_id": "isaac_signed_xy_downward_servo_v0",
@@ -155,10 +175,13 @@ def test_v06c_action_diagnostics_expose_phase_vocabulary_blocking_z_motion() -> 
 
     assert diagnostics["raw_action_vector"][2] < 0.0
     assert diagnostics["pre_controller_action_vector"][2] < 0.0
-    assert action[2] == 0.0
-    assert diagnostics["phase_vocabulary_mismatch"] is True
-    assert diagnostics["z_motion_suppressed"] is True
-    assert diagnostics["z_motion_block_reason"] == "controller_phase_vocabulary_mismatch"
+    assert action[2] < 0.0
+    assert diagnostics["input_metric_phase"] == "APPROACH"
+    assert diagnostics["controller_input_phase"] == "ALIGN"
+    assert diagnostics["phase_normalized"] is True
+    assert diagnostics["phase_vocabulary_mismatch"] is False
+    assert diagnostics["z_motion_suppressed"] is False
+    assert diagnostics["z_motion_block_reason"] == "z_motion_allowed"
 
 
 def test_factory_peg_insert_native_height_threshold_matches_factory_config() -> None:
