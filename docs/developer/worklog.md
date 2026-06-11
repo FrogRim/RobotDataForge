@@ -12257,3 +12257,44 @@ Probe seed 결과:
   - diagnostic-only divergence gate를 high-initial-lateral probe에 맞게 재정의할지 검토한다.
   - severe seed `16096`의 align time/horizon 문제를 고친다.
   - fixed 40-run train gate와 held-out `21000-21049`는 계속 금지다.
+
+## 2026-06-11 - MVP-2E v0.6e repair probe green spec
+
+### 작업 내용
+
+- `v0_6e` repair probe green 설계 문서를 작성했다.
+- 문서 경로:
+  `docs/superpowers/specs/2026-06-11-mvp2e-v06e-repair-probe-green-design.md`
+
+### 판단 이유
+
+- `v0_6d`는 controller phase vocabulary blocker를 해결했지만 repair probe는
+  fail-closed였다.
+- `16042`는 env-native success를 달성했는데 secondary divergence diagnostic이 veto한
+  spurious fail이었다.
+- `16096`은 실제 control failure이며, 증상은 단순 horizon 부족이 아니라 off-center 조기
+  z push가 rim-eject를 유발하는 drift-back-out으로 정리했다.
+
+### 설계 핵심
+
+```text
+env-native success는 primary authority이며 secondary diagnostic으로 veto할 수 없다.
+capture_radius_m은 numeric empirical runtime probe로 측정해야 한다.
+capture probe는 xy/yaw correction 없이 straight-down push로 geometry를 격리해야 한다.
+non-seated lateral convergence는 near_band + no-regression rule만 사용한다.
+z-push는 capture_radius_m 안에 들어오기 전까지 action_z=0으로 강제한다.
+16023/16042/16096에 대한 per-seed grid search는 금지한다.
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+rg -n "TBD|TODO|implement later|fill in|적당|나중|maybe|placeholder|FIXME" \
+  docs/superpowers/specs/2026-06-11-mvp2e-v06e-repair-probe-green-design.md
+NO MATCH
+```
+
+### 남은 gap 또는 다음 작업
+
+- 사용자 spec review 후 implementation plan을 작성한다.
+- fixed 40-run train gate와 held-out `21000-21049`는 계속 금지다.

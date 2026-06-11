@@ -1609,3 +1609,31 @@ uv run pytest apps/api/tests/test_mvp1_proof_audit_script.py apps/api/tests/test
 - [ ] Next valid step: v0.6e pre-registered diagnostic/repair slice.
   - Separate high-initial-lateral diagnostic gate semantics from closure.
   - Diagnose/fix severe seed `16096` align time / horizon exhaustion.
+
+### 2026-06-11 follow-up: MVP-2E v0.6e repair probe green spec
+
+- [x] Chose v0.6e as one combined slice:
+  - diagnostic divergence rule repair
+  - `16096` controller repair
+  - repair probe green light only
+- [x] Locked authority hierarchy:
+  - env-native 10-consec pass cannot be vetoed by secondary diagnostics
+  - RDF geometry remains report-only
+- [x] Locked capture-radius hardening:
+  - `capture_radius_m` must be numeric
+  - source must be empirical runtime probe
+  - probe must disable xy/yaw correction and use straight-down push only
+- [x] Locked convergence rule:
+  - `last_k_median_lateral_m <= capture_radius_m`
+  - `last_k_median_lateral_m <= min_lateral_achieved_m + regression_tol_m`
+  - no initial-improvement clause
+- [x] Locked controller envelope:
+  - z push is forbidden while `lateral_error_m > capture_radius_m`
+  - no horizon increase
+  - no retry/search/withdraw/force-control
+  - no per-seed grid search on the three repair probe seeds
+- [x] Wrote spec:
+  `docs/superpowers/specs/2026-06-11-mvp2e-v06e-repair-probe-green-design.md`
+- [ ] User review of spec.
+- [ ] After approval, write implementation plan.
+- [ ] Do not run fixed 40-run train gate or held-out `21000-21049`.
