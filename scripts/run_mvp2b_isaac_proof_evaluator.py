@@ -1406,7 +1406,10 @@ def _apply_selected_action_adapter_with_diagnostics(
     action = np.asarray(raw_action, dtype=np.float64).copy()
     phase_controller: dict[str, Any] | None = None
     input_phase = str(metric_row.get("phase") or _phase_from_depth(float(metric_row.get("insertion_depth_m", 0.0)))) if metric_row is not None else ""
-    if metric_row is not None and config.get("controller_version") == "v0_6_active_state_controller":
+    v06_controller_enabled = config.get("controller_version") == "v0_6_active_state_controller" or config.get(
+        "controller_repair_version"
+    ) == "v0_6f"
+    if metric_row is not None and v06_controller_enabled:
         phase_mapping = normalize_v06_controller_phase(input_phase)
         diagnostics["input_metric_phase"] = phase_mapping["input_phase"]
         diagnostics["controller_input_phase"] = phase_mapping["controller_phase"]
@@ -1467,6 +1470,12 @@ def _apply_selected_action_adapter_with_diagnostics(
             "z_motion_suppressed": z_suppressed,
             "z_motion_block_reason": block_reason,
             "align_lateral_gate_m": float(config.get("align_lateral_gate_m", 0.008)),
+            "approach_lateral_gate_m": float(config["approach_lateral_gate_m"])
+            if config.get("approach_lateral_gate_m") is not None
+            else None,
+            "straight_down_capture_radius_m": float(config["straight_down_capture_radius_m"])
+            if config.get("straight_down_capture_radius_m") is not None
+            else None,
             "align_orientation_gate_rad": float(config.get("align_orientation_gate_rad", 0.25)),
             "metric_lateral_error_m": float(metric_row.get("lateral_error_m", 0.0)) if metric_row is not None else None,
             "metric_orientation_error_deg": float(metric_row.get("orientation_error_deg", 0.0))

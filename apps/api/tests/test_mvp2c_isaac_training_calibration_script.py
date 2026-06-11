@@ -388,6 +388,133 @@ def test_v06e_repair_probe_gate_blocks_non_seated_lateral_regression() -> None:
     assert gate["seed_results"]["16096"]["convergence"]["regression_detected"] is True
 
 
+def test_v06f_non_seated_convergence_uses_approach_gate_not_straight_down_capture() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    converged = script.evaluate_v06f_non_seated_lateral_convergence(
+        lateral_errors_m=[0.016, 0.009, 0.003, 0.0012, 0.0009, 0.0008, 0.0009, 0.0009, 0.0008, 0.0009],
+        capture_radius_m=0.0001,
+        last_k=5,
+    )
+
+    assert converged["non_seated_lateral_converged"] is True
+    assert converged["straight_down_capture_radius_m"] == 0.0001
+    assert converged["near_band_m"] == 0.001
+    assert converged["last_k_median_lateral_m"] <= 0.001
+    assert converged["regression_detected"] is False
+
+    regressed = script.evaluate_v06f_non_seated_lateral_convergence(
+        lateral_errors_m=[0.023, 0.006, 0.0008, 0.002, 0.004, 0.006, 0.0065, 0.0063, 0.0064, 0.0062],
+        capture_radius_m=0.0001,
+        last_k=5,
+    )
+
+    assert regressed["non_seated_lateral_converged"] is False
+    assert regressed["regression_detected"] is True
+
+
+def test_v06f_repair_probe_gate_keeps_env_native_authority_and_uses_approach_convergence() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    gate = script.evaluate_v06f_repair_probe_gate(
+        {
+            16023: {
+                "env_native_rollout_success": True,
+                "env_native_max_consecutive_success_steps": 10,
+                "max_insertion_depth_m": 0.03,
+            },
+            16042: {
+                "env_native_rollout_success": True,
+                "env_native_max_consecutive_success_steps": 10,
+                "lateral_divergence_stopped": False,
+                "max_insertion_depth_m": 0.03,
+            },
+            16096: {
+                "env_native_rollout_success": False,
+                "env_native_max_consecutive_success_steps": 0,
+                "lateral_errors_m": [0.023, 0.009, 0.003, 0.0012, 0.0009, 0.0008, 0.0009, 0.0009, 0.0008, 0.0009],
+                "max_insertion_depth_m": 0.0,
+            },
+        },
+        capture_radius_m=0.0001,
+    )
+
+    assert gate["green_light_for_40_run_gate"] is True
+    assert gate["hard_stop"] is False
+    assert gate["straight_down_capture_radius_m"] == 0.0001
+    assert gate["approach_lateral_gate_m"] == 0.001
+    assert gate["seed_results"]["16042"]["divergence_diagnostic_authority"] == "report_only"
+    assert gate["seed_results"]["16096"]["convergence"]["non_seated_lateral_converged"] is True
+
+
+def test_v06f_repair_probe_gate_blocks_when_all_probe_seeds_never_descend() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    gate = script.evaluate_v06f_repair_probe_gate(
+        {
+            16023: {
+                "env_native_rollout_success": False,
+                "env_native_max_consecutive_success_steps": 0,
+                "lateral_errors_m": [0.0003, 0.0002, 0.0002],
+                "max_insertion_depth_m": 0.0,
+            },
+            16042: {
+                "env_native_rollout_success": False,
+                "env_native_max_consecutive_success_steps": 0,
+                "lateral_errors_m": [0.0011, 0.0009, 0.0009],
+                "max_insertion_depth_m": 0.0,
+            },
+            16096: {
+                "env_native_rollout_success": False,
+                "env_native_max_consecutive_success_steps": 0,
+                "lateral_errors_m": [0.0012, 0.0008, 0.0008],
+                "max_insertion_depth_m": 0.0,
+            },
+        },
+        capture_radius_m=0.0001,
+    )
+
+    assert gate["green_light_for_40_run_gate"] is False
+    assert gate["hard_stop"] is True
+    assert gate["failure_mode"] == "all_probe_seeds_never_descended"
+
+
+def test_v06f_repair_probe_gate_reads_nested_rdf_depth_for_never_descended_guard() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    gate = script.evaluate_v06f_repair_probe_gate(
+        {
+            16023: {
+                "env_native_rollout_success": False,
+                "env_native_max_consecutive_success_steps": 0,
+                "lateral_errors_m": [0.0003, 0.0002, 0.0002],
+                "max_insertion_depth_m": 0.0,
+                "rdf_peg_in_hole_metric": {"summary": {"max_insertion_depth_m": 0.022}},
+            },
+            16042: {
+                "env_native_rollout_success": True,
+                "env_native_max_consecutive_success_steps": 10,
+                "max_insertion_depth_m": 0.0,
+                "rdf_peg_in_hole_metric": {"summary": {"max_insertion_depth_m": 0.025}},
+            },
+            16096: {
+                "env_native_rollout_success": False,
+                "env_native_max_consecutive_success_steps": 0,
+                "lateral_errors_m": [0.014, 0.0008, 0.014],
+                "max_insertion_depth_m": 0.0,
+                "rdf_peg_in_hole_metric": {"summary": {"max_insertion_depth_m": 0.002}},
+            },
+        },
+        capture_radius_m=0.0001,
+    )
+
+    assert gate["all_probe_seeds_never_descended"] is False
+    assert gate["failure_mode"] == "repair_probe_not_green"
+    assert gate["seed_results"]["16023"]["max_insertion_depth_m"] == 0.022
+    assert gate["seed_results"]["16042"]["max_insertion_depth_m"] == 0.025
+    assert gate["seed_results"]["16096"]["max_insertion_depth_m"] == 0.002
+
+
 def test_v06_repair_probe_green_light_requires_hold_and_lateral_modes() -> None:
     script = load_script("run_mvp2c_isaac_training_calibration")
 
@@ -808,6 +935,46 @@ def test_v06e_controller_repair_config_derives_z_gate_from_capture_radius() -> N
     assert config["z_push_gate"] == "lateral_error_m <= capture_radius_m"
     assert config["retry_recover_withdraw_search"] is False
     assert config["force_reactive_control"] is False
+
+
+def test_v06f_controller_repair_config_uses_approach_gate_not_raw_capture_radius() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    config = script.build_v06f_controller_repair_config(capture_radius_m=0.0001)
+
+    assert config["schema_version"] == "rdf_mvp2e_v06f_controller_repair_config_v0.1.0"
+    assert config["straight_down_capture_radius_m"] == 0.0001
+    assert config["approach_lateral_gate_m"] == 0.001
+    assert config["align_lateral_gate_m"] == 0.001
+    assert config["z_push_gate"] == "lateral_error_m <= approach_lateral_gate_m"
+    assert config["success_authority"] == "env_native_10_consecutive"
+    assert config["proof_authority"] is False
+    assert config["horizon_increase"] is False
+    assert config["retry_enabled"] is False
+    assert config["search_enabled"] is False
+    assert config["force_control_enabled"] is False
+
+
+def test_v06f_approach_gate_uses_capture_multiplier_above_floor() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    config = script.build_v06f_controller_repair_config(capture_radius_m=0.0004)
+
+    assert config["straight_down_capture_radius_m"] == 0.0004
+    assert config["approach_lateral_gate_m"] == 0.004
+    assert config["approach_gate_floor_m"] == 0.001
+    assert config["approach_gate_capture_multiplier"] == 10.0
+
+
+def test_v06f_repair_probe_config_can_be_selected_without_opening_train_or_heldout() -> None:
+    script = load_script("run_mvp2c_isaac_training_calibration")
+
+    config = script.build_v06f_controller_repair_config(capture_radius_m=0.0001)
+
+    assert config["controller_repair_version"] == "v0_6f"
+    assert config["align_lateral_gate_m"] == 0.001
+    assert config["proof_authority"] is False
+    assert config["non_claims"]["real_robot_success"] is False
 
 
 def test_v06e_repair_probe_gate_from_probe_result_uses_capture_radius(tmp_path: Path) -> None:

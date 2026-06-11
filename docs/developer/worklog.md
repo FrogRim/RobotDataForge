@@ -12492,3 +12492,119 @@ NO ACTIONABLE MATCH
 - plan의 범위는 repair-probe-only runtime evidence까지다.
 - fixed 40-run train gate는 `repair_probe_gate.green_light_for_40_run_gate=true` 전까지 금지다.
 - held-out `21000-21049`는 fixed train gate와 calibration prerequisites 전까지 계속 봉인한다.
+
+## 2026-06-12 - MVP-2E v0.6f approach capture gate implementation result
+
+### 작업 내용
+
+- `v0_6f` approach capture gate implementation plan을 실행했다.
+- `capture_radius_m=0.0001`은 `straight_down_capture_radius_m`로 보존하고,
+  controller-assisted descent에는 `approach_lateral_gate_m=max(0.0010, 10*capture_radius_m)`를
+  쓰도록 구현했다.
+- `repair_probe_gate`의 `all_probe_seeds_never_descended` guard가 runtime artifact의 nested
+  `rdf_peg_in_hole_metric.summary.max_insertion_depth_m`를 읽도록 수정했다.
+- v0.6f repair-probe-only Isaac runtime을 재실행하여 corrected artifact를 생성했다.
+
+### 판단 이유
+
+- v0.6e의 `capture_radius_m=0.0001`을 직접 z gate로 쓰면 너무 보수적이어서 세 repair seed가
+  모두 effective descent 전에 fail-closed됐다.
+- v0.6f는 success authority를 완화하지 않고, controller-assisted approach gate만 별도로
+  pre-register했다.
+- runtime 재평가 결과, v0.6f는 `16042` env-native success를 회복했지만 `16023` hold failure와
+  `16096` non-seated regression이 남아 repair probe green에는 도달하지 못했다.
+
+### 변경 파일
+
+```text
+scripts/run_mvp2b_isaac_proof_evaluator.py
+scripts/run_mvp2c_isaac_training_calibration.py
+apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py
+apps/api/tests/test_mvp2c_isaac_training_calibration_script.py
+docs/developer/worklog.md
+docs/developer/debugging_guide.md
+tasks/todo.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py::test_v06f_repair_probe_gate_reads_nested_rdf_depth_for_never_descended_guard \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py::test_v06f_repair_probe_gate_blocks_when_all_probe_seeds_never_descend \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py::test_v06f_repair_probe_gate_keeps_env_native_authority_and_uses_approach_convergence \
+  -q
+```
+
+```text
+3 passed
+```
+
+```bash
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py \
+  apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+```
+
+```text
+115 passed
+```
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06f-approach-capture-gate \
+  --scenario-profile v0_6 \
+  --capture-radius-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+```text
+capture_radius_m=0.0001
+preflight_branch=B
+next_gate=repair_probe
+heldout_schedule.scheduled=false
+```
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06f-approach-capture-gate \
+  --scenario-profile v0_6 \
+  --train-generation-probe-only \
+  --repair-probe-only \
+  --repair-probe-controller-version v0_6f \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+```text
+schema_version=rdf_mvp2e_v06f_repair_probe_gate_v0.1.0
+controller_repair_version=v0_6f
+straight_down_capture_radius_m=0.0001
+approach_lateral_gate_m=0.001
+green_light_for_40_run_gate=false
+hard_stop=true
+failure_mode=repair_probe_not_green
+all_probe_seeds_never_descended=false
+fixed_40_run_gate_opened=false
+heldout_opened=false
+runtime_gate.passed=true
+v0_6b_native_metric_trace_validation.valid=true
+16023 env_native_seed_pass=false, max_consecutive=0, max_insertion_depth_m=0.022587
+16042 env_native_seed_pass=true, max_consecutive=10, max_insertion_depth_m=0.02498
+16096 env_native_seed_pass=false, max_consecutive=0, max_insertion_depth_m=0.002396, regression_detected=true
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-2는 Closed가 아니다.
+- v0.6f는 code crash가 아니라 repair probe stop condition으로 fail-closed됐다.
+- fixed 40-run train gate는 열리지 않았다.
+- held-out `21000-21049`는 열리지 않았다.
+- 다음 valid step은 v0.6g 또는 별도 diagnosis slice다.
+  - `16023`: lateral은 잘 수렴했지만 env-native 10-consecutive hold를 만들지 못한다.
+  - `16096`: approach gate 근처까지 수렴한 뒤 마지막 tail에서 regression이 발생한다.
+  - controller/action diagnosis는 `final_negative_z_action_steps=151`, `z_motion_allowed=151`을 기록하므로
+    이제 핵심은 z-gate blockade가 아니라 hold/contact/late-regression behavior다.

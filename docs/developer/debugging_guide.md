@@ -3491,3 +3491,97 @@ held-out 21000-21049는 계속 봉인한다.
 docs/superpowers/specs/2026-06-11-mvp2e-v06f-approach-capture-gate-design.md
 docs/superpowers/plans/2026-06-11-mvp2e-v06f-approach-capture-gate.md
 ```
+
+## MVP-2E v0.6f approach capture gate runtime result
+
+v0.6f는 `capture_radius_m=0.0001`을 straight-down geometry lower bound로
+보존하고, controller-assisted z descent에는 별도 approach gate를 사용한다.
+
+```text
+approach_lateral_gate_m = max(0.0010, 10.0 * straight_down_capture_radius_m)
+z_push_gate = lateral_error_m <= approach_lateral_gate_m
+success_authority = env_native_10_consecutive
+```
+
+재현 명령:
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06f-approach-capture-gate \
+  --scenario-profile v0_6 \
+  --capture-radius-probe-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --output-dir /tmp/rdf-mvp2e-v06f-approach-capture-gate \
+  --scenario-profile v0_6 \
+  --train-generation-probe-only \
+  --repair-probe-only \
+  --repair-probe-controller-version v0_6f \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+핵심 artifact:
+
+```text
+/tmp/rdf-mvp2e-v06f-approach-capture-gate/capture_radius_preflight_result.json
+/tmp/rdf-mvp2e-v06f-approach-capture-gate/controller_repair_config.json
+/tmp/rdf-mvp2e-v06f-approach-capture-gate/repair_probe_gate.json
+```
+
+현재 결과:
+
+```text
+capture_radius_m=0.0001
+approach_lateral_gate_m=0.001
+green_light_for_40_run_gate=false
+hard_stop=true
+failure_mode=repair_probe_not_green
+all_probe_seeds_never_descended=false
+fixed_40_run_gate_opened=false
+heldout_opened=false
+
+16023:
+  env_native_seed_pass=false
+  env_native_max_consecutive_success_steps=0
+  max_insertion_depth_m=0.022587
+  last_10_median_lateral_error_m=0.000212
+
+16042:
+  env_native_seed_pass=true
+  env_native_max_consecutive_success_steps=10
+  max_insertion_depth_m=0.02498
+
+16096:
+  env_native_seed_pass=false
+  env_native_max_consecutive_success_steps=0
+  max_insertion_depth_m=0.002396
+  last_10_median_lateral_error_m=0.0007255
+  convergence.non_seated_lateral_converged=false
+  convergence.regression_detected=true
+```
+
+해석:
+
+- v0.6f는 v0.6e보다 진척이 있다. `16042`는 env-native 10-consecutive success를
+  회복했다.
+- 하지만 repair probe green은 아니다.
+- corrected guard 기준으로 `all_probe_seeds_never_descended=false`다. 즉 이전의
+  "모든 seed가 하강하지 않았다" 해석은 nested RDF depth를 못 읽은 진단 오류였다.
+- 현재 blocker는 다음 두 가지다.
+  - `16023`: lateral이 충분히 수렴했지만 env-native hold window를 만들지 못한다.
+  - `16096`: approach gate 안으로 들어온 뒤 tail에서 regression이 발생한다.
+- `v0_6c_controller_action_diagnosis`는 `final_negative_z_action_steps=151`,
+  `z_motion_allowed=151`을 기록한다. 따라서 다음 진단은 z-gate blockade가 아니라
+  hold/contact/late-regression behavior를 봐야 한다.
+
+금지:
+
+- v0.6f 결과로 fixed 40-run train gate를 열지 않는다.
+- held-out `21000-21049`를 열지 않는다.
+- env-native 10-consecutive success authority를 완화하지 않는다.
+- secondary RDF/diagnostic metric으로 env-native pass를 veto하거나 대체하지 않는다.

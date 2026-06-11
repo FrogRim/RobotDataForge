@@ -139,6 +139,10 @@ V06_TRAIN_GATE_ATTEMPT_COUNT = 40
 V06E_CONVERGENCE_LAST_K = 10
 V06E_REGRESSION_TOL_FLOOR_M = 0.0005
 V06E_REGRESSION_TOL_CAPTURE_RATIO = 0.5
+V06F_APPROACH_GATE_FLOOR_M = 0.001
+V06F_APPROACH_GATE_CAPTURE_MULTIPLIER = 10.0
+V06F_REGRESSION_TOL_FLOOR_M = 0.0005
+V06F_REGRESSION_TOL_APPROACH_RATIO = 0.5
 V06_ENV_NATIVE_SUCCESS_AUTHORITY = {
     "primary": "isaac_env_native_consecutive_success_v0",
     "isaac_function": "_get_curr_successes",
@@ -550,6 +554,16 @@ def _numeric_capture_radius_m(value: Any) -> float | None:
     return numeric
 
 
+def _v06f_approach_lateral_gate_m(capture_radius_m: float) -> float:
+    numeric_capture_radius = _numeric_capture_radius_m(capture_radius_m)
+    if numeric_capture_radius is None:
+        raise ValueError("v0_6f approach gate requires numeric capture_radius_m")
+    return max(
+        V06F_APPROACH_GATE_FLOOR_M,
+        V06F_APPROACH_GATE_CAPTURE_MULTIPLIER * numeric_capture_radius,
+    )
+
+
 def evaluate_v06e_non_seated_lateral_convergence(
     *,
     lateral_errors_m: Sequence[float],
@@ -593,6 +607,56 @@ def evaluate_v06e_non_seated_lateral_convergence(
     }
 
 
+def evaluate_v06f_non_seated_lateral_convergence(
+    *,
+    lateral_errors_m: Sequence[float],
+    capture_radius_m: float,
+    last_k: int = V06E_CONVERGENCE_LAST_K,
+    regression_tol_floor_m: float = V06F_REGRESSION_TOL_FLOOR_M,
+    regression_tol_approach_ratio: float = V06F_REGRESSION_TOL_APPROACH_RATIO,
+) -> dict[str, Any]:
+    numeric_capture_radius = _numeric_capture_radius_m(capture_radius_m)
+    if numeric_capture_radius is None:
+        return {
+            "non_seated_lateral_converged": False,
+            "reason": "capture_radius_not_numeric",
+            "capture_radius_m": capture_radius_m,
+        }
+    approach_gate = _v06f_approach_lateral_gate_m(numeric_capture_radius)
+    if not lateral_errors_m:
+        return {
+            "non_seated_lateral_converged": False,
+            "reason": "missing_lateral_diagnostics",
+            "straight_down_capture_radius_m": numeric_capture_radius,
+            "capture_radius_m": numeric_capture_radius,
+            "near_band_m": approach_gate,
+            "approach_lateral_gate_m": approach_gate,
+        }
+    values = [float(value) for value in lateral_errors_m]
+    window = values[-max(1, int(last_k)) :]
+    min_lateral = min(values)
+    tail_median = statistics.median(window)
+    regression_tol = max(float(regression_tol_floor_m), float(regression_tol_approach_ratio) * approach_gate)
+    inside_near_band = tail_median <= approach_gate
+    no_regression = tail_median <= min_lateral + regression_tol
+    return {
+        "non_seated_lateral_converged": bool(inside_near_band and no_regression),
+        "reason": "converged_to_approach_gate_no_regression"
+        if inside_near_band and no_regression
+        else "not_converged_or_regressed",
+        "straight_down_capture_radius_m": round(float(numeric_capture_radius), 6),
+        "capture_radius_m": round(float(numeric_capture_radius), 6),
+        "near_band_m": round(float(approach_gate), 6),
+        "approach_lateral_gate_m": round(float(approach_gate), 6),
+        "last_k": int(last_k),
+        "regression_tol_m": round(float(regression_tol), 6),
+        "min_lateral_achieved_m": round(float(min_lateral), 6),
+        "last_k_median_lateral_m": round(float(tail_median), 6),
+        "inside_near_band": bool(inside_near_band),
+        "regression_detected": not bool(no_regression),
+    }
+
+
 def _v06e_lateral_errors_from_probe_result(result: dict[str, Any]) -> list[float]:
     values = result.get("lateral_errors_m")
     if isinstance(values, list):
@@ -603,6 +667,29 @@ def _v06e_lateral_errors_from_probe_result(result: dict[str, Any]) -> list[float
     if initial is not None and last_median is not None and min_lateral is not None:
         return [float(initial), float(min_lateral), float(last_median)]
     return []
+
+
+def _v06_max_insertion_depth_m(result: dict[str, Any]) -> float:
+    candidates = [
+        result.get("max_insertion_depth_m"),
+        result.get("max_depth_m"),
+        result.get("max_insertion_depth_observed_m"),
+    ]
+    rdf_metric = result.get("rdf_peg_in_hole_metric")
+    if isinstance(rdf_metric, dict):
+        rdf_summary = rdf_metric.get("summary")
+        if isinstance(rdf_summary, dict):
+            candidates.append(rdf_summary.get("max_insertion_depth_m"))
+
+    max_depth = 0.0
+    for value in candidates:
+        try:
+            if value is None:
+                continue
+            max_depth = max(max_depth, float(value))
+        except (TypeError, ValueError):
+            continue
+    return max_depth
 
 
 def _normalize_v06_repair_probe_results(probe_results: dict[Any, Any]) -> dict[int, dict[str, Any]]:
@@ -699,6 +786,81 @@ def evaluate_v06e_repair_probe_gate(
         "non_seated_lateral_converged": non_seated_lateral_converged,
         "green_light_for_40_run_gate": bool(green),
         "hard_stop": not bool(green),
+        "seed_results": seed_results,
+        "fixed_40_run_gate_opened": False,
+        "heldout_opened": False,
+    }
+    result["repair_probe_gate_sha256"] = _sha256_payload_excluding(result, "repair_probe_gate_sha256")
+    return result
+
+
+def evaluate_v06f_repair_probe_gate(
+    probe_results: dict[Any, Any],
+    *,
+    capture_radius_m: float,
+) -> dict[str, Any]:
+    numeric_capture_radius = _numeric_capture_radius_m(capture_radius_m)
+    approach_gate = _v06f_approach_lateral_gate_m(capture_radius_m) if numeric_capture_radius is not None else None
+    normalized = _normalize_v06_repair_probe_results(probe_results)
+    seed_results: dict[str, dict[str, Any]] = {}
+    non_seated_lateral_converged = True
+    lateral_env_native_pass_count = 0
+    all_depths: list[float] = []
+    for seed, result in normalized.items():
+        env_native_pass = bool(result.get("env_native_rollout_success")) or int(
+            result.get("env_native_max_consecutive_success_steps", 0)
+        ) >= V06_ENV_NATIVE_STABLE_STEPS_REQUIRED
+        max_depth = _v06_max_insertion_depth_m(result)
+        all_depths.append(max_depth)
+        is_lateral_seed = seed in {16042, 16096}
+        seed_payload = {
+            **result,
+            "env_native_seed_pass": env_native_pass,
+            "seed_pass": env_native_pass,
+            "max_insertion_depth_m": max_depth,
+            "divergence_diagnostic_authority": "report_only" if env_native_pass else "non_seated_lateral_gate",
+        }
+        if env_native_pass and is_lateral_seed:
+            lateral_env_native_pass_count += 1
+        if (not env_native_pass) and is_lateral_seed:
+            convergence = evaluate_v06f_non_seated_lateral_convergence(
+                lateral_errors_m=_v06e_lateral_errors_from_probe_result(result),
+                capture_radius_m=capture_radius_m,
+            )
+            seed_payload["convergence"] = convergence
+            seed_payload["seed_pass"] = bool(convergence["non_seated_lateral_converged"])
+            non_seated_lateral_converged = non_seated_lateral_converged and bool(
+                convergence["non_seated_lateral_converged"]
+            )
+        elif (not env_native_pass) and seed == 16023:
+            seed_payload["seed_pass"] = False
+        seed_results[str(seed)] = seed_payload
+
+    hold_passed = bool(seed_results["16023"]["env_native_seed_pass"])
+    all_never_descended = all(depth <= 0.0 for depth in all_depths)
+    green = (
+        numeric_capture_radius is not None
+        and hold_passed
+        and lateral_env_native_pass_count >= 1
+        and non_seated_lateral_converged
+        and not all_never_descended
+        and all(bool(payload["seed_pass"]) for payload in seed_results.values())
+    )
+    result = {
+        "schema_version": "rdf_mvp2e_v06f_repair_probe_gate_v0.1.0",
+        "proof_authority": False,
+        "success_authority": "env_native_10_consecutive",
+        "straight_down_capture_radius_m": numeric_capture_radius if numeric_capture_radius is not None else capture_radius_m,
+        "capture_radius_m": numeric_capture_radius if numeric_capture_radius is not None else capture_radius_m,
+        "approach_lateral_gate_m": approach_gate,
+        "probe_seeds": list(V06_REPAIR_PROBE_SEEDS),
+        "hold_mode_passed": hold_passed,
+        "lateral_success_mode_passed": lateral_env_native_pass_count >= 1,
+        "non_seated_lateral_converged": non_seated_lateral_converged,
+        "all_probe_seeds_never_descended": all_never_descended,
+        "green_light_for_40_run_gate": bool(green),
+        "hard_stop": not bool(green),
+        "failure_mode": None if green else ("all_probe_seeds_never_descended" if all_never_descended else "repair_probe_not_green"),
         "seed_results": seed_results,
         "fixed_40_run_gate_opened": False,
         "heldout_opened": False,
@@ -1755,6 +1917,7 @@ def derive_v06_repair_probe_gate_from_probe_result(
     probe_result: BackendResult,
     *,
     capture_radius_m: float | None = None,
+    gate_version: str = "v0_6e",
 ) -> dict[str, Any]:
     probe_results: dict[int, dict[str, Any]] = {}
     trace_rows: list[dict[str, Any]] = []
@@ -1768,7 +1931,9 @@ def derive_v06_repair_probe_gate_from_probe_result(
         trace_rows.extend(row for row in trace if isinstance(row, dict))
         divergence = evaluate_lateral_divergence_stopped(lateral_errors_m=lateral_errors)
         probe_results[seed] = {**summary, **divergence, "lateral_errors_m": lateral_errors}
-    if _numeric_capture_radius_m(capture_radius_m) is not None:
+    if _numeric_capture_radius_m(capture_radius_m) is not None and gate_version == "v0_6f":
+        gate = evaluate_v06f_repair_probe_gate(probe_results, capture_radius_m=float(capture_radius_m))
+    elif _numeric_capture_radius_m(capture_radius_m) is not None:
         gate = evaluate_v06e_repair_probe_gate(probe_results, capture_radius_m=float(capture_radius_m))
     else:
         gate = evaluate_v06_repair_probe_gate(probe_results)
@@ -1893,6 +2058,7 @@ def run_v06_repair_probe_runtime(
     max_steps: int,
     action_scale: float,
     verified_preflight: dict[str, Any] | None = None,
+    repair_probe_controller_version: str = "v0_6e",
 ) -> dict[str, Any]:
     preflight = resolve_v06_repair_probe_preflight(
         output_dir=output_dir,
@@ -1950,7 +2116,10 @@ def run_v06_repair_probe_runtime(
         write_json(output_dir / "repair_probe_gate.json", gate)
         return gate
     capture_radius_m = float(preflight["capture_radius_m"])
-    controller_repair_config = build_v06e_controller_repair_config(capture_radius_m=capture_radius_m)
+    if repair_probe_controller_version == "v0_6f":
+        controller_repair_config = build_v06f_controller_repair_config(capture_radius_m=capture_radius_m)
+    else:
+        controller_repair_config = build_v06e_controller_repair_config(capture_radius_m=capture_radius_m)
     write_json(output_dir / "controller_repair_config.json", controller_repair_config)
     expert_policy = _scripted_expert_probe_policy_artifact(
         selected_adapter_id=selected_adapter_id,
@@ -1989,7 +2158,9 @@ def run_v06_repair_probe_runtime(
     gate = derive_v06_repair_probe_gate_from_probe_result(
         probe_result,
         capture_radius_m=capture_radius_m,
+        gate_version=repair_probe_controller_version,
     )
+    gate["controller_repair_version"] = repair_probe_controller_version
     gate["chamfer_preflight"] = preflight
     gate["controller_repair_config"] = controller_repair_config
     gate["controller_repair_config_sha256"] = controller_repair_config["controller_repair_config_sha256"]
@@ -3642,6 +3813,41 @@ def build_v06e_controller_repair_config(*, capture_radius_m: float) -> dict[str,
     return config
 
 
+def build_v06f_controller_repair_config(*, capture_radius_m: float) -> dict[str, Any]:
+    numeric_capture_radius = _numeric_capture_radius_m(capture_radius_m)
+    if numeric_capture_radius is None:
+        raise ValueError("v0_6f controller repair config requires numeric capture_radius_m")
+    approach_gate = _v06f_approach_lateral_gate_m(numeric_capture_radius)
+    config = {
+        "schema_version": "rdf_mvp2e_v06f_controller_repair_config_v0.1.0",
+        "controller_version": "v0_6_active_state_controller",
+        "controller_repair_version": "v0_6f",
+        "success_authority": "env_native_10_consecutive",
+        "straight_down_capture_radius_m": round(float(numeric_capture_radius), 6),
+        "capture_radius_m": round(float(numeric_capture_radius), 6),
+        "approach_lateral_gate_m": round(float(approach_gate), 6),
+        "align_lateral_gate_m": round(float(approach_gate), 6),
+        "approach_gate_floor_m": V06F_APPROACH_GATE_FLOOR_M,
+        "approach_gate_capture_multiplier": V06F_APPROACH_GATE_CAPTURE_MULTIPLIER,
+        "approach_lateral_gate_source": "pre_registered_controller_assisted_approach_gate_v0_6f",
+        "z_push_gate": "lateral_error_m <= approach_lateral_gate_m",
+        "align_orientation_gate_rad": 0.25,
+        "continued_xy_yaw_correction": True,
+        "bounded_monotonic_downward_push": True,
+        "proof_authority": False,
+        "straight_down_capture_radius_is_lower_bound": True,
+        "horizon_increase": False,
+        "retry_enabled": False,
+        "search_enabled": False,
+        "withdraw_enabled": False,
+        "force_control_enabled": False,
+        "per_seed_tuning": False,
+        "non_claims": dict(V06A_NON_CLAIMS),
+    }
+    config["controller_repair_config_sha256"] = _sha256_payload_excluding(config, "controller_repair_config_sha256")
+    return config
+
+
 def _scripted_expert_probe_policy_artifact(
     *,
     selected_adapter_id: str,
@@ -4776,6 +4982,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--train-generation-probe-only", action="store_true")
     parser.add_argument("--repair-probe-only", action="store_true")
+    parser.add_argument(
+        "--repair-probe-controller-version",
+        choices=("v0_6e", "v0_6f"),
+        default="v0_6e",
+        help="Controller repair config version for repair-probe-only execution.",
+    )
     parser.add_argument("--capture-radius-probe-only", action="store_true")
     parser.add_argument("--skip-isaac", action="store_true")
     parser.add_argument("--use-deterministic-eval-backend", action="store_true")
@@ -4852,6 +5064,7 @@ def main(argv: list[str] | None = None) -> int:
                 isaac_task=args.isaac_task,
                 max_steps=args.max_steps,
                 action_scale=args.action_scale,
+                repair_probe_controller_version=args.repair_probe_controller_version,
             )
             print(stable_json(gate))
             return 0

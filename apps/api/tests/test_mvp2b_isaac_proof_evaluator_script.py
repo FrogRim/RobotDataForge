@@ -267,6 +267,62 @@ def test_v06e_capture_radius_gate_allows_z_inside_capture_radius() -> None:
     assert diagnostics["align_lateral_gate_m"] == 0.003
 
 
+def test_v06f_approach_gate_allows_z_inside_approach_gate_without_claiming_success() -> None:
+    script = load_script("run_mvp2b_isaac_proof_evaluator")
+    policy_artifact = {
+        "selected_action_adapter_id": "isaac_signed_xy_downward_servo_v0",
+        "selected_action_adapter_config": {
+            "controller_repair_version": "v0_6f",
+            "straight_down_capture_radius_m": 0.0001,
+            "approach_lateral_gate_m": 0.001,
+            "align_lateral_gate_m": 0.001,
+            "z_push_gate": "lateral_error_m <= approach_lateral_gate_m",
+            "align_orientation_gate_rad": 0.25,
+            "xy_source": "state_feedback",
+            "xy_state_feedback_gain": 4.0,
+            "xy_action_clip": 0.035,
+            "z_action_scale": 24.0,
+            "z_action_clip": 0.12,
+            "rotation_action_scale": 0.0,
+        },
+    }
+    outside_metric_row = {
+        "phase": "APPROACH",
+        "relative_x_m": 0.0012,
+        "relative_y_m": 0.0,
+        "lateral_error_m": 0.0012,
+        "orientation_error_deg": 0.0,
+        "insertion_depth_m": 0.0,
+        "env_native_success": False,
+        "env_native_current_consecutive_success_steps": 0,
+    }
+    inside_metric_row = {
+        **outside_metric_row,
+        "relative_x_m": 0.0009,
+        "lateral_error_m": 0.0009,
+    }
+
+    outside_action, outside_diagnostics = script._apply_selected_action_adapter_with_diagnostics(
+        policy_artifact=policy_artifact,
+        raw_action=script.np.asarray([0.0, 0.0, -0.005, 0.0, 0.0, 0.0, 1.0]),
+        action_scale=1.0,
+        metric_row=outside_metric_row,
+    )
+    inside_action, inside_diagnostics = script._apply_selected_action_adapter_with_diagnostics(
+        policy_artifact=policy_artifact,
+        raw_action=script.np.asarray([0.0, 0.0, -0.005, 0.0, 0.0, 0.0, 1.0]),
+        action_scale=1.0,
+        metric_row=inside_metric_row,
+    )
+
+    assert outside_action[2] == 0.0
+    assert outside_diagnostics["z_motion_suppressed"] is True
+    assert outside_diagnostics["z_motion_block_reason"] == "alignment_gate_not_satisfied"
+    assert inside_action[2] < 0.0
+    assert inside_diagnostics["z_motion_suppressed"] is False
+    assert inside_diagnostics["align_lateral_gate_m"] == 0.001
+
+
 def test_factory_peg_insert_native_height_threshold_matches_factory_config() -> None:
     script = load_script("run_mvp2b_isaac_proof_evaluator")
 

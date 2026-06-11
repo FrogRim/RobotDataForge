@@ -1699,6 +1699,45 @@ heldout_opened=false
   z descent.
 - [x] Kept env-native 10-consecutive success as the only seed pass authority.
 - [x] Confirmed v0.6f scope stops at repair-probe-only runtime evidence.
-- [ ] Execute v0.6f implementation plan.
-- [ ] Do not run fixed 40-run train gate until v0.6f repair probe is green.
-- [ ] Do not open held-out `21000-21049`.
+- [x] Executed v0.6f implementation plan through repair-probe-only runtime evidence.
+- [x] Added v0.6f helper/tests:
+  - `approach_lateral_gate_m` derives from straight-down capture radius without
+    replacing env-native success authority.
+  - env-native pass remains non-vetoable by secondary diagnostics.
+  - `all_probe_seeds_never_descended` reads nested RDF max insertion depth.
+- [x] Ran relevant regression tests:
+
+```text
+uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -q
+115 passed
+```
+
+- [x] Ran v0.6f capture-radius runtime probe:
+
+```text
+/tmp/rdf-mvp2e-v06f-approach-capture-gate/capture_radius_preflight_result.json
+capture_radius_m=0.0001
+preflight_branch=B
+heldout_schedule.scheduled=false
+```
+
+- [x] Ran v0.6f repair-probe-only runtime:
+
+```text
+/tmp/rdf-mvp2e-v06f-approach-capture-gate/repair_probe_gate.json
+green_light_for_40_run_gate=false
+hard_stop=true
+failure_mode=repair_probe_not_green
+all_probe_seeds_never_descended=false
+fixed_40_run_gate_opened=false
+heldout_opened=false
+16023 env_native_seed_pass=false, max_consecutive=0, max_insertion_depth_m=0.022587
+16042 env_native_seed_pass=true, max_consecutive=10, max_insertion_depth_m=0.02498
+16096 env_native_seed_pass=false, max_consecutive=0, max_insertion_depth_m=0.002396, regression_detected=true
+```
+
+- [x] Do not run fixed 40-run train gate until repair probe is green.
+- [x] Do not open held-out `21000-21049`.
+- [ ] MVP-2 Closed remains blocked.
+- [ ] Next valid step: v0.6g or diagnosis slice for `16023` hold failure and `16096`
+  late regression/contact behavior. Do not reopen success metric or held-out set.
