@@ -1,0 +1,132 @@
+{
+  "schema_version": "rdf_mvp2_external_proof_package_v0.1.0",
+  "package_id": "mvp2_learning_proven_evidence_package_v0_14",
+  "created_at": "2026-06-16",
+  "created_timezone": "Asia/Seoul",
+  "status": "frozen_for_external_technical_review",
+  "source_git": {
+    "branch": "codex/mvp2-learning-proven-uplift",
+    "head_at_package_creation": "9dab396762b2bcfcb3cfa74296e50eeab8889c8c",
+    "proof_commit": "705d08536955c16590cf0e97982c8e35f8c17581"
+  },
+  "claim": {
+    "domain": "Isaac held-out evaluator domain",
+    "policy_slice": "v0_14",
+    "slice_id": "mvp2e_v14_comparator_provenance_row_balance_slice",
+    "parent_policy_slice": "v0_13",
+    "runtime_backend": "isaac_runtime",
+    "proof_runtime": "dedicated_isaac_connector_insertion_evaluator",
+    "mvp2_closed": true,
+    "policy_uplift_proven": true,
+    "primary_metric": "policy_success_rate",
+    "calibration": {
+      "seed_range": "39000-39029",
+      "baseline_successes": 5,
+      "baseline_rollouts": 30,
+      "candidate_successes": 26,
+      "candidate_rollouts": 30,
+      "absolute_gap": 0.7
+    },
+    "heldout_closure": {
+      "seed_range": "40000-40049",
+      "baseline_successes": 5,
+      "baseline_rollouts": 50,
+      "baseline_success_rate": 0.1,
+      "candidate_successes": 40,
+      "candidate_rollouts": 50,
+      "candidate_success_rate": 0.8,
+      "absolute_uplift": 0.7000000000000001,
+      "confidence_interval": {
+        "available": true,
+        "method": "bootstrap_success_rate_difference",
+        "iterations": 2000,
+        "lower": 0.56,
+        "upper": 0.82
+      }
+    }
+  },
+  "spent_heldout_ranges": [
+    {
+      "range": "40000-40049",
+      "status": "spent_for_mvp2_v0_14_closure",
+      "future_tuning_allowed": false,
+      "future_closure_reuse_allowed": false,
+      "same_heldout_reuse_allowed_for_closure": false,
+      "reason": "Used by the v0_14 actual Isaac held-out closure gate."
+    }
+  ],
+  "non_claims": {
+    "real_robot_success": false,
+    "physical_robot_readiness": false,
+    "hmd_openxr_readiness": false,
+    "visual_policy_performance": false,
+    "deployable_real_robot_policy": false,
+    "universal_robot_support": false,
+    "marketplace_readiness": false,
+    "production_certification": false
+  },
+  "artifact_index": [
+    {
+      "role": "root_evidence_manifest",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/evidence_manifest.json",
+      "file_sha256": "12678323b4796080136d75a7c8a277e812c0eedf2b46f4134345c2559302334e",
+      "internal_manifest_sha256": "e3792596e9aab972c4af61896338a39b00da0c8849c672b6cdf6fa11ae123c5e"
+    },
+    {
+      "role": "heldout_closure_gate",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/heldout_closure_gate_v0_14.json",
+      "file_sha256": "ddb30bc37c8c3c79a5634680d712a836b0923ca407459415a49c1619ca0452fc"
+    },
+    {
+      "role": "calibration_presignal_gate",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/calibration_presignal_gate_v0_14.json",
+      "file_sha256": "54405c4e104d6850ac2904e9c4a55dbc45e6e52a11b63781276685a674c48e12"
+    },
+    {
+      "role": "comparator_provenance_row_balance_gate",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/v0_14_comparator_provenance_row_balance_gate.json",
+      "file_sha256": "75002044909cca6b52b3e581bde060c7582f55f30af72a9a6e2a54526bd3dd2c"
+    },
+    {
+      "role": "comparator_manifest",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/v0_14_comparator_provenance_row_balance_manifest.json",
+      "file_sha256": "fd79e7d1f730342f19491532f53a35e9bc14e999c356377a89c3bd5df5175f4f"
+    },
+    {
+      "role": "row_balance_report",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/v0_14_row_balance_report.json",
+      "file_sha256": "6a489c467e067828fe94b2c37788308b835fe9df929072545d67cc82eb69e395"
+    },
+    {
+      "role": "source_provenance_report",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/v0_14_source_provenance_report.json",
+      "file_sha256": "8f51c41483548cbd3ac80a6132dc24065a6a565ed0423bdceb8f012280316a69"
+    },
+    {
+      "role": "learning_proven_report",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/mvp2_learning_proven_policy_eval/mvp2_learning_proven_report.json",
+      "file_sha256": "e20a27469f49ecf3b872f4ae53fcb741533a7700541cc37bcdaca52b34012cd5"
+    },
+    {
+      "role": "baseline_heldout_rollouts",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/external_rollouts/baseline_external_rollouts.json",
+      "file_sha256": "aac10b47624de21d42fb144c333e5dc1ea7bdf0158662969e68f4a2ef5d748bf"
+    },
+    {
+      "role": "candidate_heldout_rollouts",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/external_rollouts/candidate_external_rollouts.json",
+      "file_sha256": "6ad81c474e654489f2d098cf8f90e0f347b4a9b6e94d368642054f8acda2ca76"
+    }
+  ],
+  "review_gaps": [
+    "third_party_reproduction_on_separate_machine_not_done",
+    "live_isaac_rerun_not_done_for_this_package_creation_step",
+    "legal_or_commercial_due_diligence_not_done",
+    "real_robot_hmd_openxr_visual_policy_deployable_policy_claims_out_of_scope"
+  ],
+  "codex_use": {
+    "used": true,
+    "role": "documentation, artifact inspection, claim-boundary self-review, validation command execution",
+    "authority": "source artifacts, tests, and commits remain authoritative"
+  }
+}

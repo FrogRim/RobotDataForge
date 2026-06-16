@@ -17128,3 +17128,69 @@ wc -l postwrite/post6_mvp2_part1_learning_ready_vs_learning_proven_linkedin_draf
 - `postwrite/`는 git ignored local draft 영역이다.
 - 다음 단계는 각 글을 실제 LinkedIn 길이에 맞춰 한 번 더 줄이고, 첨부 이미지 /
   gate table 문구를 붙이는 것이다.
+
+## 2026-06-16 KST - MVP-2 external proof package freeze
+
+### 작업 내용
+
+v0.14 MVP-2 closure를 외부 기술 검토자가 읽고 추적할 수 있는 proof package로
+고정했다. 패키지는 source artifact 경로, SHA-256, 허용 claim, 금지 claim,
+재현 절차, comparator provenance row-balance 세부 설명, machine-readable
+manifest를 포함한다.
+
+변경/생성 파일:
+
+```text
+docs/proof/mvp2_learning_proven_evidence_package/README.md
+docs/proof/mvp2_learning_proven_evidence_package/evidence_index.md
+docs/proof/mvp2_learning_proven_evidence_package/claims_and_limitations.md
+docs/proof/mvp2_learning_proven_evidence_package/reproducibility_and_review_notes.md
+docs/proof/mvp2_learning_proven_evidence_package/v0_14_comparator_provenance_row_balance_appendix.md
+docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+docs/superpowers/plans/2026-06-16-mvp2-external-proof-package-freeze.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+### 판단 이유
+
+MVP-2 Closed claim은 현재 Isaac held-out evaluator domain에 한정된다. 외부 신뢰를
+높이려면 결과 수치만 공유하는 것이 아니라 어떤 artifact가 authority인지,
+`40000-40049`가 왜 spent/audit-only인지, real robot / HMD/OpenXR / visual policy /
+deployable policy claim을 왜 열면 안 되는지를 한 패키지에서 고정해야 한다.
+
+패키지에 Codex 사용도 명시했다. Codex는 문서화, artifact inspection,
+claim-boundary self-review, 검증 명령 실행에 사용됐고, proof authority는 JSON
+artifact, 테스트, commit history에 남는다고 분리했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+rg -n "5 / 30|26 / 30|5 / 50|40 / 50|\\+0\\.70|\\[0\\.56, 0\\.82\\]|40000-40049|Isaac held-out evaluator domain|real robot|HMD/OpenXR|visual policy|deployable" docs/proof/mvp2_learning_proven_evidence_package
+# required metrics and non-claim terms found
+
+python -m json.tool docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json >/tmp/rdf_mvp2_package_manifest.validated.json
+# passed
+
+if rg -n "TB[D]|TO[D]O|real robot success[=]true|hmd_openxr_readiness[=]true|visual_policy_performance[=]true|deployable_real_robot_policy[=]true|future_tuning_allowed[=]true|future_closure_reuse_allowed[=]true" docs/proof/mvp2_learning_proven_evidence_package; then exit 1; else echo "package-negative-scan-ok"; fi
+# package-negative-scan-ok
+
+if git diff -- docs/proof/mvp2_learning_proven_evidence_package docs/developer/worklog.md Handoff.md docs/superpowers/plans/2026-06-16-mvp2-external-proof-package-freeze.md | rg -n "real robot success[=]true|hmd_openxr_readiness[=]true|visual_policy_performance[=]true|deployable_real_robot_policy[=]true|future_tuning_allowed[=]true|future_closure_reuse_allowed[=]true"; then exit 1; else echo "changed-diff-forbidden-true-claims-ok"; fi
+# changed-diff-forbidden-true-claims-ok
+
+git diff --check
+# passed
+```
+
+전체 `docs/developer/worklog.md`와 `Handoff.md`를 과거 로그까지 포함해 `TB[D]|TO[D]O`
+스캔하면 이전 검증 명령과 옛 placeholder 이름이 잡힌다. 이번 package freeze
+판정은 package 디렉터리와 changed diff의 forbidden true-claim scan을 기준으로
+확인했다.
+
+### 남은 gap 또는 다음 작업
+
+- 별도 machine에서 third-party reproduction은 아직 수행하지 않았다.
+- package 작성 단계에서 live Isaac rerun은 수행하지 않았다.
+- legal/commercial due diligence는 수행하지 않았다.
+- 다음 public/external reference는 이 package path를 기준으로 삼고,
+  `40000-40049`는 계속 audit-only로 유지해야 한다.
