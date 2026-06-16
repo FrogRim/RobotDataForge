@@ -17080,3 +17080,51 @@ git diff --check
 - code-review Important issue는 해결됐다.
 - reviewer의 Minor 제안인 v0.14 slice-local `evidence_manifest.json` 분리는
   merge blocker가 아니므로 별도 cleanup 후보로 남긴다.
+
+## 2026-06-16 KST - MVP-2 postwrite 4편 + appendix 초안 작성
+
+### 작업 내용
+
+MVP-2 closure를 robot learning / dataset infra 기술 독자에게 설명하기 위한
+postwrite series 초안을 작성했다. 기존 Post6는 MVP-2가 아직 닫히지 않았던 시점의
+초안이어서 현재 v0.14 closure 상태와 충돌했다. 이를 현재 증거 기준의 Part 1로
+교체하고, Part 2-4와 technical appendix를 추가했다.
+
+변경/생성 파일:
+
+```text
+postwrite/post6_mvp2_part1_learning_ready_vs_learning_proven_linkedin_draft.md
+postwrite/post7_mvp2_part2_fail_closed_evaluation_loop_linkedin_draft.md
+postwrite/post8_mvp2_part3_v014_closure_linkedin_draft.md
+postwrite/post9_mvp2_part4_what_this_does_not_prove_linkedin_draft.md
+postwrite/post10_mvp2_appendix_v014_comparator_provenance_row_balance_details.md
+postwrite/post6_mvp2_part1_learning_proven_is_harder_linkedin_draft.md (removed)
+```
+
+### 판단 이유
+
+한 편에 MVP-2 closure 전체를 담으면 learning-ready / learning-proven 구분,
+fail-closed loop, v0.14 수치, non-claims, Codex 사용 방식을 모두 설명해야 해서
+기술 독자가 핵심을 따라가기 어렵다. 따라서 본문 4편은 읽히는 구조로 나누고,
+appendix는 `v0.14 comparator provenance row-balance details`로 더 기술적으로
+분리했다.
+
+각 글에는 Codex를 결과 생성기가 아니라 proof loop를 유지하고, 문서/코드/검증을
+동기화하며, claim boundary와 code-review 후속을 적용한 engineering agent로
+명시했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+rg -n "not closed|Not Closed|still not|MVP-2 is not closed|real robot success|deployable|HMD/OpenXR|Codex|40000-40049|v0\\.14|\\+0\\.70|\\[0\\.56, 0\\.82\\]" postwrite/post6_mvp2_part1_learning_ready_vs_learning_proven_linkedin_draft.md postwrite/post7_mvp2_part2_fail_closed_evaluation_loop_linkedin_draft.md postwrite/post8_mvp2_part3_v014_closure_linkedin_draft.md postwrite/post9_mvp2_part4_what_this_does_not_prove_linkedin_draft.md postwrite/post10_mvp2_appendix_v014_comparator_provenance_row_balance_details.md
+# 이전 Not Closed 결론 없음. Codex disclosure, v0.14 수치, non-claim 문구 확인.
+
+wc -l postwrite/post6_mvp2_part1_learning_ready_vs_learning_proven_linkedin_draft.md postwrite/post7_mvp2_part2_fail_closed_evaluation_loop_linkedin_draft.md postwrite/post8_mvp2_part3_v014_closure_linkedin_draft.md postwrite/post9_mvp2_part4_what_this_does_not_prove_linkedin_draft.md postwrite/post10_mvp2_appendix_v014_comparator_provenance_row_balance_details.md
+# total 660 lines
+```
+
+### 남은 gap 또는 다음 작업
+
+- `postwrite/`는 git ignored local draft 영역이다.
+- 다음 단계는 각 글을 실제 LinkedIn 길이에 맞춰 한 번 더 줄이고, 첨부 이미지 /
+  gate table 문구를 붙이는 것이다.
