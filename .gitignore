@@ -23,7 +23,12 @@ build/
 !.env.example
 
 # RDF local runtime data and generated artifacts
-storage/
+storage/*
+!storage/proof_evidence/
+storage/proof_evidence/**
+!storage/proof_evidence/**/
+!storage/proof_evidence/**/evidence_manifest.json
+!storage/proof_evidence/README.md
 *.sqlite
 *.db
 *.hdf5
@@ -36,6 +41,7 @@ Handoff.md
 docs/WORKLOG.md
 .omc/
 .omx/
+.understand-anything/
 postwrite/
 
 # OS/editor noise

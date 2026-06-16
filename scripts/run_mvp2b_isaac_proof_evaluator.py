@@ -36,12 +36,14 @@ from app.services.normalized_trajectory_contract import (  # noqa: E402
     TRAJECTORY_CONTRACT_SCHEMA_VERSION,
     NormalizedTrajectoryContractValidator,
 )
+from app.services.proof_evidence import write_evidence_manifest  # noqa: E402
 from run_mvp2_learning_proven_policy_eval import build_mvp2_learning_proven_policy_eval  # noqa: E402
 
 
 SCHEMA_VERSION = "rdf_mvp2b_isaac_proof_evaluator_v0.1.0"
 SCENARIO_MANIFEST_VERSION = "rdf_mvp2b_scenario_manifest_v0.1.0"
-DEFAULT_OUTPUT_DIR = ROOT / "storage" / "mvp2b_isaac_proof_evaluator"
+DEFAULT_OUTPUT_DIR = ROOT / "storage" / "proof_evidence" / "mvp2b_isaac_proof_evaluator"
+ENV_RESET_POST_STEP_GUARD_STEPS = 2
 DEFAULT_ISAAC_TASK = "Isaac-Factory-PegInsert-Direct-v0"
 DEFAULT_ISAAC_DEVICE = "cuda:0"
 MIN_PROOF_ROLLOUTS_PER_POLICY = 20
@@ -51,6 +53,132 @@ RESIDUAL_POLICY_CLASS = "phase_conditioned_residual_servo_bc_policy_v0"
 RESIDUAL_TRAINER = "rdf_numpy_phase_conditioned_residual_servo_bc_trainer_v0"
 RESIDUAL_TRAINER_FAMILY = "phase_conditioned_residual_servo_bc"
 RESIDUAL_TARGET_DEFINITION = "actual_trace_action_minus_weak_base_servo_action"
+V07B_POLICY_SLICE_ID = "v0_7b"
+V07B_BASE_SERVO_ID = "frozen_base_geometry_servo_v0_7b"
+V07B_RESIDUAL_TARGET_DEFINITION = "actual_trace_action_minus_frozen_base_geometry_servo_action"
+V07C_POLICY_SLICE_ID = "v0_7c"
+V07C_SLICE_ID = "mvp2e_v07c_residual_action_authority_gate"
+V07C_ACTION_AUTHORITY_CONFIG_SCHEMA_VERSION = "rdf_mvp2e_v07c_action_authority_config_v0.1.0"
+V07C_AUTHORITY_FILTER_ID = "frozen_residual_action_authority_gate_v0_7c"
+V07D_POLICY_SLICE_ID = "v0_7d"
+V07D_SLICE_ID = "mvp2e_v07d_action_authority_post_adapter_z_gate"
+V07D_FINAL_ACTION_AUTHORITY_CONFIG_SCHEMA_VERSION = "rdf_mvp2e_v07d_final_action_authority_config_v0.1.0"
+V07D_FINAL_POST_ADAPTER_AUTHORITY_ID = "final_post_adapter_z_authority_gate_v0_7d"
+V07E_POLICY_SLICE_ID = "v0_7e"
+V07E_SHARED_HYSTERESIS_AUTHORITY_CONFIG_SCHEMA_VERSION = (
+    "rdf_mvp2e_v07e_hysteresis_authority_config_v0.1.0"
+)
+V07E_SHARED_HYSTERESIS_AUTHORITY_ID = "shared_stateful_hysteresis_authority_v0_7e"
+V07G_POLICY_SLICE_ID = "v0_7g"
+V07G_SLICE_ID = "mvp2e_v07g_xy_authority_saturation_repair"
+V07G_FINAL_XY_AUTHORITY_CONFIG_SCHEMA_VERSION = "rdf_mvp2e_v07g_xy_authority_config_v0.1.0"
+V07G_FINAL_POST_ADAPTER_XY_AUTHORITY_ID = "final_post_adapter_xy_authority_gate_v0_7g"
+V07J_POLICY_SLICE_ID = "v0_7j"
+V07J_SLICE_ID = "mvp2e_v07j_off_center_xy_authority_repair"
+V07J_FINAL_XY_AUTHORITY_CONFIG_SCHEMA_VERSION = "rdf_mvp2e_v07j_xy_authority_config_v0.1.0"
+V07J_FINAL_POST_ADAPTER_XY_AUTHORITY_ID = "final_post_adapter_xy_authority_gate_v0_7j"
+V07K_POLICY_SLICE_ID = "v0_7k"
+V07K_SLICE_ID = "mvp2e_v07k_runtime_hysteresis_wiring_repair"
+V07M_POLICY_SLICE_ID = "v0_7m"
+V07M_SLICE_ID = "mvp2e_v07m_z_window_progress_authority_repair"
+V07M_SHARED_HYSTERESIS_AUTHORITY_CONFIG_SCHEMA_VERSION = (
+    "rdf_mvp2e_v07m_hysteresis_authority_config_v0.1.0"
+)
+V07N_POLICY_SLICE_ID = "v0_7n"
+V07N_SLICE_ID = "mvp2e_v07n_z_open_xy_center_maintenance"
+V07N_FINAL_XY_AUTHORITY_CONFIG_SCHEMA_VERSION = "rdf_mvp2e_v07n_xy_authority_config_v0.1.0"
+V07N_FINAL_POST_ADAPTER_XY_AUTHORITY_ID = "final_post_adapter_xy_authority_gate_v0_7n"
+V07O_POLICY_SLICE_ID = "v0_7o"
+V07O_SLICE_ID = "mvp2e_v07o_composed_xy_authority"
+V07O_FINAL_XY_AUTHORITY_CONFIG_SCHEMA_VERSION = "rdf_mvp2e_v07o_xy_authority_config_v0.1.0"
+V07O_FINAL_POST_ADAPTER_XY_AUTHORITY_ID = "final_post_adapter_xy_authority_gate_v0_7o"
+V08A_POLICY_SLICE_ID = "v0_8a"
+V08A_SLICE_ID = "mvp2e_v08a_fresh_seat_window_authority"
+V08A_SEAT_WINDOW_AUTHORITY_CONFIG_SCHEMA_VERSION = (
+    "rdf_mvp2e_v08a_seat_window_authority_config_v0.1.0"
+)
+V08A_SEAT_WINDOW_AUTHORITY_ID = "seat_window_progress_authority_v0_8a"
+V08B_POLICY_SLICE_ID = "v0_8b"
+V08B_SLICE_ID = "mvp2e_v08b_scenario_aware_seat_window_authority"
+V08B_SEAT_WINDOW_AUTHORITY_CONFIG_SCHEMA_VERSION = (
+    "rdf_mvp2e_v08b_scenario_aware_seat_window_authority_config_v0.1.0"
+)
+V08B_SEAT_WINDOW_AUTHORITY_ID = "scenario_aware_seat_window_authority_v0_8b"
+V08D_POLICY_SLICE_ID = "v0_8d"
+V08D_SLICE_ID = "mvp2e_v08d_capture_conditioned_progress_authority"
+V08D_CAPTURE_CONDITIONED_PROGRESS_AUTHORITY_CONFIG_SCHEMA_VERSION = (
+    "rdf_mvp2e_v08d_capture_conditioned_progress_authority_config_v0.1.0"
+)
+V08D_CAPTURE_CONDITIONED_PROGRESS_AUTHORITY_ID = "capture_conditioned_progress_authority_v0_8d"
+V08F_POLICY_SLICE_ID = "v0_8f"
+V08F_SLICE_ID = "mvp2e_v08f_horizon_reserved_capture_authority"
+V08F_HORIZON_RESERVED_CAPTURE_AUTHORITY_CONFIG_SCHEMA_VERSION = (
+    "rdf_mvp2e_v08f_horizon_reserved_capture_authority_config_v0.1.0"
+)
+V08F_HORIZON_RESERVED_CAPTURE_AUTHORITY_ID = "horizon_reserved_capture_authority_v0_8f"
+V08G_POLICY_SLICE_ID = "v0_8g"
+V08G_SLICE_ID = "mvp2e_v08g_deadline_precedence_horizon_authority"
+V08G_DEADLINE_PRECEDENCE_HORIZON_AUTHORITY_CONFIG_SCHEMA_VERSION = (
+    "rdf_mvp2e_v08g_deadline_precedence_horizon_authority_config_v0.1.0"
+)
+V08G_DEADLINE_PRECEDENCE_HORIZON_AUTHORITY_ID = (
+    "deadline_precedence_horizon_authority_v0_8g"
+)
+V08H_POLICY_SLICE_ID = "v0_8h"
+V08H_SLICE_ID = "mvp2e_v08h_early_centered_z_open_safe_entry"
+V08H_EARLY_CENTERED_Z_OPEN_SAFE_ENTRY_CONFIG_SCHEMA_VERSION = (
+    "rdf_mvp2e_v08h_early_centered_z_open_safe_entry_config_v0.1.0"
+)
+V08H_EARLY_CENTERED_Z_OPEN_SAFE_ENTRY_AUTHORITY_ID = (
+    "early_centered_z_open_safe_entry_authority_v0_8h"
+)
+V08K_POLICY_SLICE_ID = "v0_8k"
+V09_POLICY_SLICE_ID = "v0_9"
+V10_POLICY_SLICE_ID = "v0_10"
+V11_POLICY_SLICE_ID = "v0_11"
+V12_POLICY_SLICE_ID = "v0_12"
+V13_POLICY_SLICE_ID = "v0_13"
+V14_POLICY_SLICE_ID = "v0_14"
+V08H_DERIVED_POLICY_SLICE_IDS = {
+    V08H_POLICY_SLICE_ID,
+    V08K_POLICY_SLICE_ID,
+    V09_POLICY_SLICE_ID,
+    V10_POLICY_SLICE_ID,
+    V11_POLICY_SLICE_ID,
+    V12_POLICY_SLICE_ID,
+}
+V07E_HYSTERESIS_RUNTIME_POLICY_SLICE_IDS = {
+    V07E_POLICY_SLICE_ID,
+    V07G_POLICY_SLICE_ID,
+    V07J_POLICY_SLICE_ID,
+    V07K_POLICY_SLICE_ID,
+    V07M_POLICY_SLICE_ID,
+    V07N_POLICY_SLICE_ID,
+    V07O_POLICY_SLICE_ID,
+    V08A_POLICY_SLICE_ID,
+    V08B_POLICY_SLICE_ID,
+    V08D_POLICY_SLICE_ID,
+    V08F_POLICY_SLICE_ID,
+    V08G_POLICY_SLICE_ID,
+    *V08H_DERIVED_POLICY_SLICE_IDS,
+    V13_POLICY_SLICE_ID,
+    V14_POLICY_SLICE_ID,
+}
+V07B_BASE_SERVO_RUNTIME_POLICY_SLICE_IDS = {
+    V07B_POLICY_SLICE_ID,
+    V07C_POLICY_SLICE_ID,
+    V07D_POLICY_SLICE_ID,
+    *V07E_HYSTERESIS_RUNTIME_POLICY_SLICE_IDS,
+}
+V07C_AUTHORITY_RUNTIME_POLICY_SLICE_IDS = {
+    V07C_POLICY_SLICE_ID,
+    V07D_POLICY_SLICE_ID,
+    *V07E_HYSTERESIS_RUNTIME_POLICY_SLICE_IDS,
+}
+V07D_FINAL_AUTHORITY_RUNTIME_POLICY_SLICE_IDS = {
+    V07D_POLICY_SLICE_ID,
+    *V07E_HYSTERESIS_RUNTIME_POLICY_SLICE_IDS,
+}
 WEAK_BASE_SERVO_CONFIG = {
     "xy_gain": 0.5,
     "approach_z": -0.001,
@@ -60,8 +188,23 @@ WEAK_BASE_SERVO_CONFIG = {
     "rotation": 0.0,
     "gripper": 1.0,
 }
+FROZEN_BASE_GEOMETRY_SERVO_CONFIG_V07B = {
+    **WEAK_BASE_SERVO_CONFIG,
+    "base_servo_id": V07B_BASE_SERVO_ID,
+    "base_servo_source": "weak_base_servo_action_v0_wrapped_for_v0_7b",
+    "closing_gate": False,
+    "proof_authority": False,
+}
 XY_CORRECTION_GAIN = 0.8
 PHASES = ("APPROACH", "CONTACT", "INSERT", "SEAT")
+BEHAVIOR_STATE_PHASES = ("ALIGN", "DESCEND", "HOLD")
+V07A_BEHAVIOR_PHASE_LATERAL_GATE_M = 0.001
+V07A_BEHAVIOR_PHASE_SEAT_DEPTH_M = 0.03
+V07A1_BEHAVIOR_PHASE_RULE_VERSION = "env_native_hold_v0_7a_1"
+V07A1_RUNTIME_BEHAVIOR_PHASE_SOURCE = "derived_v0_7a_1_runtime_rule"
+V07A2_BEHAVIOR_PHASE_RULE_VERSION = "env_native_hold_v0_7a_2"
+V07A2_RUNTIME_BEHAVIOR_PHASE_SOURCE = "derived_v0_7a_2_runtime_rule"
+FEATURE_SCHEMA_V07A_VERSION = "rdf_mvp2e_v07a_behavior_phase_feature_schema_v0.1.0"
 V06_ACTIVE_CONTROLLER_PHASES = ("ALIGN", "DESCEND", "INSERT", "HOLD")
 V06_TRACE_TO_CONTROLLER_PHASE = {
     "APPROACH": "ALIGN",
@@ -112,6 +255,23 @@ FEATURE_SCHEMA = [
     "previous_action_rz",
     "previous_action_gripper",
 ]
+FEATURE_SCHEMA_V07A = [
+    "behavior_phase_ALIGN",
+    "behavior_phase_DESCEND",
+    "behavior_phase_HOLD",
+    "insertion_depth_m",
+    "relative_x_m",
+    "relative_y_m",
+    "lateral_error_m",
+    "orientation_error_deg",
+    "previous_action_dx",
+    "previous_action_dy",
+    "previous_action_dz",
+    "previous_action_rx",
+    "previous_action_ry",
+    "previous_action_rz",
+    "previous_action_gripper",
+]
 ACTION_SCHEMA = [
     "action_dx",
     "action_dy",
@@ -141,6 +301,11 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def _sha256_payload(payload: dict[str, Any]) -> str:
     return hashlib.sha256(stable_json(payload).encode("utf-8")).hexdigest()
+
+
+def _sha256_payload_excluding(payload: dict[str, Any], *fields: str) -> str:
+    stripped = {key: value for key, value in payload.items() if key not in set(fields)}
+    return _sha256_payload(stripped)
 
 
 def _sha256_file(path: Path) -> str:
@@ -425,6 +590,29 @@ def evaluate_env_native_rollout_trace(
             "summary": rdf_summary,
         },
     }
+
+
+def _env_reset_boundary_steps(env: Any) -> int | None:
+    for owner in (env, getattr(env, "unwrapped", None), getattr(getattr(env, "unwrapped", None), "cfg", None)):
+        if owner is None:
+            continue
+        value = getattr(owner, "max_episode_length", None)
+        if value is None:
+            continue
+        try:
+            boundary = int(value)
+        except (TypeError, ValueError):
+            continue
+        if boundary > 0:
+            return boundary
+    return None
+
+
+def _effective_rollout_budget_steps(*, max_steps: int, env_reset_boundary_steps: int | None) -> int:
+    requested_steps = max(0, int(max_steps))
+    if env_reset_boundary_steps is None:
+        return requested_steps
+    return min(requested_steps, max(0, int(env_reset_boundary_steps) - ENV_RESET_POST_STEP_GUARD_STEPS))
 
 
 def _read_env_native_success(env: Any) -> bool | None:
@@ -833,9 +1021,22 @@ def generate_training_trajectory_bundle(*, manifest: dict[str, Any], output_dir:
     }
 
 
-def featurize_step(step: dict[str, Any], *, previous_action: list[float]) -> tuple[np.ndarray, np.ndarray]:
+def _phase_vector_for_schema(step: dict[str, Any], feature_schema: Sequence[str]) -> list[float]:
+    if list(feature_schema[:3]) == FEATURE_SCHEMA_V07A[:3]:
+        behavior_phase = str(step.get("behavior_state_phase") or "").upper()
+        return [1.0 if behavior_phase == item else 0.0 for item in BEHAVIOR_STATE_PHASES]
     phase = str(step.get("phase") or "").upper()
-    phase_vector = [1.0 if phase == item else 0.0 for item in PHASES]
+    return [1.0 if phase == item else 0.0 for item in PHASES]
+
+
+def featurize_step(
+    step: dict[str, Any],
+    *,
+    previous_action: list[float],
+    feature_schema: Sequence[str] | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    schema = list(feature_schema or FEATURE_SCHEMA)
+    phase_vector = _phase_vector_for_schema(step, schema)
     previous = [float(value) for value in previous_action[: len(ACTION_SCHEMA)]]
     if len(previous) < len(ACTION_SCHEMA):
         previous.extend([0.0] * (len(ACTION_SCHEMA) - len(previous)))
@@ -850,14 +1051,18 @@ def featurize_step(step: dict[str, Any], *, previous_action: list[float]) -> tup
     return np.asarray(feature_values, dtype=np.float64), np.asarray(target, dtype=np.float64)
 
 
-def _features_targets(rows: list[dict[str, Any]]) -> tuple[np.ndarray, np.ndarray]:
+def _features_targets(
+    rows: list[dict[str, Any]],
+    *,
+    feature_schema: Sequence[str] | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     features: list[np.ndarray] = []
     targets: list[np.ndarray] = []
     previous_by_trajectory: dict[str, list[float]] = {}
     for row in rows:
         trajectory_id = str(row.get("trajectory_id"))
         previous = previous_by_trajectory.get(trajectory_id, [0.0] * len(ACTION_SCHEMA))
-        feature, target = featurize_step(row, previous_action=previous)
+        feature, target = featurize_step(row, previous_action=previous, feature_schema=feature_schema)
         features.append(feature)
         targets.append(target)
         previous_by_trajectory[trajectory_id] = [float(value) for value in row["normalized_action"]]
@@ -900,8 +1105,13 @@ def fit_phase_conditioned_bc_policy(
     policy_id: str,
     train_rows: list[dict[str, Any]],
     hyperparameters: dict[str, Any],
+    feature_schema: Sequence[str] | None = None,
+    phase_schema: Sequence[str] | None = None,
+    feature_schema_version: str | None = None,
 ) -> dict[str, Any]:
-    features, targets = _features_targets(train_rows)
+    schema = list(feature_schema or FEATURE_SCHEMA)
+    phases = list(phase_schema or PHASES)
+    features, targets = _features_targets(train_rows, feature_schema=schema)
     ridge_lambda = float(hyperparameters.get("ridge_lambda", 1e-3))
     augmented = np.hstack([features, np.ones((features.shape[0], 1), dtype=np.float64)])
     lhs = augmented.T @ augmented
@@ -912,8 +1122,9 @@ def fit_phase_conditioned_bc_policy(
         "policy_id": policy_id,
         "policy_class": POLICY_CLASS,
         "trainer": TRAINER,
-        "feature_schema": list(FEATURE_SCHEMA),
-        "phase_schema": list(PHASES),
+        "feature_schema": schema,
+        "feature_schema_version": feature_schema_version or "rdf_mvp2b_phase_depth_feature_schema_v0.1.0",
+        "phase_schema": phases,
         "action_schema": list(ACTION_SCHEMA),
         "hyperparameters": dict(hyperparameters),
         "train_sample_count": int(features.shape[0]),
@@ -1017,6 +1228,68 @@ def _phase_from_depth(insertion_depth_m: float) -> str:
     return "SEAT"
 
 
+def derive_v07a_behavior_state_phase_from_metrics(metric_row: dict[str, Any]) -> str:
+    try:
+        lateral_error_m = float(metric_row["lateral_error_m"])
+        insertion_depth_m = float(metric_row["insertion_depth_m"])
+    except KeyError as exc:
+        raise ValueError(f"row_missing_required_metric:{exc.args[0]}") from exc
+    if not np.isfinite(lateral_error_m) or not np.isfinite(insertion_depth_m):
+        raise ValueError("relabel_config_invalid:nonfinite_metric")
+    if insertion_depth_m < 0.0:
+        raise ValueError("relabel_config_invalid:negative_insertion_depth_m")
+    if lateral_error_m > V07A_BEHAVIOR_PHASE_LATERAL_GATE_M:
+        return "ALIGN"
+    if insertion_depth_m < V07A_BEHAVIOR_PHASE_SEAT_DEPTH_M:
+        return "DESCEND"
+    return "HOLD"
+
+
+def _env_native_success_mask_from_row(row: dict[str, Any]) -> bool:
+    has_success = "env_native_success" in row
+    has_mask = "env_native_success_mask" in row
+    if not has_success and not has_mask:
+        raise ValueError("env_native_mask_missing")
+    values: list[bool] = []
+    for key in ("env_native_success", "env_native_success_mask"):
+        if key not in row:
+            continue
+        value = row[key]
+        if isinstance(value, bool):
+            values.append(value)
+        elif value in (0, 1):
+            values.append(bool(value))
+        else:
+            raise ValueError(f"env_native_mask_invalid:{key}")
+    if len(set(values)) != 1:
+        raise ValueError("env_native_mask_conflict")
+    return values[0]
+
+
+def derive_v07a1_behavior_state_phase_from_metrics(metric_row: dict[str, Any]) -> str:
+    env_native_success = _env_native_success_mask_from_row(metric_row)
+    try:
+        lateral_error_m = float(metric_row["lateral_error_m"])
+        insertion_depth_m = float(metric_row["insertion_depth_m"])
+    except KeyError as exc:
+        raise ValueError(f"row_missing_required_metric:{exc.args[0]}") from exc
+    except (TypeError, ValueError) as exc:
+        raise ValueError("relabel_config_invalid:metric") from exc
+    if not np.isfinite(lateral_error_m) or not np.isfinite(insertion_depth_m):
+        raise ValueError("relabel_config_invalid:nonfinite_metric")
+    if insertion_depth_m < 0.0:
+        raise ValueError("relabel_config_invalid:negative_insertion_depth_m")
+    if env_native_success:
+        return "HOLD"
+    if lateral_error_m <= V07A_BEHAVIOR_PHASE_LATERAL_GATE_M:
+        return "DESCEND"
+    return "ALIGN"
+
+
+def derive_v07a2_behavior_state_phase_from_metrics(metric_row: dict[str, Any]) -> str:
+    return derive_v07a1_behavior_state_phase_from_metrics(metric_row)
+
+
 def normalize_v06_controller_phase(phase: str | None) -> dict[str, Any]:
     input_phase = str(phase or "ALIGN").upper()
     controller_phase = V06_TRACE_TO_CONTROLLER_PHASE.get(input_phase, input_phase)
@@ -1066,6 +1339,91 @@ def v06_phase_controller_step(
         "alignment_gate_satisfied": aligned,
         "z_motion_allowed": z_motion_allowed,
         "stable_steps": int(stable_steps),
+    }
+
+
+def initial_v07e_hysteresis_state() -> dict[str, Any]:
+    return {
+        "current_hysteresis_phase": "ALIGN",
+        "z_window_remaining_steps": 0,
+        "entered_descend_step": None,
+        "last_z_motion_allowed": False,
+        "hard_safety_escape_triggered": False,
+        "soft_realign_triggered": False,
+    }
+
+
+def _advance_v07e_hysteresis_state(
+    *,
+    metric_row: dict[str, Any],
+    hysteresis_state: dict[str, Any] | None,
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    before = dict(initial_v07e_hysteresis_state())
+    if isinstance(hysteresis_state, dict):
+        before.update(hysteresis_state)
+    phase = str(before.get("current_hysteresis_phase") or "ALIGN").upper()
+    lateral_error_m = float(metric_row.get("lateral_error_m", 999.0))
+    orientation_error_rad = float(metric_row.get("orientation_error_deg", 999.0)) * np.pi / 180.0
+    insertion_depth_m = float(metric_row.get("insertion_depth_m", 0.0))
+    gate_m = float(config.get("approach_lateral_gate_m", V07A_BEHAVIOR_PHASE_LATERAL_GATE_M))
+    orientation_gate_rad = float(config.get("align_orientation_gate_rad", 0.25))
+    hard_escape_lateral_m = float(config.get("hard_safety_escape_lateral_m", 0.03))
+    z_window_hold_steps = max(1, int(config.get("z_window_hold_steps", 28)))
+    realign_threshold_raw = config.get("z_window_realign_lateral_m")
+    z_window_realign_lateral_m = (
+        float(realign_threshold_raw) if realign_threshold_raw is not None else None
+    )
+    aligned = lateral_error_m <= gate_m and abs(orientation_error_rad) <= orientation_gate_rad
+    hard_escape = bool(before.get("hard_safety_escape_triggered")) or lateral_error_m >= hard_escape_lateral_m
+    env_native_success = bool(metric_row.get("env_native_success") or metric_row.get("env_native_success_mask"))
+    step = metric_row.get("step")
+    entered_descend_step = before.get("entered_descend_step")
+    window_remaining = max(0, int(before.get("z_window_remaining_steps") or 0))
+    z_motion_allowed = False
+    soft_realign = bool(
+        z_window_realign_lateral_m is not None
+        and phase in {"DESCEND", "INSERT"}
+        and lateral_error_m >= z_window_realign_lateral_m
+        and insertion_depth_m < float(SUCCESS_METRIC["insertion_depth_m_min"])
+    )
+    if env_native_success:
+        phase = "HOLD"
+        window_remaining = 0
+    elif hard_escape:
+        phase = "ALIGN"
+        window_remaining = 0
+    elif soft_realign:
+        phase = "ALIGN"
+        window_remaining = 0
+    elif phase == "DESCEND" and window_remaining > 0:
+        z_motion_allowed = True
+        window_remaining -= 1
+    elif phase == "INSERT" and window_remaining > 0:
+        z_motion_allowed = True
+        window_remaining -= 1
+    elif aligned:
+        phase = "DESCEND"
+        z_motion_allowed = True
+        window_remaining = z_window_hold_steps - 1
+        if entered_descend_step is None:
+            entered_descend_step = int(step) if step is not None else 0
+    else:
+        phase = "ALIGN"
+        window_remaining = 0
+    if phase in {"DESCEND", "INSERT"} and insertion_depth_m >= float(SUCCESS_METRIC["insertion_depth_m_min"]):
+        phase = "INSERT"
+    return {
+        "current_hysteresis_phase": phase,
+        "z_window_remaining_steps": int(window_remaining),
+        "entered_descend_step": entered_descend_step,
+        "last_z_motion_allowed": bool(z_motion_allowed),
+        "hard_safety_escape_triggered": bool(hard_escape),
+        "soft_realign_triggered": bool(soft_realign),
+        "alignment_gate_satisfied": bool(aligned),
+        "approach_lateral_gate_m": gate_m,
+        "z_window_realign_lateral_m": z_window_realign_lateral_m,
+        "lateral_error_m": lateral_error_m,
     }
 
 
@@ -1282,11 +1640,51 @@ def _predict_policy_action_with_diagnostics(
     metric_row: dict[str, Any],
     previous_action: list[float],
     action_scale: float,
+    hysteresis_state: dict[str, Any] | None = None,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     phase = str(metric_row.get("phase") or _phase_from_depth(float(metric_row.get("insertion_depth_m", 0.0))))
+    feature_schema = list(policy_artifact.get("feature_schema") or FEATURE_SCHEMA)
+    uses_behavior_phase = bool(policy_artifact.get("behavior_state_phase_input")) or feature_schema == list(
+        FEATURE_SCHEMA_V07A
+    )
+    behavior_state_phase = None
+    behavior_state_phase_source = None
+    provided_phase_ignored = False
+    if uses_behavior_phase:
+        rule_version = str(policy_artifact.get("behavior_phase_rule_version") or "")
+        if rule_version == V07A1_BEHAVIOR_PHASE_RULE_VERSION:
+            provided_phase_ignored = bool(metric_row.get("behavior_state_phase"))
+            behavior_state_phase = derive_v07a1_behavior_state_phase_from_metrics(metric_row)
+            behavior_state_phase_source = V07A1_RUNTIME_BEHAVIOR_PHASE_SOURCE
+        elif rule_version == V07A2_BEHAVIOR_PHASE_RULE_VERSION:
+            provided_phase_ignored = bool(metric_row.get("behavior_state_phase"))
+            behavior_state_phase = derive_v07a2_behavior_state_phase_from_metrics(metric_row)
+            behavior_state_phase_source = V07A2_RUNTIME_BEHAVIOR_PHASE_SOURCE
+        elif metric_row.get("behavior_state_phase"):
+            behavior_state_phase = str(metric_row["behavior_state_phase"]).upper()
+            behavior_state_phase_source = "provided_metric_row"
+        else:
+            behavior_state_phase = derive_v07a_behavior_state_phase_from_metrics(metric_row)
+            behavior_state_phase_source = "derived_v0_7a_runtime_rule"
+    hysteresis_config: dict[str, Any] | None = None
+    hysteresis_state_before: dict[str, Any] | None = None
+    hysteresis_state_after: dict[str, Any] | None = None
+    if policy_artifact.get("policy_slice") in V07E_HYSTERESIS_RUNTIME_POLICY_SLICE_IDS:
+        hysteresis_config = _validated_v07e_hysteresis_authority_config(policy_artifact)
+        hysteresis_state_before = dict(initial_v07e_hysteresis_state())
+        if isinstance(hysteresis_state, dict):
+            hysteresis_state_before.update(hysteresis_state)
+        hysteresis_state_after = _advance_v07e_hysteresis_state(
+            metric_row=metric_row,
+            hysteresis_state=hysteresis_state_before,
+            config=hysteresis_config,
+        )
+        behavior_state_phase = str(hysteresis_state_after["current_hysteresis_phase"])
+        behavior_state_phase_source = V07E_SHARED_HYSTERESIS_AUTHORITY_ID
     feature, _ = featurize_step(
         {
             "phase": phase,
+            "behavior_state_phase": behavior_state_phase,
             "insertion_depth_m": metric_row.get("insertion_depth_m", 0.0),
             "relative_x_m": metric_row.get("relative_x_m", 0.0),
             "relative_y_m": metric_row.get("relative_y_m", 0.0),
@@ -1295,21 +1693,882 @@ def _predict_policy_action_with_diagnostics(
             "normalized_action": [0.0] * len(ACTION_SCHEMA),
         },
         previous_action=previous_action,
+        feature_schema=feature_schema,
     )
     weights = np.asarray(policy_artifact["weights"], dtype=np.float64)
     bias = np.asarray(policy_artifact["bias"], dtype=np.float64)
+    residual_prediction: np.ndarray | None = None
+    base_servo_action: np.ndarray | None = None
+    base_servo_id: str | None = None
+    base_servo_config_sha256: str | None = None
+    residual_target_definition: str | None = None
+    raw_action_before_authority: np.ndarray | None = None
+    raw_action_after_authority: np.ndarray | None = None
+    authority_diagnostics: dict[str, Any] = {}
     raw_action = feature @ weights + bias
     if policy_artifact.get("trainer_family") == RESIDUAL_TRAINER_FAMILY:
-        raw_action = _weak_base_servo_action(
-            metric_row=metric_row,
-            config=policy_artifact.get("weak_base_servo_config"),
-        ) + raw_action
-    return _apply_selected_action_adapter_with_diagnostics(
+        residual_prediction = raw_action.copy()
+        if policy_artifact.get("policy_slice") in V07B_BASE_SERVO_RUNTIME_POLICY_SLICE_IDS:
+            base_config = _validated_v07b_base_servo_config(policy_artifact)
+            base_servo_id = V07B_BASE_SERVO_ID
+            base_servo_config_sha256 = str(policy_artifact["base_servo_config_sha256"])
+            residual_target_definition = V07B_RESIDUAL_TARGET_DEFINITION
+        else:
+            base_config = policy_artifact.get("weak_base_servo_config")
+            base_servo_id = "weak_base_servo"
+            base_servo_config_sha256 = (
+                str(policy_artifact.get("weak_base_servo_config_sha256"))
+                if policy_artifact.get("weak_base_servo_config_sha256")
+                else None
+            )
+            residual_target_definition = str(policy_artifact.get("residual_target_definition") or RESIDUAL_TARGET_DEFINITION)
+        base_servo_action = _weak_base_servo_action(metric_row=metric_row, config=base_config)
+        raw_action = base_servo_action + residual_prediction
+        if policy_artifact.get("policy_slice") in V07C_AUTHORITY_RUNTIME_POLICY_SLICE_IDS:
+            authority_config = _validated_v07c_authority_config(policy_artifact)
+            raw_action_before_authority = raw_action.copy()
+            raw_action_after_authority, authority_diagnostics = _apply_v07c_action_authority_filter(
+                behavior_state_phase=str(behavior_state_phase or ""),
+                base_action=base_servo_action,
+                residual_prediction=residual_prediction,
+                raw_action_before_authority=raw_action_before_authority,
+                authority_config=authority_config,
+            )
+            raw_action = raw_action_after_authority
+    action, diagnostics = _apply_selected_action_adapter_with_diagnostics(
         policy_artifact=policy_artifact,
         raw_action=raw_action,
         action_scale=action_scale,
         metric_row=metric_row,
+        behavior_state_phase=behavior_state_phase,
+        hysteresis_state=hysteresis_state_after,
     )
+    diagnostics.update(
+        {
+            "policy_slice": policy_artifact.get("policy_slice"),
+            "feature_schema_version": policy_artifact.get("feature_schema_version"),
+            "feature_schema": feature_schema,
+            "behavior_state_phase": behavior_state_phase,
+            "behavior_state_phase_source": behavior_state_phase_source,
+            "provided_behavior_state_phase_ignored": provided_phase_ignored,
+        }
+    )
+    if hysteresis_config is not None:
+        diagnostics.update(
+            {
+                "shared_hysteresis_authority_id": hysteresis_config["shared_hysteresis_authority_id"],
+                "shared_hysteresis_authority_config_sha256": hysteresis_config[
+                    "shared_hysteresis_authority_config_sha256"
+                ],
+                "shared_hysteresis_state_before": hysteresis_state_before,
+                "shared_hysteresis_state_after": hysteresis_state_after,
+            }
+        )
+    if policy_artifact.get("trainer_family") == RESIDUAL_TRAINER_FAMILY:
+        diagnostics.update(
+            {
+                "base_servo_id": base_servo_id,
+                "base_servo_action": _rounded_action(base_servo_action if base_servo_action is not None else []),
+                "residual_prediction": _rounded_action(
+                    residual_prediction if residual_prediction is not None else []
+                ),
+                "raw_action_before_adapter": _rounded_action(raw_action),
+                "base_servo_source_policy_slice": V07C_POLICY_SLICE_ID
+                if policy_artifact.get("policy_slice")
+                in V07D_FINAL_AUTHORITY_RUNTIME_POLICY_SLICE_IDS
+                else policy_artifact.get("policy_slice"),
+                "base_servo_config_sha256": base_servo_config_sha256,
+                "residual_target_definition": residual_target_definition,
+            }
+        )
+        if policy_artifact.get("policy_slice") in V07C_AUTHORITY_RUNTIME_POLICY_SLICE_IDS:
+            diagnostics.update(authority_diagnostics)
+            diagnostics["pre_adapter_authority_source_policy_slice"] = V07C_POLICY_SLICE_ID
+            diagnostics["raw_action_before_adapter"] = _rounded_action(
+                raw_action_after_authority if raw_action_after_authority is not None else raw_action
+            )
+    return action, diagnostics
+
+
+def _validated_v07b_base_servo_config(policy_artifact: dict[str, Any]) -> dict[str, Any]:
+    base_config = policy_artifact.get("base_servo_config")
+    if (
+        policy_artifact.get("base_servo_id") != V07B_BASE_SERVO_ID
+        or not isinstance(base_config, dict)
+        or not policy_artifact.get("base_servo_config_sha256")
+        or policy_artifact.get("residual_target_definition") != V07B_RESIDUAL_TARGET_DEFINITION
+    ):
+        raise ValueError("v0_7b_residual_metadata_missing")
+    if base_config.get("base_servo_id") != V07B_BASE_SERVO_ID:
+        raise ValueError("v0_7b_residual_metadata_mismatch")
+    expected_hash = _sha256_payload(base_config)
+    if policy_artifact.get("base_servo_config_sha256") != expected_hash:
+        raise ValueError("v0_7b_residual_metadata_hash_mismatch")
+    return dict(base_config)
+
+
+def _validated_v07c_authority_config(policy_artifact: dict[str, Any]) -> dict[str, Any]:
+    config = policy_artifact.get("authority_filter_config")
+    top_hash = policy_artifact.get("authority_filter_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_7c_authority_metadata_missing")
+    if policy_artifact.get("authority_filter_id") != V07C_AUTHORITY_FILTER_ID:
+        raise ValueError("v0_7c_authority_filter_mismatch")
+    if config.get("authority_filter_id") != V07C_AUTHORITY_FILTER_ID:
+        raise ValueError("v0_7c_authority_filter_mismatch")
+    if (
+        config.get("schema_version") != V07C_ACTION_AUTHORITY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V07C_POLICY_SLICE_ID
+        or config.get("slice_id") != V07C_SLICE_ID
+        or config.get("base_servo_id") != V07B_BASE_SERVO_ID
+        or config.get("residual_target_definition") != V07B_RESIDUAL_TARGET_DEFINITION
+        or config.get("behavior_phase_rule_version") != V07A2_BEHAVIOR_PHASE_RULE_VERSION
+        or config.get("heldout_21000_21049_accessed") is not False
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_7c_authority_metadata_mismatch")
+    expected_hash = _sha256_payload_excluding(config, "authority_filter_config_sha256")
+    if config.get("authority_filter_config_sha256") != expected_hash or top_hash != expected_hash:
+        raise ValueError("v0_7c_authority_config_hash_mismatch")
+    if policy_artifact.get("selected_action_adapter_id") != config.get("selected_action_adapter_id"):
+        raise ValueError("v0_7c_authority_metadata_mismatch")
+    return dict(config)
+
+
+def _validated_v07d_final_action_authority_config(policy_artifact: dict[str, Any]) -> dict[str, Any]:
+    config = policy_artifact.get("final_post_adapter_authority_config")
+    top_hash = policy_artifact.get("final_post_adapter_authority_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_7d_final_authority_metadata_missing")
+    if policy_artifact.get("final_post_adapter_authority_id") != V07D_FINAL_POST_ADAPTER_AUTHORITY_ID:
+        raise ValueError("v0_7d_final_authority_id_mismatch")
+    if (
+        policy_artifact.get("stable_hold_authority") != "env_native_success_mask"
+        or config.get("stable_hold_authority") != "env_native_success_mask"
+    ):
+        raise ValueError("v0_7d_stable_hold_authority_mismatch")
+    if config.get("inherited_authority_filter_config_sha256") != policy_artifact.get("authority_filter_config_sha256"):
+        raise ValueError("v0_7d_inherited_authority_config_hash_mismatch")
+    if (
+        config.get("schema_version") != V07D_FINAL_ACTION_AUTHORITY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V07D_POLICY_SLICE_ID
+        or config.get("slice_id") != V07D_SLICE_ID
+        or config.get("final_post_adapter_authority_id") != V07D_FINAL_POST_ADAPTER_AUTHORITY_ID
+        or config.get("inherited_authority_filter_id") != V07C_AUTHORITY_FILTER_ID
+        or config.get("selected_action_adapter_id") != policy_artifact.get("selected_action_adapter_id")
+        or config.get("align_final_z_authority") != "zero_after_adapter_until_z_motion_allowed"
+        or config.get("heldout_21000_21049_accessed") is not False
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_7d_final_authority_metadata_mismatch")
+    expected_hash = _sha256_payload_excluding(config, "final_post_adapter_authority_config_sha256")
+    if (
+        config.get("final_post_adapter_authority_config_sha256") != expected_hash
+        or top_hash != expected_hash
+    ):
+        raise ValueError("v0_7d_final_authority_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v07d_selected_action_adapter_config(policy_artifact: dict[str, Any]) -> dict[str, Any]:
+    config = policy_artifact.get("selected_action_adapter_config")
+    top_hash = policy_artifact.get("selected_action_adapter_config_sha256")
+    if not isinstance(config, dict):
+        raise ValueError("v0_7d_selected_action_adapter_config_missing")
+    expected_hash = _sha256_payload(config)
+    if top_hash != expected_hash:
+        raise ValueError("v0_7d_selected_action_adapter_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v07e_hysteresis_authority_config(policy_artifact: dict[str, Any]) -> dict[str, Any]:
+    config = policy_artifact.get("shared_hysteresis_authority_config")
+    top_hash = policy_artifact.get("shared_hysteresis_authority_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_7e_hysteresis_config_missing")
+    if (
+        policy_artifact.get("shared_hysteresis_authority_id") != V07E_SHARED_HYSTERESIS_AUTHORITY_ID
+        or config.get("shared_hysteresis_authority_id") != V07E_SHARED_HYSTERESIS_AUTHORITY_ID
+    ):
+        raise ValueError("v0_7e_hysteresis_authority_id_mismatch")
+    if (
+        policy_artifact.get("same_hysteresis_config_as_peer") is not True
+        or config.get("same_hysteresis_config_as_peer") is not True
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_7e_hysteresis_config_must_be_shared")
+    schema_version = config.get("schema_version")
+    if schema_version == V07E_SHARED_HYSTERESIS_AUTHORITY_CONFIG_SCHEMA_VERSION:
+        if (
+            config.get("policy_slice") != V07E_POLICY_SLICE_ID
+            or config.get("parent_policy_slice") != V07D_POLICY_SLICE_ID
+            or config.get("heldout_21000_21049_accessed") is not False
+        ):
+            raise ValueError("v0_7e_hysteresis_config_mismatch")
+    elif schema_version == V07M_SHARED_HYSTERESIS_AUTHORITY_CONFIG_SCHEMA_VERSION:
+        if (
+            policy_artifact.get("policy_slice")
+            not in {
+                V07M_POLICY_SLICE_ID,
+                V07N_POLICY_SLICE_ID,
+                V07O_POLICY_SLICE_ID,
+                V08A_POLICY_SLICE_ID,
+                V08B_POLICY_SLICE_ID,
+                V08D_POLICY_SLICE_ID,
+                V08F_POLICY_SLICE_ID,
+                V08G_POLICY_SLICE_ID,
+                *V08H_DERIVED_POLICY_SLICE_IDS,
+                V13_POLICY_SLICE_ID,
+                V14_POLICY_SLICE_ID,
+            }
+            or config.get("policy_slice") != V07M_POLICY_SLICE_ID
+            or config.get("parent_policy_slice") != V07K_POLICY_SLICE_ID
+            or config.get("slice_id") != V07M_SLICE_ID
+            or config.get("heldout_21000_21049_accessed") is not False
+            or int(config.get("z_window_hold_steps", 0)) < 70
+            or float(config.get("z_window_realign_lateral_m", 0.0)) <= 0.0
+        ):
+            raise ValueError("v0_7m_hysteresis_config_mismatch")
+        if not config.get("parent_shared_hysteresis_authority_config_sha256"):
+            raise ValueError("v0_7m_parent_hysteresis_config_hash_missing")
+    else:
+        raise ValueError("v0_7e_hysteresis_config_mismatch")
+    if config.get("parent_final_post_adapter_authority_config_sha256") != policy_artifact.get(
+        "final_post_adapter_authority_config_sha256"
+    ):
+        raise ValueError("v0_7e_parent_final_authority_hash_mismatch")
+    expected_hash = _sha256_payload_excluding(config, "shared_hysteresis_authority_config_sha256")
+    if config.get("shared_hysteresis_authority_config_sha256") != expected_hash or top_hash != expected_hash:
+        raise ValueError("v0_7e_hysteresis_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v07g_final_xy_authority_config(policy_artifact: dict[str, Any]) -> dict[str, Any]:
+    config = policy_artifact.get("final_post_adapter_xy_authority_config")
+    top_hash = policy_artifact.get("final_post_adapter_xy_authority_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_7g_xy_authority_config_missing")
+    if (
+        policy_artifact.get("final_post_adapter_xy_authority_id") != V07G_FINAL_POST_ADAPTER_XY_AUTHORITY_ID
+        or config.get("final_post_adapter_xy_authority_id") != V07G_FINAL_POST_ADAPTER_XY_AUTHORITY_ID
+    ):
+        raise ValueError("v0_7g_xy_authority_id_mismatch")
+    if (
+        policy_artifact.get("same_xy_authority_config_as_peer") is not True
+        or config.get("same_xy_authority_config_as_peer") is not True
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_7g_xy_authority_config_must_be_shared")
+    if list(config.get("xy_authority_axis_scope") or []) != ["x", "y"]:
+        raise ValueError("v0_7g_xy_authority_must_not_mutate_z")
+    if (
+        config.get("schema_version") != V07G_FINAL_XY_AUTHORITY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V07G_POLICY_SLICE_ID
+        or config.get("parent_policy_slice") != V07E_POLICY_SLICE_ID
+        or config.get("slice_id") != V07G_SLICE_ID
+        or config.get("selected_action_adapter_id") != policy_artifact.get("selected_action_adapter_id")
+        or config.get("stable_hold_authority") != "env_native_success_mask"
+        or config.get("heldout_21000_21049_accessed") is not False
+    ):
+        raise ValueError("v0_7g_xy_authority_config_mismatch")
+    if config.get("parent_shared_hysteresis_authority_config_sha256") != policy_artifact.get(
+        "shared_hysteresis_authority_config_sha256"
+    ):
+        raise ValueError("v0_7g_parent_hysteresis_config_hash_mismatch")
+    if config.get("parent_final_post_adapter_authority_config_sha256") != policy_artifact.get(
+        "final_post_adapter_authority_config_sha256"
+    ):
+        raise ValueError("v0_7g_parent_final_z_authority_hash_mismatch")
+    if (
+        float(config.get("xy_authority_gain", 0.0)) <= 0.0
+        or float(config.get("xy_authority_clip_abs", 0.0)) <= 0.0
+        or float(config.get("xy_saturation_threshold_abs", 0.0)) <= 0.0
+        or float(config.get("xy_near_center_lateral_m", 0.0)) <= 0.0
+    ):
+        raise ValueError("v0_7g_xy_authority_config_mismatch")
+    expected_hash = _sha256_payload_excluding(config, "final_post_adapter_xy_authority_config_sha256")
+    if config.get("final_post_adapter_xy_authority_config_sha256") != expected_hash or top_hash != expected_hash:
+        raise ValueError("v0_7g_xy_authority_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v07j_final_xy_authority_config(policy_artifact: dict[str, Any]) -> dict[str, Any]:
+    config = policy_artifact.get("final_post_adapter_xy_authority_config")
+    top_hash = policy_artifact.get("final_post_adapter_xy_authority_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_7j_xy_authority_config_missing")
+    if (
+        policy_artifact.get("final_post_adapter_xy_authority_id") != V07J_FINAL_POST_ADAPTER_XY_AUTHORITY_ID
+        or config.get("final_post_adapter_xy_authority_id") != V07J_FINAL_POST_ADAPTER_XY_AUTHORITY_ID
+    ):
+        raise ValueError("v0_7j_xy_authority_id_mismatch")
+    if (
+        policy_artifact.get("same_xy_authority_config_as_peer") is not True
+        or config.get("same_xy_authority_config_as_peer") is not True
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_7j_xy_authority_config_must_be_shared")
+    if list(config.get("xy_authority_axis_scope") or []) != ["x", "y"]:
+        raise ValueError("v0_7j_xy_authority_must_not_mutate_z")
+    if (
+        config.get("schema_version") != V07J_FINAL_XY_AUTHORITY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V07J_POLICY_SLICE_ID
+        or config.get("parent_policy_slice") != V07G_POLICY_SLICE_ID
+        or config.get("slice_id") != V07J_SLICE_ID
+        or config.get("selected_action_adapter_id") != policy_artifact.get("selected_action_adapter_id")
+        or config.get("stable_hold_authority") != "env_native_success_mask"
+        or config.get("xy_authority_strategy") != "piecewise_off_center_state_feedback_clip"
+        or config.get("heldout_21000_21049_accessed") is not False
+    ):
+        raise ValueError("v0_7j_xy_authority_config_mismatch")
+    if config.get("parent_xy_authority_config_sha256") != policy_artifact.get(
+        "parent_xy_authority_config_sha256",
+        config.get("parent_xy_authority_config_sha256"),
+    ):
+        raise ValueError("v0_7j_parent_xy_authority_hash_mismatch")
+    expected_parent_shared_hysteresis_hash = (
+        policy_artifact.get("parent_shared_hysteresis_authority_config_sha256")
+        if policy_artifact.get("policy_slice") == V07M_POLICY_SLICE_ID
+        else policy_artifact.get("shared_hysteresis_authority_config_sha256")
+    )
+    if config.get("parent_shared_hysteresis_authority_config_sha256") != expected_parent_shared_hysteresis_hash:
+        raise ValueError("v0_7j_parent_hysteresis_config_hash_mismatch")
+    if config.get("parent_final_post_adapter_authority_config_sha256") != policy_artifact.get(
+        "final_post_adapter_authority_config_sha256"
+    ):
+        raise ValueError("v0_7j_parent_final_z_authority_hash_mismatch")
+    if (
+        float(config.get("xy_authority_gain", 0.0)) <= 0.0
+        or float(config.get("xy_near_center_clip_abs", 0.0)) <= 0.0
+        or float(config.get("xy_off_center_clip_abs", 0.0)) <= 0.0
+        or float(config.get("xy_saturation_threshold_abs", 0.0)) <= 0.0
+        or float(config.get("xy_near_center_lateral_m", 0.0)) <= 0.0
+    ):
+        raise ValueError("v0_7j_xy_authority_config_mismatch")
+    expected_hash = _sha256_payload_excluding(config, "final_post_adapter_xy_authority_config_sha256")
+    if config.get("final_post_adapter_xy_authority_config_sha256") != expected_hash or top_hash != expected_hash:
+        raise ValueError("v0_7j_xy_authority_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v07n_final_xy_authority_config(policy_artifact: dict[str, Any]) -> dict[str, Any]:
+    config = policy_artifact.get("final_post_adapter_xy_authority_config")
+    top_hash = policy_artifact.get("final_post_adapter_xy_authority_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_7n_xy_authority_config_missing")
+    if (
+        policy_artifact.get("final_post_adapter_xy_authority_id") != V07N_FINAL_POST_ADAPTER_XY_AUTHORITY_ID
+        or config.get("final_post_adapter_xy_authority_id") != V07N_FINAL_POST_ADAPTER_XY_AUTHORITY_ID
+    ):
+        raise ValueError("v0_7n_xy_authority_id_mismatch")
+    if (
+        policy_artifact.get("same_xy_authority_config_as_peer") is not True
+        or config.get("same_xy_authority_config_as_peer") is not True
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_7n_xy_authority_config_must_be_shared")
+    if list(config.get("xy_authority_axis_scope") or []) != ["x", "y"]:
+        raise ValueError("v0_7n_xy_authority_must_not_mutate_z")
+    if (
+        config.get("schema_version") != V07N_FINAL_XY_AUTHORITY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V07N_POLICY_SLICE_ID
+        or config.get("parent_policy_slice") != V07M_POLICY_SLICE_ID
+        or config.get("slice_id") != V07N_SLICE_ID
+        or config.get("selected_action_adapter_id") != policy_artifact.get("selected_action_adapter_id")
+        or config.get("stable_hold_authority") != "env_native_success_mask"
+        or config.get("xy_authority_strategy") != "z_open_center_maintenance_state_feedback_clip"
+        or config.get("allow_sign_flip_during_z_open_low_depth") is not True
+        or config.get("heldout_21000_21049_accessed") is not False
+    ):
+        raise ValueError("v0_7n_xy_authority_config_mismatch")
+    if config.get("parent_xy_authority_config_sha256") != policy_artifact.get("parent_xy_authority_config_sha256"):
+        raise ValueError("v0_7n_parent_xy_authority_hash_mismatch")
+    if config.get("parent_shared_hysteresis_authority_config_sha256") != policy_artifact.get(
+        "shared_hysteresis_authority_config_sha256"
+    ):
+        raise ValueError("v0_7n_parent_hysteresis_config_hash_mismatch")
+    if config.get("parent_final_post_adapter_authority_config_sha256") != policy_artifact.get(
+        "final_post_adapter_authority_config_sha256"
+    ):
+        raise ValueError("v0_7n_parent_final_z_authority_hash_mismatch")
+    if (
+        float(config.get("z_open_centering_depth_max_m", 0.0)) <= 0.0
+        or float(config.get("z_open_centering_lateral_m", 0.0)) <= 0.0
+        or float(config.get("z_open_xy_authority_gain", 0.0)) <= 0.0
+        or float(config.get("z_open_xy_clip_abs", 0.0)) <= 0.0
+    ):
+        raise ValueError("v0_7n_xy_authority_config_mismatch")
+    expected_hash = _sha256_payload_excluding(config, "final_post_adapter_xy_authority_config_sha256")
+    if config.get("final_post_adapter_xy_authority_config_sha256") != expected_hash or top_hash != expected_hash:
+        raise ValueError("v0_7n_xy_authority_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v07o_final_xy_authority_config(policy_artifact: dict[str, Any]) -> dict[str, Any]:
+    config = policy_artifact.get("final_post_adapter_xy_authority_config")
+    top_hash = policy_artifact.get("final_post_adapter_xy_authority_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_7o_xy_authority_config_missing")
+    if (
+        policy_artifact.get("final_post_adapter_xy_authority_id") != V07O_FINAL_POST_ADAPTER_XY_AUTHORITY_ID
+        or config.get("final_post_adapter_xy_authority_id") != V07O_FINAL_POST_ADAPTER_XY_AUTHORITY_ID
+    ):
+        raise ValueError("v0_7o_xy_authority_id_mismatch")
+    if (
+        policy_artifact.get("same_xy_authority_config_as_peer") is not True
+        or config.get("same_xy_authority_config_as_peer") is not True
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_7o_xy_authority_config_must_be_shared")
+    if list(config.get("xy_authority_axis_scope") or []) != ["x", "y"]:
+        raise ValueError("v0_7o_xy_authority_must_not_mutate_z")
+    if (
+        config.get("schema_version") != V07O_FINAL_XY_AUTHORITY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V07O_POLICY_SLICE_ID
+        or config.get("parent_policy_slice") != V07N_POLICY_SLICE_ID
+        or config.get("slice_id") != V07O_SLICE_ID
+        or config.get("selected_action_adapter_id") != policy_artifact.get("selected_action_adapter_id")
+        or config.get("stable_hold_authority") != "env_native_success_mask"
+        or config.get("xy_authority_strategy") != "composed_piecewise_plus_z_open_center_maintenance"
+        or config.get("allow_sign_flip_during_z_open_low_depth") is not True
+        or config.get("heldout_21000_21049_accessed") is not False
+    ):
+        raise ValueError("v0_7o_xy_authority_config_mismatch")
+    if config.get("parent_xy_authority_config_sha256") != policy_artifact.get("parent_xy_authority_config_sha256"):
+        raise ValueError("v0_7o_parent_xy_authority_hash_mismatch")
+    if config.get("parent_shared_hysteresis_authority_config_sha256") != policy_artifact.get(
+        "shared_hysteresis_authority_config_sha256"
+    ):
+        raise ValueError("v0_7o_parent_hysteresis_config_hash_mismatch")
+    if config.get("parent_final_post_adapter_authority_config_sha256") != policy_artifact.get(
+        "final_post_adapter_authority_config_sha256"
+    ):
+        raise ValueError("v0_7o_parent_final_z_authority_hash_mismatch")
+    if (
+        float(config.get("xy_authority_gain", 0.0)) <= 0.0
+        or float(config.get("xy_near_center_clip_abs", 0.0)) <= 0.0
+        or float(config.get("xy_off_center_clip_abs", 0.0)) <= 0.0
+        or float(config.get("xy_saturation_threshold_abs", 0.0)) <= 0.0
+        or float(config.get("xy_near_center_lateral_m", 0.0)) <= 0.0
+        or float(config.get("z_open_centering_depth_max_m", 0.0)) <= 0.0
+        or float(config.get("z_open_centering_lateral_m", 0.0)) <= 0.0
+        or float(config.get("z_open_xy_authority_gain", 0.0)) <= 0.0
+        or float(config.get("z_open_xy_clip_abs", 0.0)) <= 0.0
+    ):
+        raise ValueError("v0_7o_xy_authority_config_mismatch")
+    expected_hash = _sha256_payload_excluding(config, "final_post_adapter_xy_authority_config_sha256")
+    if config.get("final_post_adapter_xy_authority_config_sha256") != expected_hash or top_hash != expected_hash:
+        raise ValueError("v0_7o_xy_authority_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v08a_seat_window_authority_config(policy_artifact: dict[str, Any]) -> dict[str, Any]:
+    config = policy_artifact.get("seat_window_authority_config")
+    top_hash = policy_artifact.get("seat_window_authority_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_8a_seat_window_authority_config_missing")
+    if (
+        policy_artifact.get("seat_window_authority_id") != V08A_SEAT_WINDOW_AUTHORITY_ID
+        or config.get("seat_window_authority_id") != V08A_SEAT_WINDOW_AUTHORITY_ID
+    ):
+        raise ValueError("v0_8a_seat_window_authority_id_mismatch")
+    if (
+        policy_artifact.get("same_seat_window_authority_config_as_peer") is not True
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_8a_seat_window_authority_config_must_be_shared")
+    if (
+        config.get("schema_version") != V08A_SEAT_WINDOW_AUTHORITY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V08A_POLICY_SLICE_ID
+        or config.get("parent_policy_slice") != V07O_POLICY_SLICE_ID
+        or config.get("slice_id") != V08A_SLICE_ID
+    ):
+        raise ValueError("v0_8a_seat_window_authority_config_mismatch")
+    if (
+        float(config.get("latest_z_open_step", -1)) < 0
+        or float(config.get("z_open_centering_lateral_m", 0.0)) <= 0.0
+        or float(config.get("seat_region_depth_m", 0.0)) <= 0.0
+        or float(config.get("z_progress_action", 0.0)) >= 0.0
+    ):
+        raise ValueError("v0_8a_seat_window_authority_config_mismatch")
+    expected_hash = _sha256_payload_excluding(config, "seat_window_authority_config_sha256")
+    if config.get("seat_window_authority_config_sha256") != expected_hash or top_hash != expected_hash:
+        raise ValueError("v0_8a_seat_window_authority_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v08b_seat_window_authority_config(policy_artifact: dict[str, Any]) -> dict[str, Any]:
+    config = policy_artifact.get("seat_window_authority_config")
+    top_hash = policy_artifact.get("seat_window_authority_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_8b_seat_window_authority_config_missing")
+    if (
+        policy_artifact.get("seat_window_authority_id") != V08B_SEAT_WINDOW_AUTHORITY_ID
+        or config.get("seat_window_authority_id") != V08B_SEAT_WINDOW_AUTHORITY_ID
+    ):
+        raise ValueError("v0_8b_seat_window_authority_id_mismatch")
+    if (
+        policy_artifact.get("same_seat_window_authority_config_as_peer") is not True
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_8b_seat_window_authority_config_must_be_shared")
+    if (
+        config.get("schema_version") != V08B_SEAT_WINDOW_AUTHORITY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V08B_POLICY_SLICE_ID
+        or config.get("parent_policy_slice") != V08A_POLICY_SLICE_ID
+        or config.get("slice_id") != V08B_SLICE_ID
+    ):
+        raise ValueError("v0_8b_seat_window_authority_config_mismatch")
+    if (
+        float(config.get("scenario_aware_deadline_step", -1)) < 0
+        or float(config.get("z_open_centering_lateral_m", 0.0)) <= 0.0
+        or float(config.get("seat_region_depth_m", 0.0)) <= 0.0
+        or float(config.get("z_progress_action", 0.0)) >= 0.0
+    ):
+        raise ValueError("v0_8b_seat_window_authority_config_mismatch")
+    if config.get("heldout_24000_24049_used_for_parameter_derivation") is not False:
+        raise ValueError("v0_8b_must_not_use_v08a_heldout_for_parameter_derivation")
+    expected_hash = _sha256_payload_excluding(config, "seat_window_authority_config_sha256")
+    if config.get("seat_window_authority_config_sha256") != expected_hash or top_hash != expected_hash:
+        raise ValueError("v0_8b_seat_window_authority_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v08d_capture_conditioned_progress_authority_config(
+    policy_artifact: dict[str, Any],
+) -> dict[str, Any]:
+    config = policy_artifact.get("capture_conditioned_progress_authority_config")
+    top_hash = policy_artifact.get("capture_conditioned_progress_authority_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_8d_capture_conditioned_progress_authority_config_missing")
+    if (
+        policy_artifact.get("capture_conditioned_progress_authority_id")
+        != V08D_CAPTURE_CONDITIONED_PROGRESS_AUTHORITY_ID
+        or config.get("capture_conditioned_progress_authority_id")
+        != V08D_CAPTURE_CONDITIONED_PROGRESS_AUTHORITY_ID
+    ):
+        raise ValueError("v0_8d_capture_conditioned_progress_authority_id_mismatch")
+    if (
+        policy_artifact.get("same_capture_conditioned_progress_authority_config_as_peer") is not True
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_8d_capture_conditioned_progress_authority_config_must_be_shared")
+    if (
+        config.get("schema_version") != V08D_CAPTURE_CONDITIONED_PROGRESS_AUTHORITY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V08D_POLICY_SLICE_ID
+        or config.get("parent_policy_slice") != V08B_POLICY_SLICE_ID
+        or config.get("slice_id") != V08D_SLICE_ID
+    ):
+        raise ValueError("v0_8d_capture_conditioned_progress_authority_config_mismatch")
+    if (
+        int(config.get("early_z_deadline_step", -1)) > 68
+        or int(config.get("early_z_deadline_step", -1)) < 0
+        or int(config.get("capture_prepare_start_step", -1)) < 0
+        or int(config.get("capture_prepare_start_step", 9999))
+        >= int(config.get("early_z_deadline_step", -1))
+        or float(config.get("capture_lateral_gate_m", 0.0)) <= 0.0
+        or float(config.get("seat_region_depth_m", 0.0)) <= 0.0
+        or float(config.get("z_progress_action", 0.0)) >= 0.0
+        or int(config.get("depth_progress_window_steps", 0)) <= 0
+        or float(config.get("minimum_depth_progress_m", 0.0)) <= 0.0
+        or float(config.get("under_depth_progress_threshold_m", 0.0)) <= 0.0
+    ):
+        raise ValueError("v0_8d_capture_conditioned_progress_authority_config_mismatch")
+    if list(config.get("burned_heldout_seed_ranges") or []) != [
+        [21000, 21049],
+        [24000, 24049],
+        [26000, 26049],
+    ]:
+        raise ValueError("v0_8d_burned_heldout_seed_ranges_mismatch")
+    if list(config.get("fresh_heldout_seed_range") or []) != [27000, 27049]:
+        raise ValueError("v0_8d_fresh_heldout_seed_range_mismatch")
+    if set(config.get("forbidden_mechanisms") or []) != {"retry", "withdraw", "search", "force_control"}:
+        raise ValueError("v0_8d_forbidden_mechanisms_mismatch")
+    expected_hash = _sha256_payload_excluding(
+        config,
+        "capture_conditioned_progress_authority_config_sha256",
+    )
+    if (
+        config.get("capture_conditioned_progress_authority_config_sha256") != expected_hash
+        or top_hash != expected_hash
+    ):
+        raise ValueError("v0_8d_capture_conditioned_progress_authority_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v08f_horizon_reserved_capture_authority_config(
+    policy_artifact: dict[str, Any],
+) -> dict[str, Any]:
+    config = policy_artifact.get("horizon_reserved_capture_authority_config")
+    top_hash = policy_artifact.get("horizon_reserved_capture_authority_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_8f_horizon_reserved_capture_authority_config_missing")
+    if (
+        policy_artifact.get("horizon_reserved_capture_authority_id")
+        != V08F_HORIZON_RESERVED_CAPTURE_AUTHORITY_ID
+        or config.get("horizon_reserved_capture_authority_id")
+        != V08F_HORIZON_RESERVED_CAPTURE_AUTHORITY_ID
+    ):
+        raise ValueError("v0_8f_horizon_reserved_capture_authority_id_mismatch")
+    if (
+        policy_artifact.get("same_horizon_reserved_capture_authority_config_as_peer") is not True
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_8f_horizon_reserved_capture_authority_config_must_be_shared")
+    if (
+        config.get("schema_version")
+        != V08F_HORIZON_RESERVED_CAPTURE_AUTHORITY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V08F_POLICY_SLICE_ID
+        or config.get("parent_policy_slice") != V08D_POLICY_SLICE_ID
+        or config.get("source_policy_slice") != "v0_8e"
+        or config.get("slice_id") != V08F_SLICE_ID
+    ):
+        raise ValueError("v0_8f_horizon_reserved_capture_authority_config_mismatch")
+    if (
+        int(config.get("capture_prepare_start_step", -1)) < 0
+        or int(config.get("horizon_reserved_z_deadline_step", -1)) < 0
+        or int(config.get("capture_prepare_start_step", 9999))
+        >= int(config.get("horizon_reserved_z_deadline_step", -1))
+        or float(config.get("capture_lateral_gate_m", 0.0)) <= 0.0
+        or config.get("capture_wait_xy_authority_enabled") is not True
+        or float(config.get("capture_wait_xy_authority_gain", 0.0)) <= 0.0
+        or float(config.get("capture_wait_xy_clip_abs", 0.0)) <= 0.0
+        or config.get("capture_wait_sign_flip_allowed") is not True
+        or config.get("seat_completion_until_env_native_success") is not True
+        or float(config.get("seat_region_depth_m", 0.0)) <= 0.0
+        or float(config.get("z_progress_action", 0.0)) >= 0.0
+    ):
+        raise ValueError("v0_8f_horizon_reserved_capture_authority_config_mismatch")
+    if list(config.get("burned_heldout_seed_ranges") or []) != [
+        [21000, 21049],
+        [24000, 24049],
+        [26000, 26049],
+    ]:
+        raise ValueError("v0_8f_burned_heldout_seed_ranges_mismatch")
+    if list(config.get("burned_calibration_seed_ranges") or []) != [[26500, 26529]]:
+        raise ValueError("v0_8f_burned_calibration_seed_ranges_mismatch")
+    if list(config.get("fresh_calibration_seed_range") or []) != [27500, 27529]:
+        raise ValueError("v0_8f_fresh_calibration_seed_range_mismatch")
+    if list(config.get("fresh_heldout_seed_range") or []) != [27000, 27049]:
+        raise ValueError("v0_8f_fresh_heldout_seed_range_mismatch")
+    if set(config.get("forbidden_mechanisms") or []) != {"retry", "withdraw", "search", "force_control"}:
+        raise ValueError("v0_8f_forbidden_mechanisms_mismatch")
+    expected_hash = _sha256_payload_excluding(
+        config,
+        "horizon_reserved_capture_authority_config_sha256",
+    )
+    if (
+        config.get("horizon_reserved_capture_authority_config_sha256") != expected_hash
+        or top_hash != expected_hash
+    ):
+        raise ValueError("v0_8f_horizon_reserved_capture_authority_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v08g_deadline_precedence_horizon_authority_config(
+    policy_artifact: dict[str, Any],
+) -> dict[str, Any]:
+    config = policy_artifact.get("deadline_precedence_horizon_authority_config")
+    top_hash = policy_artifact.get("deadline_precedence_horizon_authority_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_8g_deadline_precedence_horizon_authority_config_missing")
+    if (
+        policy_artifact.get("deadline_precedence_horizon_authority_id")
+        != V08G_DEADLINE_PRECEDENCE_HORIZON_AUTHORITY_ID
+        or config.get("deadline_precedence_horizon_authority_id")
+        != V08G_DEADLINE_PRECEDENCE_HORIZON_AUTHORITY_ID
+    ):
+        raise ValueError("v0_8g_deadline_precedence_horizon_authority_id_mismatch")
+    if (
+        policy_artifact.get("same_deadline_precedence_horizon_authority_config_as_peer") is not True
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_8g_deadline_precedence_horizon_authority_config_must_be_shared")
+    if (
+        config.get("schema_version")
+        != V08G_DEADLINE_PRECEDENCE_HORIZON_AUTHORITY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V08G_POLICY_SLICE_ID
+        or config.get("parent_policy_slice") != V08F_POLICY_SLICE_ID
+        or config.get("source_policy_slice") != V08F_POLICY_SLICE_ID
+        or config.get("slice_id") != V08G_SLICE_ID
+    ):
+        raise ValueError("v0_8g_deadline_precedence_horizon_authority_config_mismatch")
+    if (
+        not config.get("source_v08f_calibration_presignal_gate_sha256")
+        or not config.get("parent_v08f_horizon_reserved_capture_authority_config_sha256")
+    ):
+        raise ValueError("v0_8g_deadline_precedence_source_hash_missing")
+    if (
+        int(config.get("capture_prepare_start_step", -1)) < 0
+        or int(config.get("horizon_reserved_z_deadline_step", -1)) < 0
+        or int(config.get("capture_prepare_start_step", 9999))
+        >= int(config.get("horizon_reserved_z_deadline_step", -1))
+        or float(config.get("capture_lateral_gate_m", 0.0)) <= 0.0
+        or config.get("capture_wait_xy_authority_enabled") is not True
+        or float(config.get("capture_wait_xy_authority_gain", 0.0)) <= 0.0
+        or float(config.get("capture_wait_xy_clip_abs", 0.0)) <= 0.0
+        or config.get("capture_wait_sign_flip_allowed") is not True
+        or config.get("deadline_precedence_over_capture_wait") is not True
+        or config.get("seat_completion_until_env_native_success") is not True
+        or float(config.get("seat_region_depth_m", 0.0)) <= 0.0
+        or float(config.get("z_progress_action", 0.0)) >= 0.0
+    ):
+        raise ValueError("v0_8g_deadline_precedence_horizon_authority_config_mismatch")
+    if list(config.get("burned_heldout_seed_ranges") or []) != [
+        [21000, 21049],
+        [24000, 24049],
+        [26000, 26049],
+    ]:
+        raise ValueError("v0_8g_burned_heldout_seed_ranges_mismatch")
+    if list(config.get("burned_calibration_seed_ranges") or []) != [[26500, 26529], [27500, 27529]]:
+        raise ValueError("v0_8g_burned_calibration_seed_ranges_mismatch")
+    if list(config.get("fresh_calibration_seed_range") or []) != [28000, 28029]:
+        raise ValueError("v0_8g_fresh_calibration_seed_range_mismatch")
+    if list(config.get("fresh_heldout_seed_range") or []) != [27000, 27049]:
+        raise ValueError("v0_8g_fresh_heldout_seed_range_mismatch")
+    if config.get("fresh_heldout_27000_27049_accessed") is not False:
+        raise ValueError("v0_8g_fresh_heldout_access_must_be_false_before_runtime_gate")
+    if set(config.get("forbidden_mechanisms") or []) != {"retry", "withdraw", "search", "force_control"}:
+        raise ValueError("v0_8g_forbidden_mechanisms_mismatch")
+    expected_hash = _sha256_payload_excluding(
+        config,
+        "deadline_precedence_horizon_authority_config_sha256",
+    )
+    if (
+        config.get("deadline_precedence_horizon_authority_config_sha256") != expected_hash
+        or top_hash != expected_hash
+    ):
+        raise ValueError("v0_8g_deadline_precedence_horizon_authority_config_hash_mismatch")
+    return dict(config)
+
+
+def _validated_v08h_early_centered_z_open_safe_entry_config(
+    policy_artifact: dict[str, Any],
+) -> dict[str, Any]:
+    config = policy_artifact.get("early_centered_z_open_safe_entry_config")
+    top_hash = policy_artifact.get("early_centered_z_open_safe_entry_config_sha256")
+    if not isinstance(config, dict) or not top_hash:
+        raise ValueError("v0_8h_early_centered_z_open_safe_entry_config_missing")
+    if (
+        policy_artifact.get("early_centered_z_open_safe_entry_authority_id")
+        != V08H_EARLY_CENTERED_Z_OPEN_SAFE_ENTRY_AUTHORITY_ID
+        or config.get("early_centered_z_open_safe_entry_authority_id")
+        != V08H_EARLY_CENTERED_Z_OPEN_SAFE_ENTRY_AUTHORITY_ID
+    ):
+        raise ValueError("v0_8h_early_centered_z_open_safe_entry_authority_id_mismatch")
+    if (
+        policy_artifact.get("same_early_centered_z_open_safe_entry_config_as_peer") is not True
+        or config.get("candidate_specific") is not False
+        or config.get("baseline_specific") is not False
+    ):
+        raise ValueError("v0_8h_early_centered_z_open_safe_entry_config_must_be_shared")
+    if (
+        config.get("schema_version")
+        != V08H_EARLY_CENTERED_Z_OPEN_SAFE_ENTRY_CONFIG_SCHEMA_VERSION
+        or config.get("policy_slice") != V08H_POLICY_SLICE_ID
+        or config.get("parent_policy_slice") != V08G_POLICY_SLICE_ID
+        or config.get("source_policy_slice") != V08G_POLICY_SLICE_ID
+        or config.get("slice_id") != V08H_SLICE_ID
+    ):
+        raise ValueError("v0_8h_early_centered_z_open_safe_entry_config_mismatch")
+    if (
+        not config.get("source_v08g_calibration_presignal_gate_sha256")
+        or not config.get("parent_v08g_deadline_precedence_horizon_authority_config_sha256")
+    ):
+        raise ValueError("v0_8h_safe_entry_source_hash_missing")
+    if (
+        int(config.get("capture_prepare_start_step", -1)) < 0
+        or int(config.get("reference_deadline_step", -1)) < 0
+        or int(config.get("capture_prepare_start_step", 9999))
+        >= int(config.get("reference_deadline_step", -1))
+        or float(config.get("safe_entry_lateral_gate_m", 0.0)) <= 0.0
+        or float(config.get("depth_progress_continuation_lateral_gate_m", 0.0))
+        < float(config.get("safe_entry_lateral_gate_m", 0.0))
+        or config.get("capture_wait_xy_authority_enabled") is not True
+        or float(config.get("capture_wait_xy_authority_gain", 0.0)) <= 0.0
+        or float(config.get("capture_wait_xy_clip_abs", 0.0)) <= 0.0
+        or config.get("capture_wait_sign_flip_allowed") is not True
+        or config.get("unsafe_lateral_z_block_after_reference_deadline") is not True
+        or config.get("early_centered_z_open_enabled") is not True
+        or config.get("depth_progress_continuation_enabled") is not True
+        or config.get("seat_completion_until_env_native_success") is not True
+        or float(config.get("seat_region_depth_m", 0.0)) <= 0.0
+        or float(config.get("z_progress_action", 0.0)) >= 0.0
+    ):
+        raise ValueError("v0_8h_early_centered_z_open_safe_entry_config_mismatch")
+    if list(config.get("burned_heldout_seed_ranges") or []) != [
+        [21000, 21049],
+        [24000, 24049],
+        [26000, 26049],
+    ]:
+        raise ValueError("v0_8h_burned_heldout_seed_ranges_mismatch")
+    if list(config.get("burned_calibration_seed_ranges") or []) != [
+        [26500, 26529],
+        [27500, 27529],
+        [28000, 28029],
+    ]:
+        raise ValueError("v0_8h_burned_calibration_seed_ranges_mismatch")
+    if list(config.get("fresh_calibration_seed_range") or []) != [28500, 28529]:
+        raise ValueError("v0_8h_fresh_calibration_seed_range_mismatch")
+    if list(config.get("fresh_heldout_seed_range") or []) != [27000, 27049]:
+        raise ValueError("v0_8h_fresh_heldout_seed_range_mismatch")
+    if config.get("fresh_heldout_27000_27049_accessed") is not False:
+        raise ValueError("v0_8h_fresh_heldout_access_must_be_false_before_runtime_gate")
+    if set(config.get("forbidden_mechanisms") or []) != {"retry", "withdraw", "search", "force_control"}:
+        raise ValueError("v0_8h_forbidden_mechanisms_mismatch")
+    expected_hash = _sha256_payload_excluding(
+        config,
+        "early_centered_z_open_safe_entry_config_sha256",
+    )
+    if config.get("early_centered_z_open_safe_entry_config_sha256") != expected_hash or top_hash != expected_hash:
+        raise ValueError("v0_8h_early_centered_z_open_safe_entry_config_hash_mismatch")
+    return dict(config)
+
+
+def _apply_v07c_action_authority_filter(
+    *,
+    behavior_state_phase: str,
+    base_action: np.ndarray,
+    residual_prediction: np.ndarray,
+    raw_action_before_authority: np.ndarray,
+    authority_config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, Any]]:
+    base = np.asarray(base_action, dtype=np.float64).copy()
+    residual = np.asarray(residual_prediction, dtype=np.float64).copy()
+    before = np.asarray(raw_action_before_authority, dtype=np.float64).copy()
+    after = before.copy()
+    phase = str(behavior_state_phase).upper()
+    z_source = "base_plus_residual"
+    suppressed = False
+    if phase == "ALIGN" and authority_config.get("align_z_authority") == "base_servo_z_only":
+        after[2] = base[2]
+        residual_after = 0.0
+        z_source = "base_servo"
+        suppressed = True
+    else:
+        residual_after = float(after[2] - base[2])
+    return np.round(after, 12), {
+        "authority_filter_id": authority_config.get("authority_filter_id"),
+        "authority_filter_config_sha256": authority_config.get("authority_filter_config_sha256"),
+        "raw_action_before_authority": _rounded_action(before),
+        "raw_action_after_authority": _rounded_action(after),
+        "residual_z_before_authority": round(float(residual[2]), 12),
+        "residual_z_after_authority": round(float(residual_after), 12),
+        "align_residual_z_suppressed": bool(suppressed),
+        "z_authority_source": z_source,
+    }
 
 
 def _weak_base_servo_action(
@@ -1357,19 +2616,695 @@ def _rounded_action(values: np.ndarray | list[float]) -> list[float]:
     return [round(float(value), 12) for value in np.asarray(values, dtype=np.float64).reshape(-1).tolist()]
 
 
+def _stable_hold_ready_env_native(*, metric_row: dict[str, Any]) -> bool:
+    return _env_native_success_mask_from_row(metric_row)
+
+
+def _apply_v07d_final_post_adapter_authority(
+    *,
+    action: np.ndarray,
+    behavior_state_phase: str | None,
+    final_authority_config: dict[str, Any],
+    current_block_reason: str,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    before = np.asarray(action, dtype=np.float64).copy()
+    after = before.copy()
+    phase = str(behavior_state_phase or "").upper()
+    z_allowed = True
+    reason = current_block_reason
+    if phase == "ALIGN":
+        z_allowed = False
+        after[2] = 0.0
+        reason = "final_post_adapter_align_z_blocked"
+    final_action = np.round(np.clip(after, -1.0, 1.0), 12)
+    return final_action, {
+        "final_post_adapter_authority_id": final_authority_config["final_post_adapter_authority_id"],
+        "final_post_adapter_authority_config_sha256": final_authority_config[
+            "final_post_adapter_authority_config_sha256"
+        ],
+        "pre_final_authority_action_vector": _rounded_action(before),
+        "final_post_adapter_z_motion_allowed": bool(z_allowed),
+        "z_motion_block_reason": reason,
+    }
+
+
+def _apply_v08a_seat_window_progress_authority(
+    *,
+    action: np.ndarray,
+    metric_row: dict[str, Any] | None,
+    config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, Any]]:
+    before = np.asarray(action, dtype=np.float64).copy()
+    after = before.copy()
+    reason = "metric_row_missing"
+    applied = False
+    if metric_row is not None:
+        step = int(metric_row.get("step", -1))
+        latest_z_open_step = int(config["latest_z_open_step"])
+        lateral = float(metric_row.get("lateral_error_m", 999.0))
+        depth = float(metric_row.get("insertion_depth_m", 0.0))
+        centered = lateral <= float(config["z_open_centering_lateral_m"])
+        below_seat_region = depth < float(config["seat_region_depth_m"])
+        env_native_success = bool(metric_row.get("env_native_success", False))
+        if step < latest_z_open_step:
+            reason = "before_train_derived_z_open_deadline"
+        elif env_native_success:
+            reason = "env_native_success_already_true"
+        elif not centered:
+            reason = "not_centered_for_seat_window_progress"
+        elif not below_seat_region:
+            reason = "already_in_seat_region"
+        else:
+            after[2] = float(config["z_progress_action"])
+            reason = "forced_train_derived_seat_progress_z"
+            applied = True
+    final_action = np.round(np.clip(after, -1.0, 1.0), 12)
+    return final_action, {
+        "seat_window_authority_id": config["seat_window_authority_id"],
+        "seat_window_authority_config_sha256": config["seat_window_authority_config_sha256"],
+        "pre_seat_window_authority_action_vector": _rounded_action(before),
+        "post_seat_window_authority_action_vector": _rounded_action(final_action),
+        "seat_window_authority_applied": bool(applied),
+        "seat_window_authority_reason": reason,
+        "seat_window_authority_preserved_xy": bool(np.allclose(final_action[0:2], before[0:2])),
+        "seat_window_latest_z_open_step": int(config["latest_z_open_step"]),
+    }
+
+
+def _apply_v08b_scenario_aware_seat_window_authority(
+    *,
+    action: np.ndarray,
+    metric_row: dict[str, Any] | None,
+    config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, Any]]:
+    before = np.asarray(action, dtype=np.float64).copy()
+    after = before.copy()
+    reason = "metric_row_missing"
+    applied = False
+    if metric_row is not None:
+        step = int(metric_row.get("step", -1))
+        deadline_step = int(config["scenario_aware_deadline_step"])
+        lateral = float(metric_row.get("lateral_error_m", 999.0))
+        depth = float(metric_row.get("insertion_depth_m", 0.0))
+        centered = lateral <= float(config["z_open_centering_lateral_m"])
+        below_seat_region = depth < float(config["seat_region_depth_m"])
+        env_native_success = bool(metric_row.get("env_native_success", False))
+        if step < deadline_step:
+            reason = "before_scenario_aware_z_open_deadline"
+        elif env_native_success:
+            reason = "env_native_success_already_true"
+        elif not centered:
+            reason = "not_centered_for_seat_window_progress"
+        elif not below_seat_region:
+            reason = "already_in_seat_region"
+        else:
+            after[2] = float(config["z_progress_action"])
+            reason = "forced_scenario_aware_seat_progress_z"
+            applied = True
+    final_action = np.round(np.clip(after, -1.0, 1.0), 12)
+    return final_action, {
+        "seat_window_authority_id": config["seat_window_authority_id"],
+        "seat_window_authority_config_sha256": config["seat_window_authority_config_sha256"],
+        "pre_seat_window_authority_action_vector": _rounded_action(before),
+        "post_seat_window_authority_action_vector": _rounded_action(final_action),
+        "seat_window_authority_applied": bool(applied),
+        "seat_window_authority_reason": reason,
+        "seat_window_authority_preserved_xy": bool(np.allclose(final_action[0:2], before[0:2])),
+        "scenario_aware_deadline_step": int(config["scenario_aware_deadline_step"]),
+        "latest_z_open_step_train_max": int(config.get("latest_z_open_step_train_max", -1)),
+        "effective_z_open_for_xy_authority": bool(final_action[2] < 0.0),
+        "seat_window_xy_recomputed_with_forced_z": False,
+    }
+
+
+def _apply_v08d_capture_conditioned_progress_authority(
+    *,
+    action: np.ndarray,
+    metric_row: dict[str, Any] | None,
+    config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, Any]]:
+    before = np.asarray(action, dtype=np.float64).copy()
+    after = before.copy()
+    reason = "metric_row_missing"
+    applied = False
+    z_open_step: int | None = None
+    z_open_depth_reference_m: float | None = None
+    depth_progress_delta_m: float | None = None
+    under_depth_progress_watch = False
+    if metric_row is not None:
+        step = int(metric_row.get("step", -1))
+        early_z_deadline_step = int(config["early_z_deadline_step"])
+        capture_prepare_start_step = int(config["capture_prepare_start_step"])
+        lateral = float(metric_row.get("lateral_error_m", 999.0))
+        depth = float(metric_row.get("insertion_depth_m", 0.0))
+        capture_lateral_gate_m = float(config["capture_lateral_gate_m"])
+        seat_region_depth_m = float(config["seat_region_depth_m"])
+        env_native_success = bool(metric_row.get("env_native_success", False))
+        z_open_step_value = metric_row.get("z_open_step")
+        z_open_depth_value = metric_row.get("z_open_depth_reference_m")
+        if z_open_step_value is not None:
+            z_open_step = int(z_open_step_value)
+        if z_open_depth_value is not None:
+            z_open_depth_reference_m = float(z_open_depth_value)
+        if z_open_step is not None and z_open_depth_reference_m is not None:
+            depth_progress_delta_m = round(depth - z_open_depth_reference_m, 12)
+            if (
+                step - z_open_step >= int(config["depth_progress_window_steps"])
+                and depth < float(config["under_depth_progress_threshold_m"])
+                and depth_progress_delta_m < float(config["minimum_depth_progress_m"])
+            ):
+                under_depth_progress_watch = True
+        if env_native_success:
+            reason = "env_native_success_already_true"
+        elif depth >= seat_region_depth_m:
+            reason = "already_in_seat_region"
+        elif step >= capture_prepare_start_step and lateral > capture_lateral_gate_m:
+            after[2] = 0.0
+            reason = "capture_conditioning_wait"
+            applied = True
+        elif step < early_z_deadline_step:
+            after[2] = 0.0
+            reason = "before_early_z_deadline"
+        else:
+            after[2] = float(config["z_progress_action"])
+            reason = "forced_capture_conditioned_progress_z"
+            applied = True
+            if z_open_step is None:
+                z_open_step = step
+                z_open_depth_reference_m = depth
+                depth_progress_delta_m = 0.0
+    final_action = np.round(np.clip(after, -1.0, 1.0), 12)
+    return final_action, {
+        "capture_conditioned_progress_authority_id": config[
+            "capture_conditioned_progress_authority_id"
+        ],
+        "capture_conditioned_progress_authority_config_sha256": config[
+            "capture_conditioned_progress_authority_config_sha256"
+        ],
+        "pre_capture_conditioned_progress_authority_action_vector": _rounded_action(before),
+        "post_capture_conditioned_progress_authority_action_vector": _rounded_action(final_action),
+        "capture_conditioning_applied": bool(applied),
+        "capture_conditioning_reason": reason,
+        "early_z_deadline_step": int(config["early_z_deadline_step"]),
+        "capture_prepare_start_step": int(config["capture_prepare_start_step"]),
+        "capture_lateral_gate_m": float(config["capture_lateral_gate_m"]),
+        "z_open_step": z_open_step,
+        "z_open_depth_reference_m": z_open_depth_reference_m,
+        "depth_progress_window_steps": int(config["depth_progress_window_steps"]),
+        "depth_progress_delta_m": depth_progress_delta_m,
+        "under_depth_progress_watch": bool(under_depth_progress_watch),
+        "effective_z_open_for_xy_authority": bool(final_action[2] < 0.0),
+        "capture_conditioned_xy_recomputed_with_forced_z": False,
+    }
+
+
+def _apply_v08f_horizon_reserved_capture_authority(
+    *,
+    action: np.ndarray,
+    metric_row: dict[str, Any] | None,
+    config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, Any]]:
+    before = np.asarray(action, dtype=np.float64).copy()
+    after = before.copy()
+    reason = "metric_row_missing"
+    applied = False
+    xy_recomputed = False
+    seat_completion_active = False
+    if metric_row is not None:
+        step = int(metric_row.get("step", -1))
+        lateral = float(metric_row.get("lateral_error_m", 999.0))
+        depth = float(metric_row.get("insertion_depth_m", 0.0))
+        env_native_success = bool(metric_row.get("env_native_success", False))
+        capture_prepare_start_step = int(config["capture_prepare_start_step"])
+        horizon_reserved_z_deadline_step = int(config["horizon_reserved_z_deadline_step"])
+        capture_lateral_gate_m = float(config["capture_lateral_gate_m"])
+        seat_region_depth_m = float(config["seat_region_depth_m"])
+        if env_native_success:
+            reason = "env_native_success_already_true"
+        elif step >= capture_prepare_start_step and lateral > capture_lateral_gate_m:
+            after[2] = 0.0
+            if config.get("capture_wait_xy_authority_enabled") is True:
+                gain = float(config["capture_wait_xy_authority_gain"])
+                clip_abs = float(config["capture_wait_xy_clip_abs"])
+                after[0] = np.clip(-float(metric_row.get("relative_x_m", 0.0)) * gain, -clip_abs, clip_abs)
+                after[1] = np.clip(-float(metric_row.get("relative_y_m", 0.0)) * gain, -clip_abs, clip_abs)
+                xy_recomputed = True
+            reason = "capture_wait_xy_authority"
+            applied = True
+        elif step < horizon_reserved_z_deadline_step:
+            after[2] = 0.0
+            reason = "before_horizon_reserved_z_deadline"
+            applied = bool(not np.isclose(before[2], 0.0))
+        else:
+            after[2] = float(config["z_progress_action"])
+            seat_completion_active = bool(depth >= seat_region_depth_m)
+            reason = "forced_horizon_reserved_progress_z"
+            applied = True
+    final_action = np.round(np.clip(after, -1.0, 1.0), 12)
+    preserved_rotation_gripper = bool(
+        np.allclose(final_action[3:], np.round(np.clip(before[3:], -1.0, 1.0), 12))
+    )
+    return final_action, {
+        "horizon_reserved_capture_authority_id": config["horizon_reserved_capture_authority_id"],
+        "horizon_reserved_capture_authority_config_sha256": config[
+            "horizon_reserved_capture_authority_config_sha256"
+        ],
+        "pre_horizon_reserved_capture_authority_action_vector": _rounded_action(before),
+        "post_horizon_reserved_capture_authority_action_vector": _rounded_action(final_action),
+        "horizon_reserved_capture_authority_applied": bool(applied),
+        "horizon_reserved_capture_authority_reason": reason,
+        "horizon_reserved_xy_recomputed": bool(xy_recomputed),
+        "horizon_reserved_preserved_rotation_gripper": preserved_rotation_gripper,
+        "horizon_reserved_z_deadline_step": int(config["horizon_reserved_z_deadline_step"]),
+        "capture_prepare_start_step": int(config["capture_prepare_start_step"]),
+        "capture_lateral_gate_m": float(config["capture_lateral_gate_m"]),
+        "seat_region_depth_m": float(config["seat_region_depth_m"]),
+        "seat_completion_until_env_native_success": bool(
+            config["seat_completion_until_env_native_success"]
+        ),
+        "horizon_reserved_seat_completion_active": bool(seat_completion_active),
+        "effective_z_open_for_xy_authority": bool(final_action[2] < 0.0),
+    }
+
+
+def _apply_v08g_deadline_precedence_horizon_authority(
+    *,
+    action: np.ndarray,
+    metric_row: dict[str, Any] | None,
+    config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, Any]]:
+    before = np.asarray(action, dtype=np.float64).copy()
+    after = before.copy()
+    reason = "metric_row_missing"
+    applied = False
+    xy_recomputed = False
+    seat_completion_active = False
+    if metric_row is not None:
+        step = int(metric_row.get("step", -1))
+        lateral = float(metric_row.get("lateral_error_m", 999.0))
+        depth = float(metric_row.get("insertion_depth_m", 0.0))
+        env_native_success = bool(metric_row.get("env_native_success", False))
+        capture_prepare_start_step = int(config["capture_prepare_start_step"])
+        horizon_reserved_z_deadline_step = int(config["horizon_reserved_z_deadline_step"])
+        capture_lateral_gate_m = float(config["capture_lateral_gate_m"])
+        seat_region_depth_m = float(config["seat_region_depth_m"])
+        if env_native_success:
+            reason = "env_native_success_already_true"
+        elif step >= horizon_reserved_z_deadline_step:
+            after[2] = float(config["z_progress_action"])
+            seat_completion_active = bool(depth >= seat_region_depth_m)
+            reason = "forced_horizon_reserved_progress_z_deadline_precedence"
+            applied = True
+            if (
+                lateral > capture_lateral_gate_m
+                and config.get("capture_wait_xy_authority_enabled") is True
+            ):
+                gain = float(config["capture_wait_xy_authority_gain"])
+                clip_abs = float(config["capture_wait_xy_clip_abs"])
+                after[0] = np.clip(
+                    -float(metric_row.get("relative_x_m", 0.0)) * gain,
+                    -clip_abs,
+                    clip_abs,
+                )
+                after[1] = np.clip(
+                    -float(metric_row.get("relative_y_m", 0.0)) * gain,
+                    -clip_abs,
+                    clip_abs,
+                )
+                xy_recomputed = True
+        elif step >= capture_prepare_start_step and lateral > capture_lateral_gate_m:
+            after[2] = 0.0
+            if config.get("capture_wait_xy_authority_enabled") is True:
+                gain = float(config["capture_wait_xy_authority_gain"])
+                clip_abs = float(config["capture_wait_xy_clip_abs"])
+                after[0] = np.clip(
+                    -float(metric_row.get("relative_x_m", 0.0)) * gain,
+                    -clip_abs,
+                    clip_abs,
+                )
+                after[1] = np.clip(
+                    -float(metric_row.get("relative_y_m", 0.0)) * gain,
+                    -clip_abs,
+                    clip_abs,
+                )
+                xy_recomputed = True
+            reason = "capture_wait_xy_authority"
+            applied = True
+        else:
+            after[2] = 0.0
+            reason = "before_horizon_reserved_z_deadline"
+            applied = bool(not np.isclose(before[2], 0.0))
+    final_action = np.round(np.clip(after, -1.0, 1.0), 12)
+    preserved_rotation_gripper = bool(
+        np.allclose(final_action[3:], np.round(np.clip(before[3:], -1.0, 1.0), 12))
+    )
+    return final_action, {
+        "deadline_precedence_horizon_authority_id": config[
+            "deadline_precedence_horizon_authority_id"
+        ],
+        "deadline_precedence_horizon_authority_config_sha256": config[
+            "deadline_precedence_horizon_authority_config_sha256"
+        ],
+        "pre_deadline_precedence_horizon_authority_action_vector": _rounded_action(before),
+        "post_deadline_precedence_horizon_authority_action_vector": _rounded_action(final_action),
+        "deadline_precedence_horizon_authority_applied": bool(applied),
+        "deadline_precedence_horizon_authority_reason": reason,
+        "deadline_precedence_xy_recomputed": bool(xy_recomputed),
+        "deadline_precedence_preserved_rotation_gripper": preserved_rotation_gripper,
+        "horizon_reserved_z_deadline_step": int(config["horizon_reserved_z_deadline_step"]),
+        "capture_prepare_start_step": int(config["capture_prepare_start_step"]),
+        "capture_lateral_gate_m": float(config["capture_lateral_gate_m"]),
+        "seat_region_depth_m": float(config["seat_region_depth_m"]),
+        "deadline_precedence_over_capture_wait": bool(
+            config["deadline_precedence_over_capture_wait"]
+        ),
+        "seat_completion_until_env_native_success": bool(
+            config["seat_completion_until_env_native_success"]
+        ),
+        "deadline_precedence_seat_completion_active": bool(seat_completion_active),
+        "effective_z_open_for_xy_authority": bool(final_action[2] < 0.0),
+    }
+
+
+def _apply_v08h_early_centered_z_open_safe_entry(
+    *,
+    action: np.ndarray,
+    metric_row: dict[str, Any] | None,
+    config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, Any]]:
+    before = np.asarray(action, dtype=np.float64).copy()
+    after = before.copy()
+    reason = "metric_row_missing"
+    applied = False
+    xy_recomputed = False
+    depth_progress_continuation_active = False
+    safe_entry_active = False
+    unsafe_lateral_block_active = False
+    if metric_row is not None:
+        step = int(metric_row.get("step", -1))
+        lateral = float(metric_row.get("lateral_error_m", 999.0))
+        depth = float(metric_row.get("insertion_depth_m", 0.0))
+        env_native_success = bool(metric_row.get("env_native_success", False))
+        capture_prepare_start_step = int(config["capture_prepare_start_step"])
+        safe_entry_lateral_gate_m = float(config["safe_entry_lateral_gate_m"])
+        continuation_lateral_gate_m = float(config["depth_progress_continuation_lateral_gate_m"])
+        if env_native_success:
+            reason = "env_native_success_already_true"
+        elif (
+            config.get("depth_progress_continuation_enabled") is True
+            and depth > 0.0
+            and lateral <= continuation_lateral_gate_m
+        ):
+            after[2] = float(config["z_progress_action"])
+            reason = "depth_progress_continuation_z"
+            applied = True
+            depth_progress_continuation_active = True
+        elif (
+            config.get("early_centered_z_open_enabled") is True
+            and step >= capture_prepare_start_step
+            and lateral <= safe_entry_lateral_gate_m
+        ):
+            after[2] = float(config["z_progress_action"])
+            reason = "early_centered_safe_entry_z"
+            applied = True
+            safe_entry_active = True
+        elif step >= capture_prepare_start_step:
+            after[2] = 0.0
+            reason = "unsafe_lateral_z_block"
+            applied = True
+            unsafe_lateral_block_active = True
+            if config.get("capture_wait_xy_authority_enabled") is True:
+                gain = float(config["capture_wait_xy_authority_gain"])
+                clip_abs = float(config["capture_wait_xy_clip_abs"])
+                after[0] = np.clip(
+                    -float(metric_row.get("relative_x_m", 0.0)) * gain,
+                    -clip_abs,
+                    clip_abs,
+                )
+                after[1] = np.clip(
+                    -float(metric_row.get("relative_y_m", 0.0)) * gain,
+                    -clip_abs,
+                    clip_abs,
+                )
+                xy_recomputed = True
+        else:
+            after[2] = 0.0
+            reason = "before_capture_prepare_start"
+            applied = bool(not np.isclose(before[2], 0.0))
+    final_action = np.round(np.clip(after, -1.0, 1.0), 12)
+    preserved_rotation_gripper = bool(
+        np.allclose(final_action[3:], np.round(np.clip(before[3:], -1.0, 1.0), 12))
+    )
+    return final_action, {
+        "early_centered_z_open_safe_entry_authority_id": config[
+            "early_centered_z_open_safe_entry_authority_id"
+        ],
+        "early_centered_z_open_safe_entry_config_sha256": config[
+            "early_centered_z_open_safe_entry_config_sha256"
+        ],
+        "pre_early_centered_z_open_safe_entry_action_vector": _rounded_action(before),
+        "post_early_centered_z_open_safe_entry_action_vector": _rounded_action(final_action),
+        "early_centered_z_open_safe_entry_applied": bool(applied),
+        "early_centered_z_open_safe_entry_reason": reason,
+        "safe_entry_xy_recomputed": bool(xy_recomputed),
+        "safe_entry_preserved_rotation_gripper": preserved_rotation_gripper,
+        "capture_prepare_start_step": int(config["capture_prepare_start_step"]),
+        "reference_deadline_step": int(config["reference_deadline_step"]),
+        "safe_entry_lateral_gate_m": float(config["safe_entry_lateral_gate_m"]),
+        "depth_progress_continuation_lateral_gate_m": float(
+            config["depth_progress_continuation_lateral_gate_m"]
+        ),
+        "unsafe_lateral_z_block_after_reference_deadline": bool(
+            config["unsafe_lateral_z_block_after_reference_deadline"]
+        ),
+        "early_centered_z_open_enabled": bool(config["early_centered_z_open_enabled"]),
+        "depth_progress_continuation_enabled": bool(
+            config["depth_progress_continuation_enabled"]
+        ),
+        "depth_progress_continuation_active": bool(depth_progress_continuation_active),
+        "early_centered_safe_entry_active": bool(safe_entry_active),
+        "unsafe_lateral_block_active": bool(unsafe_lateral_block_active),
+        "effective_z_open_for_xy_authority": bool(final_action[2] < 0.0),
+    }
+
+
+def _xy_sign_preserved(before_xy: np.ndarray, after_xy: np.ndarray) -> bool:
+    for before_value, after_value in zip(before_xy.tolist(), after_xy.tolist(), strict=True):
+        if abs(float(before_value)) <= 1.0e-12 or abs(float(after_value)) <= 1.0e-12:
+            continue
+        if np.sign(float(before_value)) != np.sign(float(after_value)):
+            return False
+    return True
+
+
+def _apply_v07g_final_post_adapter_xy_authority(
+    *,
+    action: np.ndarray,
+    metric_row: dict[str, Any] | None,
+    xy_authority_config: dict[str, Any],
+) -> tuple[np.ndarray, dict[str, Any]]:
+    before = np.asarray(action, dtype=np.float64).copy()
+    after = before.copy()
+    reason = "xy_authority_not_needed"
+    applied = False
+    sign_preserved = True
+
+    if metric_row is None:
+        reason = "metric_row_missing"
+    else:
+        threshold = float(xy_authority_config["xy_saturation_threshold_abs"])
+        near_center_lateral = float(xy_authority_config["xy_near_center_lateral_m"])
+        strategy = str(xy_authority_config.get("xy_authority_strategy") or "post_adapter_state_feedback_clip")
+        saturated = bool(np.any(np.abs(before[0:2]) >= threshold))
+        lateral = float(metric_row.get("lateral_error_m", 999.0))
+        depth = float(metric_row.get("insertion_depth_m", 0.0))
+        env_native_success = bool(metric_row.get("env_native_success", False))
+        near_center = lateral <= near_center_lateral
+        should_apply = saturated and near_center
+        zone = "near_center" if near_center else "off_center"
+        clip_abs = float(xy_authority_config.get("xy_authority_clip_abs", 0.0))
+        z_open_low_depth = False
+        if strategy in {
+            "z_open_center_maintenance_state_feedback_clip",
+            "composed_piecewise_plus_z_open_center_maintenance",
+        }:
+            z_open_low_depth = (
+                bool(before[2] < 0.0)
+                and not env_native_success
+                and depth <= float(xy_authority_config["z_open_centering_depth_max_m"])
+                and lateral <= float(xy_authority_config["z_open_centering_lateral_m"])
+            )
+        if strategy == "piecewise_off_center_state_feedback_clip" or (
+            strategy == "composed_piecewise_plus_z_open_center_maintenance" and not z_open_low_depth
+        ):
+            should_apply = saturated
+            clip_abs = float(
+                xy_authority_config["xy_near_center_clip_abs"]
+                if near_center
+                else xy_authority_config["xy_off_center_clip_abs"]
+            )
+        elif strategy == "z_open_center_maintenance_state_feedback_clip":
+            should_apply = z_open_low_depth
+            zone = "z_open_low_depth_center" if z_open_low_depth else zone
+            clip_abs = float(xy_authority_config["z_open_xy_clip_abs"])
+        elif strategy == "composed_piecewise_plus_z_open_center_maintenance" and z_open_low_depth:
+            should_apply = True
+            zone = "z_open_low_depth_center"
+            clip_abs = float(xy_authority_config["z_open_xy_clip_abs"])
+        if should_apply:
+            gain = float(
+                xy_authority_config["z_open_xy_authority_gain"]
+                if (
+                    strategy == "z_open_center_maintenance_state_feedback_clip"
+                    or (
+                        strategy == "composed_piecewise_plus_z_open_center_maintenance"
+                        and z_open_low_depth
+                    )
+                )
+                else xy_authority_config["xy_authority_gain"]
+            )
+            candidate_xy = np.asarray(
+                [
+                    -float(metric_row.get("relative_x_m", 0.0)) * gain,
+                    -float(metric_row.get("relative_y_m", 0.0)) * gain,
+                ],
+                dtype=np.float64,
+            )
+            candidate_xy = np.clip(candidate_xy, -clip_abs, clip_abs)
+            sign_preserved = _xy_sign_preserved(before[0:2], candidate_xy)
+            sign_flip_allowed = (
+                (
+                    strategy == "z_open_center_maintenance_state_feedback_clip"
+                    or (
+                        strategy == "composed_piecewise_plus_z_open_center_maintenance"
+                        and z_open_low_depth
+                    )
+                )
+                and xy_authority_config.get("allow_sign_flip_during_z_open_low_depth") is True
+            )
+            if sign_preserved or sign_flip_allowed:
+                after[0:2] = candidate_xy
+                applied = True
+                if (
+                    strategy == "z_open_center_maintenance_state_feedback_clip"
+                    or (
+                        strategy == "composed_piecewise_plus_z_open_center_maintenance"
+                        and z_open_low_depth
+                    )
+                ):
+                    reason = "z_open_center_maintenance_state_feedback"
+                else:
+                    reason = (
+                        "xy_saturation_off_center_state_feedback_clamped"
+                        if (
+                            (
+                                strategy == "piecewise_off_center_state_feedback_clip"
+                                or (
+                                    strategy == "composed_piecewise_plus_z_open_center_maintenance"
+                                    and not z_open_low_depth
+                                )
+                            )
+                            and not near_center
+                        )
+                        else "xy_saturation_near_center_clamped_to_state_feedback"
+                    )
+            else:
+                reason = "xy_authority_sign_mismatch_not_applied"
+        else:
+            zone = "near_center" if near_center else "off_center"
+
+    final_action = np.round(np.clip(after, -1.0, 1.0), 12)
+    z_preserved = bool(np.isclose(final_action[2], before[2]))
+    if not z_preserved:
+        raise ValueError("v0_7g_xy_authority_mutated_z")
+    return final_action, {
+        "final_post_adapter_xy_authority_id": xy_authority_config["final_post_adapter_xy_authority_id"],
+        "final_post_adapter_xy_authority_config_sha256": xy_authority_config[
+            "final_post_adapter_xy_authority_config_sha256"
+        ],
+        "pre_xy_authority_action_vector": _rounded_action(before),
+        "post_z_pre_xy_authority_action_vector": _rounded_action(before),
+        "post_xy_authority_action_vector": _rounded_action(final_action),
+        "xy_authority_applied": bool(applied),
+        "xy_authority_reason": reason,
+        "xy_authority_zone": zone if metric_row is not None else None,
+        "xy_authority_preserved_sign": bool(sign_preserved),
+        "xy_authority_preserved_z": bool(z_preserved),
+    }
+
+
 def _apply_selected_action_adapter_with_diagnostics(
     *,
     policy_artifact: dict[str, Any],
     raw_action: np.ndarray,
     action_scale: float,
     metric_row: dict[str, Any] | None = None,
+    behavior_state_phase: str | None = None,
+    hysteresis_state: dict[str, Any] | None = None,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     adapter_id = str(policy_artifact.get("selected_action_adapter_id") or "")
     config = policy_artifact.get("selected_action_adapter_config")
+    policy_slice = policy_artifact.get("policy_slice")
+    final_authority_config: dict[str, Any] | None = None
+    v07e_hysteresis_config: dict[str, Any] | None = None
+    v07g_xy_authority_config: dict[str, Any] | None = None
+    v08a_seat_window_config: dict[str, Any] | None = None
+    v08b_seat_window_config: dict[str, Any] | None = None
+    v08d_capture_progress_config: dict[str, Any] | None = None
+    v08f_horizon_capture_config: dict[str, Any] | None = None
+    v08g_deadline_precedence_config: dict[str, Any] | None = None
+    v08h_safe_entry_config: dict[str, Any] | None = None
+    effective_behavior_state_phase = behavior_state_phase
+    if policy_slice in V07D_FINAL_AUTHORITY_RUNTIME_POLICY_SLICE_IDS:
+        final_authority_config = _validated_v07d_final_action_authority_config(policy_artifact)
+        config = _validated_v07d_selected_action_adapter_config(policy_artifact)
+    if policy_slice in V07E_HYSTERESIS_RUNTIME_POLICY_SLICE_IDS:
+        v07e_hysteresis_config = _validated_v07e_hysteresis_authority_config(policy_artifact)
+        if isinstance(hysteresis_state, dict):
+            if hysteresis_state.get("last_z_motion_allowed") is True:
+                effective_behavior_state_phase = "DESCEND"
+            elif hysteresis_state.get("current_hysteresis_phase"):
+                effective_behavior_state_phase = str(hysteresis_state["current_hysteresis_phase"]).upper()
+    if policy_slice == V07G_POLICY_SLICE_ID:
+        v07g_xy_authority_config = _validated_v07g_final_xy_authority_config(policy_artifact)
+    if policy_slice in {V07J_POLICY_SLICE_ID, V07K_POLICY_SLICE_ID, V07M_POLICY_SLICE_ID}:
+        v07g_xy_authority_config = _validated_v07j_final_xy_authority_config(policy_artifact)
+    if policy_slice == V07N_POLICY_SLICE_ID:
+        v07g_xy_authority_config = _validated_v07n_final_xy_authority_config(policy_artifact)
+    if policy_slice == V07O_POLICY_SLICE_ID:
+        v07g_xy_authority_config = _validated_v07o_final_xy_authority_config(policy_artifact)
+    if policy_slice == V08A_POLICY_SLICE_ID:
+        v07g_xy_authority_config = _validated_v07o_final_xy_authority_config(policy_artifact)
+        v08a_seat_window_config = _validated_v08a_seat_window_authority_config(policy_artifact)
+    if policy_slice == V08B_POLICY_SLICE_ID:
+        v07g_xy_authority_config = _validated_v07o_final_xy_authority_config(policy_artifact)
+        v08b_seat_window_config = _validated_v08b_seat_window_authority_config(policy_artifact)
+    if policy_slice == V08D_POLICY_SLICE_ID:
+        v07g_xy_authority_config = _validated_v07o_final_xy_authority_config(policy_artifact)
+        v08d_capture_progress_config = _validated_v08d_capture_conditioned_progress_authority_config(
+            policy_artifact
+        )
+    if policy_slice == V08F_POLICY_SLICE_ID:
+        v07g_xy_authority_config = _validated_v07o_final_xy_authority_config(policy_artifact)
+        v08f_horizon_capture_config = _validated_v08f_horizon_reserved_capture_authority_config(
+            policy_artifact
+        )
+    if policy_slice == V08G_POLICY_SLICE_ID:
+        v07g_xy_authority_config = _validated_v07o_final_xy_authority_config(policy_artifact)
+        v08g_deadline_precedence_config = _validated_v08g_deadline_precedence_horizon_authority_config(
+            policy_artifact
+        )
+    if policy_slice in V08H_DERIVED_POLICY_SLICE_IDS:
+        v07g_xy_authority_config = _validated_v07o_final_xy_authority_config(policy_artifact)
+        v08h_safe_entry_config = _validated_v08h_early_centered_z_open_safe_entry_config(
+            policy_artifact
+        )
     raw_vector = _rounded_action(raw_action)
     diagnostics: dict[str, Any] = {
         "schema_version": "rdf_mvp2e_v06d_controller_action_diagnostics_v0.1.0",
+        "policy_slice": policy_artifact.get("policy_slice"),
         "selected_action_adapter_id": adapter_id,
+        "stable_hold_authority": policy_artifact.get("stable_hold_authority"),
         "controller_version": config.get("controller_version") if isinstance(config, dict) else None,
         "input_metric_phase": str(metric_row.get("phase")) if isinstance(metric_row, dict) else None,
         "controller_input_phase": None,
@@ -1379,7 +3314,48 @@ def _apply_selected_action_adapter_with_diagnostics(
         "phase_vocabulary_mismatch": False,
         "z_motion_suppressed": False,
         "z_motion_block_reason": "adapter_not_instrumented",
+        "no_mutation_after_final_post_adapter_authority": False,
     }
+    policy_influence_config = policy_artifact.get("policy_influence_authority_ceiling_config")
+    if isinstance(policy_influence_config, dict):
+        expected_policy_influence_hash = _sha256_payload_excluding(
+            policy_influence_config,
+            "policy_influence_authority_ceiling_config_sha256",
+        )
+        if (
+            policy_influence_config.get("policy_influence_authority_ceiling_config_sha256")
+            != expected_policy_influence_hash
+            or policy_artifact.get("policy_influence_authority_ceiling_config_sha256")
+            != expected_policy_influence_hash
+        ):
+            raise ValueError("v0_13_policy_influence_authority_ceiling_config_hash_mismatch")
+        diagnostics.update(
+            {
+                "policy_influence_authority_ceiling_id": policy_influence_config.get("authority_id"),
+                "policy_influence_authority_ceiling_config_sha256": expected_policy_influence_hash,
+                "policy_influence_state_feedback_gain_ceiling": policy_influence_config.get(
+                    "state_feedback_gain_ceiling"
+                ),
+                "z_progress_injection_enabled": policy_influence_config.get(
+                    "z_progress_injection_enabled"
+                ),
+                "final_xy_state_feedback_replacement_enabled": policy_influence_config.get(
+                    "final_xy_state_feedback_replacement_enabled"
+                ),
+            }
+        )
+    if v07e_hysteresis_config is not None:
+        diagnostics.update(
+            {
+                "shared_hysteresis_authority_id": v07e_hysteresis_config["shared_hysteresis_authority_id"],
+                "shared_hysteresis_authority_config_sha256": v07e_hysteresis_config[
+                    "shared_hysteresis_authority_config_sha256"
+                ],
+                "shared_hysteresis_state_after": dict(hysteresis_state)
+                if isinstance(hysteresis_state, dict)
+                else None,
+            }
+        )
     if adapter_id != "isaac_signed_xy_downward_servo_v0" or not isinstance(config, dict):
         action = np.clip(raw_action * float(action_scale), -1.0, 1.0)
         diagnostics.update(
@@ -1389,9 +3365,241 @@ def _apply_selected_action_adapter_with_diagnostics(
                 "z_motion_block_reason": "no_v06_controller",
             }
         )
+        if final_authority_config is not None:
+            action, final_diagnostics = _apply_v07d_final_post_adapter_authority(
+                action=action,
+                behavior_state_phase=effective_behavior_state_phase,
+                final_authority_config=final_authority_config,
+                current_block_reason="no_v06_controller",
+            )
+            diagnostics.update(final_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        v08b_forced_z_for_xy = False
+        if v08b_seat_window_config is not None:
+            action, seat_window_diagnostics = _apply_v08b_scenario_aware_seat_window_authority(
+                action=action,
+                metric_row=metric_row,
+                config=v08b_seat_window_config,
+            )
+            v08b_forced_z_for_xy = bool(seat_window_diagnostics["seat_window_authority_applied"])
+            diagnostics.update(seat_window_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        v08d_forced_z_for_xy = False
+        if v08d_capture_progress_config is not None:
+            action, capture_progress_diagnostics = _apply_v08d_capture_conditioned_progress_authority(
+                action=action,
+                metric_row=metric_row,
+                config=v08d_capture_progress_config,
+            )
+            v08d_forced_z_for_xy = bool(
+                capture_progress_diagnostics["capture_conditioning_applied"] and action[2] < 0.0
+            )
+            diagnostics.update(capture_progress_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        v08f_forced_z_for_xy = False
+        if v08f_horizon_capture_config is not None:
+            action, horizon_diagnostics = _apply_v08f_horizon_reserved_capture_authority(
+                action=action,
+                metric_row=metric_row,
+                config=v08f_horizon_capture_config,
+            )
+            v08f_forced_z_for_xy = bool(
+                horizon_diagnostics["horizon_reserved_capture_authority_applied"] and action[2] < 0.0
+            )
+            diagnostics.update(horizon_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        v08g_forced_z_for_xy = False
+        if v08g_deadline_precedence_config is not None:
+            action, deadline_diagnostics = _apply_v08g_deadline_precedence_horizon_authority(
+                action=action,
+                metric_row=metric_row,
+                config=v08g_deadline_precedence_config,
+            )
+            v08g_forced_z_for_xy = bool(
+                deadline_diagnostics["deadline_precedence_horizon_authority_applied"]
+                and action[2] < 0.0
+            )
+            diagnostics.update(deadline_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        v08h_forced_z_for_xy = False
+        if v08h_safe_entry_config is not None:
+            action, safe_entry_diagnostics = _apply_v08h_early_centered_z_open_safe_entry(
+                action=action,
+                metric_row=metric_row,
+                config=v08h_safe_entry_config,
+            )
+            v08h_forced_z_for_xy = bool(
+                safe_entry_diagnostics["early_centered_z_open_safe_entry_applied"]
+                and action[2] < 0.0
+            )
+            diagnostics.update(safe_entry_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        if v07g_xy_authority_config is not None:
+            action, xy_diagnostics = _apply_v07g_final_post_adapter_xy_authority(
+                action=action,
+                metric_row=metric_row,
+                xy_authority_config=v07g_xy_authority_config,
+            )
+            diagnostics.update(xy_diagnostics)
+            if v08b_forced_z_for_xy:
+                diagnostics["effective_z_open_for_xy_authority"] = True
+                diagnostics["seat_window_xy_recomputed_with_forced_z"] = True
+            if v08d_forced_z_for_xy:
+                diagnostics["effective_z_open_for_xy_authority"] = True
+                diagnostics["capture_conditioned_xy_recomputed_with_forced_z"] = True
+            if v08f_forced_z_for_xy:
+                diagnostics["effective_z_open_for_xy_authority"] = True
+                diagnostics["horizon_reserved_xy_recomputed_with_forced_z"] = True
+            if v08g_forced_z_for_xy:
+                diagnostics["effective_z_open_for_xy_authority"] = True
+                diagnostics["deadline_precedence_xy_recomputed_with_forced_z"] = True
+            if v08h_forced_z_for_xy:
+                diagnostics["effective_z_open_for_xy_authority"] = True
+                diagnostics["safe_entry_xy_recomputed_with_forced_z"] = True
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        if v08a_seat_window_config is not None:
+            action, seat_window_diagnostics = _apply_v08a_seat_window_progress_authority(
+                action=action,
+                metric_row=metric_row,
+                config=v08a_seat_window_config,
+            )
+            diagnostics.update(seat_window_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
         return action, diagnostics
 
-    if metric_row is not None and _stable_hold_ready(config=config, metric_row=metric_row):
+    if (
+        metric_row is not None
+        and final_authority_config is not None
+        and str(effective_behavior_state_phase or metric_row.get("behavior_state_phase") or "").upper() == "HOLD"
+        and _stable_hold_ready_env_native(metric_row=metric_row)
+    ):
+        hold_action = config.get("stable_hold_action") or [0.0] * len(ACTION_SCHEMA)
+        action = np.asarray(hold_action[: len(ACTION_SCHEMA)], dtype=np.float64)
+        diagnostics.update(
+            {
+                "pre_controller_action_vector": _rounded_action(action),
+                "post_adapter_action_vector": _rounded_action(action),
+                "z_motion_block_reason": "stable_hold_ready_env_native",
+            }
+        )
+        action, final_diagnostics = _apply_v07d_final_post_adapter_authority(
+            action=action,
+            behavior_state_phase=effective_behavior_state_phase,
+            final_authority_config=final_authority_config,
+            current_block_reason="stable_hold_ready_env_native",
+        )
+        diagnostics.update(final_diagnostics)
+        diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+        diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        v08b_forced_z_for_xy = False
+        if v08b_seat_window_config is not None:
+            action, seat_window_diagnostics = _apply_v08b_scenario_aware_seat_window_authority(
+                action=action,
+                metric_row=metric_row,
+                config=v08b_seat_window_config,
+            )
+            v08b_forced_z_for_xy = bool(seat_window_diagnostics["seat_window_authority_applied"])
+            diagnostics.update(seat_window_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        v08d_forced_z_for_xy = False
+        if v08d_capture_progress_config is not None:
+            action, capture_progress_diagnostics = _apply_v08d_capture_conditioned_progress_authority(
+                action=action,
+                metric_row=metric_row,
+                config=v08d_capture_progress_config,
+            )
+            v08d_forced_z_for_xy = bool(
+                capture_progress_diagnostics["capture_conditioning_applied"] and action[2] < 0.0
+            )
+            diagnostics.update(capture_progress_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        v08f_forced_z_for_xy = False
+        if v08f_horizon_capture_config is not None:
+            action, horizon_diagnostics = _apply_v08f_horizon_reserved_capture_authority(
+                action=action,
+                metric_row=metric_row,
+                config=v08f_horizon_capture_config,
+            )
+            v08f_forced_z_for_xy = bool(
+                horizon_diagnostics["horizon_reserved_capture_authority_applied"] and action[2] < 0.0
+            )
+            diagnostics.update(horizon_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        v08g_forced_z_for_xy = False
+        if v08g_deadline_precedence_config is not None:
+            action, deadline_diagnostics = _apply_v08g_deadline_precedence_horizon_authority(
+                action=action,
+                metric_row=metric_row,
+                config=v08g_deadline_precedence_config,
+            )
+            v08g_forced_z_for_xy = bool(
+                deadline_diagnostics["deadline_precedence_horizon_authority_applied"]
+                and action[2] < 0.0
+            )
+            diagnostics.update(deadline_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        v08h_forced_z_for_xy = False
+        if v08h_safe_entry_config is not None:
+            action, safe_entry_diagnostics = _apply_v08h_early_centered_z_open_safe_entry(
+                action=action,
+                metric_row=metric_row,
+                config=v08h_safe_entry_config,
+            )
+            v08h_forced_z_for_xy = bool(
+                safe_entry_diagnostics["early_centered_z_open_safe_entry_applied"]
+                and action[2] < 0.0
+            )
+            diagnostics.update(safe_entry_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        if v07g_xy_authority_config is not None:
+            action, xy_diagnostics = _apply_v07g_final_post_adapter_xy_authority(
+                action=action,
+                metric_row=metric_row,
+                xy_authority_config=v07g_xy_authority_config,
+            )
+            diagnostics.update(xy_diagnostics)
+            if v08b_forced_z_for_xy:
+                diagnostics["effective_z_open_for_xy_authority"] = True
+                diagnostics["seat_window_xy_recomputed_with_forced_z"] = True
+            if v08d_forced_z_for_xy:
+                diagnostics["effective_z_open_for_xy_authority"] = True
+                diagnostics["capture_conditioned_xy_recomputed_with_forced_z"] = True
+            if v08f_forced_z_for_xy:
+                diagnostics["effective_z_open_for_xy_authority"] = True
+                diagnostics["horizon_reserved_xy_recomputed_with_forced_z"] = True
+            if v08g_forced_z_for_xy:
+                diagnostics["effective_z_open_for_xy_authority"] = True
+                diagnostics["deadline_precedence_xy_recomputed_with_forced_z"] = True
+            if v08h_forced_z_for_xy:
+                diagnostics["effective_z_open_for_xy_authority"] = True
+                diagnostics["safe_entry_xy_recomputed_with_forced_z"] = True
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        if v08a_seat_window_config is not None:
+            action, seat_window_diagnostics = _apply_v08a_seat_window_progress_authority(
+                action=action,
+                metric_row=metric_row,
+                config=v08a_seat_window_config,
+            )
+            diagnostics.update(seat_window_diagnostics)
+            diagnostics["post_adapter_action_vector"] = _rounded_action(action)
+            diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+        return action, diagnostics
+
+    if metric_row is not None and final_authority_config is None and _stable_hold_ready(config=config, metric_row=metric_row):
         hold_action = config.get("stable_hold_action") or [0.0] * len(ACTION_SCHEMA)
         action = np.asarray(hold_action[: len(ACTION_SCHEMA)], dtype=np.float64)
         diagnostics.update(
@@ -1463,6 +3671,23 @@ def _apply_selected_action_adapter_with_diagnostics(
         block_reason = "phase_controller_z_motion_blocked"
     else:
         block_reason = "z_motion_allowed"
+    if v07e_hysteresis_config is not None:
+        v07e_z_allowed = bool(isinstance(hysteresis_state, dict) and hysteresis_state.get("last_z_motion_allowed") is True)
+        hard_escape = bool(
+            isinstance(hysteresis_state, dict) and hysteresis_state.get("hard_safety_escape_triggered") is True
+        )
+        if v07e_z_allowed:
+            block_reason = "z_motion_allowed_by_v07e_hysteresis"
+        elif hard_escape:
+            block_reason = "hard_safety_escape_triggered"
+        else:
+            block_reason = "v07e_hysteresis_z_motion_blocked"
+        if phase_controller is None and not v07e_z_allowed:
+            action[2] = 0.0
+            final_action = np.round(np.clip(action, -1.0, 1.0), 12)
+            z_suppressed = bool(pre_controller_action[2] < 0.0 and final_action[2] == 0.0)
+        elif phase_controller is None and v07e_z_allowed:
+            final_action = np.round(np.clip(action, -1.0, 1.0), 12)
     diagnostics.update(
         {
             "pre_controller_action_vector": _rounded_action(pre_controller_action),
@@ -1483,6 +3708,131 @@ def _apply_selected_action_adapter_with_diagnostics(
             else None,
         }
     )
+    if v07e_hysteresis_config is not None:
+        gate = float(v07e_hysteresis_config.get("approach_lateral_gate_m", V07A_BEHAVIOR_PHASE_LATERAL_GATE_M))
+        lateral = float(metric_row.get("lateral_error_m", 0.0)) if metric_row is not None else 0.0
+        z_open = bool(isinstance(hysteresis_state, dict) and hysteresis_state.get("last_z_motion_allowed") is True)
+        xy_saturated = bool(np.any(np.isclose(np.abs(final_action[0:2]), xy_clip)))
+        diagnostics.update(
+            {
+                "effective_behavior_state_phase_for_final_authority": effective_behavior_state_phase,
+                "xy_saturation_rate_during_z_open": 1.0 if z_open and xy_saturated else 0.0,
+                "lateral_gate_exit_step": int(metric_row.get("step", 0))
+                if metric_row is not None and z_open and lateral > gate
+                else None,
+                "z_motion_block_reason_after_gate_exit": block_reason
+                if metric_row is not None and z_open and lateral > gate
+                else None,
+            }
+        )
+    if final_authority_config is not None:
+        final_action, final_diagnostics = _apply_v07d_final_post_adapter_authority(
+            action=final_action,
+            behavior_state_phase=effective_behavior_state_phase or diagnostics.get("controller_input_phase"),
+            final_authority_config=final_authority_config,
+            current_block_reason=block_reason,
+        )
+        diagnostics.update(final_diagnostics)
+        diagnostics["post_adapter_action_vector"] = _rounded_action(final_action)
+        diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+    v08b_forced_z_for_xy = False
+    if v08b_seat_window_config is not None:
+        final_action, seat_window_diagnostics = _apply_v08b_scenario_aware_seat_window_authority(
+            action=final_action,
+            metric_row=metric_row,
+            config=v08b_seat_window_config,
+        )
+        v08b_forced_z_for_xy = bool(seat_window_diagnostics["seat_window_authority_applied"])
+        diagnostics.update(seat_window_diagnostics)
+        diagnostics["post_adapter_action_vector"] = _rounded_action(final_action)
+        diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+    v08d_forced_z_for_xy = False
+    if v08d_capture_progress_config is not None:
+        final_action, capture_progress_diagnostics = _apply_v08d_capture_conditioned_progress_authority(
+            action=final_action,
+            metric_row=metric_row,
+            config=v08d_capture_progress_config,
+        )
+        v08d_forced_z_for_xy = bool(
+            capture_progress_diagnostics["capture_conditioning_applied"] and final_action[2] < 0.0
+        )
+        diagnostics.update(capture_progress_diagnostics)
+        diagnostics["post_adapter_action_vector"] = _rounded_action(final_action)
+        diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+    v08f_forced_z_for_xy = False
+    if v08f_horizon_capture_config is not None:
+        final_action, horizon_diagnostics = _apply_v08f_horizon_reserved_capture_authority(
+            action=final_action,
+            metric_row=metric_row,
+            config=v08f_horizon_capture_config,
+        )
+        v08f_forced_z_for_xy = bool(
+            horizon_diagnostics["horizon_reserved_capture_authority_applied"] and final_action[2] < 0.0
+        )
+        diagnostics.update(horizon_diagnostics)
+        diagnostics["post_adapter_action_vector"] = _rounded_action(final_action)
+        diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+    v08g_forced_z_for_xy = False
+    if v08g_deadline_precedence_config is not None:
+        final_action, deadline_diagnostics = _apply_v08g_deadline_precedence_horizon_authority(
+            action=final_action,
+            metric_row=metric_row,
+            config=v08g_deadline_precedence_config,
+        )
+        v08g_forced_z_for_xy = bool(
+            deadline_diagnostics["deadline_precedence_horizon_authority_applied"]
+            and final_action[2] < 0.0
+        )
+        diagnostics.update(deadline_diagnostics)
+        diagnostics["post_adapter_action_vector"] = _rounded_action(final_action)
+        diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+    v08h_forced_z_for_xy = False
+    if v08h_safe_entry_config is not None:
+        final_action, safe_entry_diagnostics = _apply_v08h_early_centered_z_open_safe_entry(
+            action=final_action,
+            metric_row=metric_row,
+            config=v08h_safe_entry_config,
+        )
+        v08h_forced_z_for_xy = bool(
+            safe_entry_diagnostics["early_centered_z_open_safe_entry_applied"]
+            and final_action[2] < 0.0
+        )
+        diagnostics.update(safe_entry_diagnostics)
+        diagnostics["post_adapter_action_vector"] = _rounded_action(final_action)
+        diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+    if v07g_xy_authority_config is not None:
+        final_action, xy_diagnostics = _apply_v07g_final_post_adapter_xy_authority(
+            action=final_action,
+            metric_row=metric_row,
+            xy_authority_config=v07g_xy_authority_config,
+        )
+        diagnostics.update(xy_diagnostics)
+        if v08b_forced_z_for_xy:
+            diagnostics["effective_z_open_for_xy_authority"] = True
+            diagnostics["seat_window_xy_recomputed_with_forced_z"] = True
+        if v08d_forced_z_for_xy:
+            diagnostics["effective_z_open_for_xy_authority"] = True
+            diagnostics["capture_conditioned_xy_recomputed_with_forced_z"] = True
+        if v08f_forced_z_for_xy:
+            diagnostics["effective_z_open_for_xy_authority"] = True
+            diagnostics["horizon_reserved_xy_recomputed_with_forced_z"] = True
+        if v08g_forced_z_for_xy:
+            diagnostics["effective_z_open_for_xy_authority"] = True
+            diagnostics["deadline_precedence_xy_recomputed_with_forced_z"] = True
+        if v08h_forced_z_for_xy:
+            diagnostics["effective_z_open_for_xy_authority"] = True
+            diagnostics["safe_entry_xy_recomputed_with_forced_z"] = True
+        diagnostics["post_adapter_action_vector"] = _rounded_action(final_action)
+        diagnostics["no_mutation_after_final_post_adapter_authority"] = True
+    if v08a_seat_window_config is not None:
+        final_action, seat_window_diagnostics = _apply_v08a_seat_window_progress_authority(
+            action=final_action,
+            metric_row=metric_row,
+            config=v08a_seat_window_config,
+        )
+        diagnostics.update(seat_window_diagnostics)
+        diagnostics["post_adapter_action_vector"] = _rounded_action(final_action)
+        diagnostics["no_mutation_after_final_post_adapter_authority"] = True
     return final_action, diagnostics
 
 
@@ -1915,19 +4265,56 @@ class IsaacConnectorInsertionEvaluatorBackend:
             if isinstance(success_authority, dict)
             else SUCCESS_METRIC["stable_steps_required"]
         )
-        for step in range(self.max_steps):
+        env_reset_boundary_steps = _env_reset_boundary_steps(env)
+        effective_rollout_budget_steps = _effective_rollout_budget_steps(
+            max_steps=self.max_steps,
+            env_reset_boundary_steps=env_reset_boundary_steps,
+        )
+        seat_deadline_steps = max(0, int(effective_rollout_budget_steps) - int(stable_steps_required))
+        v07e_hysteresis_state = (
+            initial_v07e_hysteresis_state()
+            if policy_artifact.get("policy_slice") in V07E_HYSTERESIS_RUNTIME_POLICY_SLICE_IDS
+            else None
+        )
+        v08d_progress_state: dict[str, Any] | None = (
+            {"z_open_step": None, "z_open_depth_reference_m": None}
+            if policy_artifact.get("policy_slice") == V08D_POLICY_SLICE_ID
+            else None
+        )
+        for step in range(effective_rollout_budget_steps):
             current = self._metric_row(env=env, step=step)
+            if v08d_progress_state is not None:
+                current["z_open_step"] = v08d_progress_state["z_open_step"]
+                current["z_open_depth_reference_m"] = v08d_progress_state[
+                    "z_open_depth_reference_m"
+                ]
             action_np, controller_action_diagnostics = _predict_policy_action_with_diagnostics(
                 policy_artifact,
                 metric_row=current,
                 previous_action=previous_action,
                 action_scale=self.action_scale,
+                hysteresis_state=v07e_hysteresis_state,
             )
+            if policy_artifact.get("policy_slice") in V07E_HYSTERESIS_RUNTIME_POLICY_SLICE_IDS:
+                v07e_hysteresis_state = controller_action_diagnostics.get("shared_hysteresis_state_after")
             action_shape = tuple(getattr(env.action_space, "shape", (len(action_np),)))
             action_dim = int(action_shape[-1] if action_shape else len(action_np))
             if action_np.shape[0] < action_dim:
                 action_np = np.pad(action_np, (0, action_dim - action_np.shape[0]))
             action_np = action_np[:action_dim].reshape(1, action_dim)
+            if (
+                v08d_progress_state is not None
+                and v08d_progress_state["z_open_step"] is None
+                and float(action_np.reshape(-1)[2]) < -1.0e-6
+            ):
+                v08d_progress_state["z_open_step"] = step
+                v08d_progress_state["z_open_depth_reference_m"] = float(
+                    current.get("insertion_depth_m", 0.0)
+                )
+                controller_action_diagnostics["z_open_step"] = step
+                controller_action_diagnostics["z_open_depth_reference_m"] = v08d_progress_state[
+                    "z_open_depth_reference_m"
+                ]
             action = torch.as_tensor(action_np, dtype=torch.float32, device=env.device)
             env.step(action)
             previous_action = [float(value) for value in action_np.reshape(-1)[: len(ACTION_SCHEMA)]]
@@ -1965,6 +4352,12 @@ class IsaacConnectorInsertionEvaluatorBackend:
                 "isaac_task_or_scene_id": self.task,
                 "headless": self.headless,
                 "device": self.device,
+                "env_reset_boundary_steps": env_reset_boundary_steps,
+                "effective_rollout_budget_steps": effective_rollout_budget_steps,
+                "env_reset_post_step_guard_steps": ENV_RESET_POST_STEP_GUARD_STEPS,
+                "seat_deadline_steps": seat_deadline_steps,
+                "success_metric_max_steps": int(self.max_steps),
+                "horizon_increase_applied": effective_rollout_budget_steps > int(self.max_steps),
                 "trace": trace,
                 "summary": summary,
             },
@@ -1979,6 +4372,11 @@ class IsaacConnectorInsertionEvaluatorBackend:
             "env_native_rollout_success": summary.get("env_native_rollout_success"),
             "env_native_max_consecutive_success_steps": summary.get("env_native_max_consecutive_success_steps"),
             "env_native_success_available": summary.get("env_native_success_available"),
+            "env_reset_boundary_steps": env_reset_boundary_steps,
+            "effective_rollout_budget_steps": effective_rollout_budget_steps,
+            "env_reset_post_step_guard_steps": ENV_RESET_POST_STEP_GUARD_STEPS,
+            "seat_deadline_steps": seat_deadline_steps,
+            "horizon_increase_applied": effective_rollout_budget_steps > int(self.max_steps),
         }
         return trace_path, rollout
 
@@ -2470,6 +4868,7 @@ def build_mvp2b_isaac_proof_evaluator(
     report_path = output_dir / REPORT_NAME
     artifact_paths = {
         "report": str(report_path),
+        "evidence_manifest": str(output_dir / "evidence_manifest.json"),
         "scenario_manifest": str(output_dir / "scenario_manifest.json"),
         "curation_manifest": bundle["artifact_paths"]["curation_manifest"],
         "baseline_uncurated_train_hdf5": baseline_view["path"],
@@ -2547,6 +4946,17 @@ def build_mvp2b_isaac_proof_evaluator(
         ),
     }
     write_json(report_path, report)
+    write_evidence_manifest(
+        output_dir=output_dir,
+        proof_slice="mvp2b_isaac_proof_evaluator",
+        reproducible_command=report["reproducible_command"],
+        metadata={
+            "runtime_backend": report["runtime_backend"],
+            "proof_runtime": report["proof_runtime"],
+            "mvp2_closed": report["mvp2_closed"],
+            "heldout_opened": bool(report["actual_rollouts_per_policy"]),
+        },
+    )
     return report
 
 

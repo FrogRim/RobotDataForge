@@ -1,5 +1,389 @@
 # ForgeXR / RDF Data Trust Layer Reset - 2026-06-04
 
+## Current MVP-2 Closure Freeze - 2026-06-16 KST
+
+Goal: `v0_14_comparator_provenance_row_balance` actual Isaac proof를
+MVP-2 Closed 상태로 보존하고, proof package를 commit/PR 가능한 worktree로 정리한다.
+
+Current latest evidence:
+
+```text
+policy_slice=v0_14
+runtime_backend=isaac_runtime
+proof_runtime=dedicated_isaac_connector_insertion_evaluator
+calibration=baseline 5/30, candidate 26/30, uplift +0.70
+heldout=baseline 5/50, candidate 40/50, uplift +0.70
+bootstrap_success_rate_difference_ci=[0.56, 0.82]
+mvp2_closed=true
+policy_uplift_proven=true
+```
+
+Spent held-out registry:
+
+- [x] `40000-40049`는 `v0_14` actual Isaac held-out closure에 사용됨.
+- [x] `40000-40049`는 future tuning에 사용하지 않는다.
+- [x] `40000-40049`는 future closure proof에 재사용하지 않는다.
+- [x] Future proof attempt는 fresh pre-registered held-out range를 사용해야 한다.
+- [x] 금지 범위: policy, comparator, adapter, threshold, metric, curation tuning.
+
+Current worktree cleanup:
+
+- [x] `Handoff.md`에 spent held-out registry 추가.
+- [x] `tasks/todo.md` 상단 current state를 v0.14 closure 기준으로 정리.
+- [x] `docs/developer/debugging_guide.md`에 spent held-out 운영 규칙 추가.
+- [x] `storage/proof_evidence/README.md`와 git-trackable manifest에 proof storage
+  정책 추가.
+- [x] code-review 후속: 기존 `heldout_closure_gate_v0_14.json`이
+  `40000-40049` spent 상태를 표시하면 runtime 재실행을 fail-closed 처리.
+- [x] focused v0.14 tests, compileall, ruff, `git diff --check` 재실행.
+- [x] Commit 단위로 tracked proof package와 local-only ignored artifact를 최종 분리.
+
+Archived pre-closure note:
+
+- `v0_8k_candidate_training_signal_rebalance`는 과거 fail-closed loop의 다음
+  후보였지만, 현재 current task가 아니다.
+- 최신 상태 판단은 `Handoff.md`의 `MVP-2 Closed by v0.14 Actual Isaac Held-out`
+  섹션과 `heldout_closure_gate_v0_14.json`을 우선한다.
+
+## Current MVP-2E v0.7f Depth-Zero Diagnosis Status - 2026-06-15
+
+Goal: `v0_7e` 실제 Isaac Phase E가 z window를 일부 복원했는데도
+`depth≈0`으로 실패한 원인을 artifact-only harness로 분류한다.
+
+Completed:
+
+- [x] Re-read `v0_7e` actual Isaac Phase E artifact.
+- [x] Compare `v0_7e` policy traces against same-seed successful expert traces.
+- [x] Identify that `v0_7e` is no longer blocked only by short z windows.
+- [x] Identify dominant evidence: xy saturation / centering instability /
+  z-open lateral regression.
+- [x] Write v0.7f diagnosis spec:
+  `docs/superpowers/specs/2026-06-15-mvp2e-v07f-depth-zero-xy-saturation-diagnosis-design.md`
+
+Current evidence:
+
+```text
+v0_7e actual Isaac Phase E:
+  runtime_backend=isaac_runtime
+  success_count=0/5
+  calibration_opened=false
+  heldout_21000_21049_accessed=false
+
+v0_7e policy traces:
+  4/5 seeds have longest_nonzero_z=28
+  all seeds have max_depth≈0
+  xy saturation is 145-148 rows out of 148
+
+successful expert traces on same seeds:
+  max_depth≈0.0247-0.0250
+  xy saturation usually 0-4 rows
+```
+
+v0.7f implementation result:
+
+- [x] Write ralplan implementation plan for the v0.7f spec.
+- [x] Complete Architect/Critic consensus review.
+- [x] Implement artifact-only `v0_7f_depth_zero_xy_saturation_diagnosis`.
+- [x] Generate `mvp2e_v07f_depth_zero_harness_report.json`.
+- [x] Keep calibration closed.
+- [x] Keep held-out `21000-21049` sealed.
+- [x] Do not claim MVP-2 Closed.
+
+v0.7f classification:
+
+```text
+root_cause_status=classified
+primary_root_cause_class=XY_SATURATION_CENTERING_INSTABILITY
+secondary_root_cause_candidates=[
+  Z_OPEN_LATERAL_REGRESSION,
+  Z_OPEN_WITH_NO_VERTICAL_PROGRESS
+]
+recommended_downstream_slice=v0_7g_xy_authority_saturation_repair
+```
+
+Generated artifacts:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/
+  v0_7f_depth_zero_xy_saturation_diagnosis/
+    mvp2e_v07f_diagnostic_config.json
+    mvp2e_v07f_depth_zero_harness_report.json
+    mvp2e_v07f_trace_comparison_table.json
+    mvp2e_v07f_gate_manifest.json
+```
+
+Verification:
+
+```text
+focused v0.7f pytest: 14 passed
+v0.7e/v0.7f/harness regression pytest: 40 passed
+v0.7f artifact-only CLI: exit=0
+compileall: passed
+ruff: passed
+git diff --check: passed
+```
+
+Next valid step:
+
+- [ ] Write `v0_7g` xy authority saturation repair spec/plan.
+- [ ] Keep `v0_7g` separate from v0.7f diagnosis.
+- [ ] Do not run calibration or held-out A/B until actual Isaac Phase E passes.
+
+Approved plan:
+
+```text
+docs/superpowers/plans/2026-06-15-mvp2e-v07f-depth-zero-xy-saturation-diagnosis.md
+.omx/plans/ralplan-consensus-mvp2e-v07f-depth-zero-xy-saturation-diagnosis.md
+```
+
+Disallowed for v0.7f:
+
+- Isaac runtime execution
+- policy training
+- calibration freeze
+- held-out A/B
+- success metric changes
+- repair slice implementation without separate spec/plan
+
+## Current MVP-2E v0.7d Action-Authority Status - 2026-06-12
+
+Goal: `v0_7d` offline action-authority child slice를 구현하고, actual Isaac
+Phase E 직전까지의 fail-closed gate를 닫는다.
+
+Completed:
+
+- [x] Add RED tests for close-critical `not_evaluated` fail-closed semantics.
+- [x] Add RED tests for H12 stable-hold geometry threshold authority violation.
+- [x] Implement H12 stable-hold authority harness.
+- [x] Make close-critical harness tier explicit.
+- [x] Add `unevaluated_close_critical_harnesses`.
+- [x] Add `recommended_downstream_repair_requirements`.
+- [x] Regenerate artifact-only harness report.
+- [x] Write v0.7d spec:
+  `docs/superpowers/specs/2026-06-12-mvp2e-v07d-action-authority-post-adapter-z-gate-design.md`
+- [x] Write ralplan implementation plan:
+  `docs/superpowers/plans/2026-06-12-mvp2e-v07d-action-authority-post-adapter-z-gate.md`
+- [x] Implement `v0_7d` child slice without mutating historical `v0_7c` artifacts.
+- [x] Enforce final post-adapter z authority after selected adapter mutation.
+- [x] Move `stable_hold` authority to `env_native_success_mask`.
+- [x] Require classified parent `v0_7c` harness report before `v0_7d` artifact build.
+- [x] Require parent `selected_action_adapter_config` and matching hash lineage.
+- [x] Block `--harness-gated-closure-only --policy-slice v0_7d` so the shared
+  parent harness report is not overwritten.
+- [x] Generate `v0_7d` offline artifacts and pass offline final action authority gate.
+
+Current `v0_7d` offline result:
+
+```text
+offline_final_action_authority_gate_v0_7d.passed=true
+phase_e_candidate_expressibility_unblocked=true
+future_ab_ready=false
+future_ab_ready_source=requires_actual_phase_e_pass_and_calibration_freeze
+candidate_align_final_z_violation_count=0
+baseline_align_final_z_violation_count=0
+candidate_bad_block_reason_count=0
+baseline_bad_block_reason_count=0
+stable_hold_authority=env_native_success_mask
+heldout_21000_21049_accessed=false
+mvp2_closed=false
+policy_uplift_proven=false
+```
+
+Next valid step:
+
+- [x] Run actual Isaac Phase E expressibility sanity for `v0_7d`.
+- [ ] Keep calibration closed.
+- [ ] Keep held-out `21000-21049` sealed.
+- [ ] Do not claim MVP-2 Closed until sealed held-out A/B proves positive
+  curated > uncurated uplift.
+
+Next command:
+
+```text
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7d \
+  --expressibility-sanity-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+## Current MVP-2E Harness-Gated Closure Status - 2026-06-12
+
+Goal: diagnose why MVP-2 remains Not Closed using current `v0_7c` evidence,
+without creating `v0_7d`, running Isaac, training, calibration, or held-out
+`21000-21049`.
+
+Plan artifacts:
+
+- [x] Spec:
+  `docs/superpowers/specs/2026-06-12-mvp2e-harness-gated-closure-design.md`
+- [x] Implementation plan:
+  `docs/superpowers/plans/2026-06-12-mvp2e-harness-gated-closure.md`
+- [x] Ralplan consensus:
+  `.omx/plans/ralplan-consensus-mvp2e-harness-gated-closure.md`
+
+Implementation checklist:
+
+- [x] Add `mvp2e_harness_config` and hash validation.
+- [x] Add H0-H17 report shape.
+- [x] Add H0 scenario/evaluator/held-out seal harness.
+- [x] Add H1/H2/H3 action-authority and base-servo harnesses from v0.7c traces.
+- [x] Add H14 protected seed vs legacy path-label semantics.
+- [x] Add H15 baseline/candidate schema and adapter fairness harness.
+- [x] Add deterministic root-cause classifier.
+- [x] Add `--harness-gated-closure-only` CLI mode.
+- [x] Reject `--harness-gated-closure-only --clean` before deletion.
+- [x] Generate persistent harness artifacts.
+- [x] Run focused and full relevant tests.
+- [x] Update worklog/debugging guide/Handoff.
+
+Generated artifacts:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/harness_gated_closure/
+  mvp2e_harness_config.json
+  harness_trace_index.json
+  mvp2e_harness_report.json
+  harness_research_rationale.json
+  mvp2e_harness_gate_manifest.json
+```
+
+Current result:
+
+```text
+root_cause_status=classified
+primary_root_cause_class=ACTION_AUTHORITY_POST_ADAPTER_Z_LEAK
+secondary_root_cause_candidates=[BASE_SERVO_PREMATURE_DESCENT]
+recommended_downstream_slice=v0_7d_action_authority_post_adapter_z_gate
+trace_count=5
+heldout_21000_21049_accessed=false
+mvp2_closed=false
+```
+
+Verification:
+
+```text
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -k "mvp2e_harness" -q
+  6 passed, 156 deselected
+
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py -k "harness_gated or mvp2e_harness or v07c or v0_7c or action_authority" -q
+  20 passed, 204 deselected
+
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py -q
+  224 passed
+
+compileall / ruff / git diff --check
+  passed
+```
+
+Next valid step:
+
+- [ ] Write `v0_7d_action_authority_post_adapter_z_gate` spec from
+  `mvp2e_harness_report.json`.
+- [ ] Keep calibration and held-out `21000-21049` sealed until a fresh Phase E
+  pass.
+- [ ] Do not mutate `v0_7c` into success evidence.
+- [ ] MVP-2 remains Not Closed.
+
+## Current MVP-2E v0.7c Status - 2026-06-12
+
+Goal: implement the approved `v0_7c` residual action authority gate slice, run
+offline gates, then run actual Isaac Phase E without opening calibration or
+held-out `21000-21049`.
+
+Plan artifacts:
+
+- [x] Spec:
+  `docs/superpowers/specs/2026-06-12-mvp2e-v07c-residual-action-authority-gate-design.md`
+- [x] Implementation plan:
+  `docs/superpowers/plans/2026-06-12-mvp2e-v07c-residual-action-authority-gate.md`
+- [x] Ralplan consensus:
+  `.omx/plans/ralplan-consensus-mvp2e-v07c-residual-action-authority-gate.md`
+- [x] Ultragoal ledger created:
+  `.omx/ultragoal/goals.json`
+- [ ] Ultragoal checkpoint reconciliation:
+  blocked because `get_goal` returns the same aggregate Codex objective with
+  `status=complete` in this thread.
+
+Implementation checklist:
+
+- [x] Add `v0_7c` constants/config/hash validation.
+- [x] Add post-residual authority filter.
+- [x] Add evaluator runtime validation and diagnostics.
+- [x] Add offline action-authority gate.
+- [x] Add `v0_7c` offline artifact builder.
+- [x] Add `v0_7c` Phase E expressibility path.
+- [x] Run focused tests.
+- [x] Run full focused MVP-2B/MVP-2C regression tests.
+- [x] Build offline artifacts.
+- [x] Run actual Isaac Phase E.
+- [x] Update worklog/debugging guide/Handoff.
+
+Verification:
+
+```text
+uv run pytest ... -k "v07c or v0_7c or action_authority" -q
+  14 passed, 204 deselected
+
+uv run pytest ... -k "v07a ... v07c ... residual_servo or action_authority" -q
+  81 passed, 137 deselected
+
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py \
+  apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py -q
+  218 passed
+
+uv run python -m compileall -q scripts apps/api/app apps/api/tests
+  passed
+
+uvx ruff check ...
+  All checks passed
+
+git diff --check
+  passed
+```
+
+Offline artifact result:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/v0_7c_residual_action_authority_gate/
+  offline_residual_fit_gate_v0_7c.passed=true
+  offline_action_authority_gate_v0_7c.passed=true
+  heldout_21000_21049_accessed=false
+```
+
+Actual Isaac Phase E:
+
+```text
+expressibility_sanity_gate_v0_7c.passed=false
+runtime_backend=isaac_runtime
+rollout_count=5
+success_count=0
+required_success_count=2
+heldout_21000_21049_accessed=false
+```
+
+Current blocker:
+
+```text
+v0_7c successfully suppresses learned residual z in ALIGN, but base_servo_action[2]
+is still -0.001 in ALIGN. The selected action adapter scales that into
+post_adapter_z=-0.032, so the policy still descends before stable centering.
+```
+
+Next valid step:
+
+- [x] Write MVP-2E harness-gated closure spec so `v0_7d` becomes a downstream
+  slice generated only after harness root-cause classification.
+- [ ] Do not mutate `v0_7c` into success evidence.
+- [ ] Do not open calibration or held-out `21000-21049`.
+- [ ] Write implementation plan for
+  `docs/superpowers/specs/2026-06-12-mvp2e-harness-gated-closure-design.md`.
+- [ ] Implement close-critical harnesses first: H0-H3, H15, then H4-H7/H9/H11/H12/H14.
+- [ ] Generate `mvp2e_harness_report.json` against `v0_7c`.
+- [ ] Create `v0_7d` only if the harness report classifies the root cause.
+
 ## Plan
 
 Goal: implement the approved ralplan consensus in
@@ -1764,3 +2148,720 @@ uv run pytest apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py apps/api
   - Seed-level artifact should distinguish pre-reset controller progress from post-reset tail.
   - Decide by spec whether post-reset rows are excluded from secondary convergence/regression diagnostics.
   - Do not reopen success metric, fixed 40-run gate, or held-out set.
+
+### 2026-06-12 follow-up: MVP-2E v0.7b residual servo BC implementation
+
+- [x] Wrote v0.7b spec:
+  `docs/superpowers/specs/2026-06-12-mvp2e-v07b-residual-servo-bc-design.md`
+- [x] Wrote v0.7b implementation plan:
+  `docs/superpowers/plans/2026-06-12-mvp2e-v07b-residual-servo-bc.md`
+- [x] Implemented `v0_7b` residual servo config, residual rows, HDF5 views, policy artifacts,
+  offline residual fit gate, CLI modes, and strict runtime diagnostics.
+- [x] Added focused v0.7b tests for:
+  - hash-stable frozen base servo config
+  - residual target equals actual action minus base action
+  - shared recovery source integrity
+  - missing/failed recovery source fail-closed behavior
+  - strict runtime residual metadata validation
+  - expressibility gate blocking before offline gate
+- [x] Ran actual Isaac shared recovery induction:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/v0_7b_residual_servo_bc/shared_train_recovery_induction_v0_7b.json
+passed=true
+runtime_backend=isaac_runtime
+trace_path_count=5
+heldout_21000_21049_accessed=false
+```
+
+- [x] Ran offline residual build:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/v0_7b_residual_servo_bc/offline_residual_fit_gate_v0_7b.json
+passed=true
+candidate_gate_passed=true
+phase_e_candidate_expressibility_unblocked=true
+future_ab_ready=true
+heldout_21000_21049_accessed=false
+```
+
+- [x] Ran actual Isaac Phase E expressibility:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/v0_7b_residual_servo_bc/expressibility_sanity_gate_v0_7b.json
+passed=false
+rollout_count=5
+success_count=0
+required_success_count=2
+heldout_21000_21049_accessed=false
+```
+
+- [x] Stop condition hit:
+  - `v0_7b` Phase E failed closed with 0/5 env-native successes.
+  - Trace diagnostics show residual z bypasses base servo z gate and post-adapter z saturates in ALIGN.
+- [x] Do not open calibration.
+- [x] Do not open held-out `21000-21049`.
+- [ ] MVP-2 Closed remains blocked.
+- [ ] Next valid step: write `v0_7c` residual action authority gate spec/plan.
+  - Enforce behavior-state z authority after residual reconstruction.
+  - Add offline action-authority metrics for ALIGN-state post-adapter z saturation/sign violations.
+  - Treat `v0_7b` as historical fail-closed evidence; do not patch it post-hoc as the same slice.
+
+### 2026-06-12 follow-up: MVP-2E v0.7c residual action authority gate
+
+- [x] Wrote v0.7c spec:
+  `docs/superpowers/specs/2026-06-12-mvp2e-v07c-residual-action-authority-gate-design.md`
+- [x] Defined selected design:
+  - keep `v0_7b` residual target
+  - add post-residual action authority filter before adapter
+  - suppress residual z authority only in `ALIGN`
+  - keep `DESCEND/HOLD` residual z available
+- [x] Preserved claim boundary:
+  - no calibration
+  - no held-out `21000-21049`
+  - no MVP-2 Closed claim
+  - no success metric relaxation
+- [x] Ran spec placeholder scan:
+
+```text
+rg -n "TBD|TODO|FIXME|\\?\\?|미정|나중|적절|대충|placeholder" \
+  docs/superpowers/specs/2026-06-12-mvp2e-v07c-residual-action-authority-gate-design.md
+no matches
+```
+
+- [ ] Next valid step: write `v0_7c` implementation plan with `$ralplan`.
+- [ ] Do not implement v0.7c code before the plan is written.
+- [ ] Do not open calibration or held-out `21000-21049`.
+
+### 2026-06-12 follow-up: MVP-2E harness-gated closure plan
+
+- [x] Wrote MVP-2E harness-gated closure spec:
+  `docs/superpowers/specs/2026-06-12-mvp2e-harness-gated-closure-design.md`
+- [x] Wrote `$ralplan` implementation plan:
+  `docs/superpowers/plans/2026-06-12-mvp2e-harness-gated-closure.md`
+- [x] Created PRD and test spec:
+  - `.omx/plans/prd-mvp2e-harness-gated-closure.md`
+  - `.omx/plans/test-spec-mvp2e-harness-gated-closure.md`
+- [x] Completed Architect review:
+  `.omx/plans/architect-review-mvp2e-harness-gated-closure.md`
+- [x] Completed Critic review:
+  `.omx/plans/critic-review-mvp2e-harness-gated-closure.md`
+- [x] Created consensus artifact:
+  `.omx/plans/ralplan-consensus-mvp2e-harness-gated-closure.md`
+- [x] Locked boundaries:
+  - no `v0_7d` implementation in this plan
+  - no Isaac
+  - no policy training
+  - no calibration
+  - no held-out `21000-21049`
+  - no `--clean` in harness-only mode
+  - no MVP-2 Closed claim
+- [ ] Next valid step:
+  `$ultragoal implement docs/superpowers/plans/2026-06-12-mvp2e-harness-gated-closure.md`
+
+### 2026-06-12 follow-up: MVP-2E v0.7d action-authority post-adapter gate
+
+- [x] Wrote v0.7d spec:
+  `docs/superpowers/specs/2026-06-12-mvp2e-v07d-action-authority-post-adapter-z-gate-design.md`
+- [x] Wrote `$ralplan` implementation plan:
+  `docs/superpowers/plans/2026-06-12-mvp2e-v07d-action-authority-post-adapter-z-gate.md`
+- [x] Implemented `v0_7d` child slice without mutating historical `v0_7c` artifacts.
+- [x] Added runtime tests for:
+  - final post-adapter z authority after selected adapter scale
+  - config-independent gate behavior
+  - missing/stale `selected_action_adapter_config` fail-closed behavior
+  - env-native stable-hold authority
+  - full policy inference path using v0.7c base/residual plus v0.7d final authority
+- [x] Added training/artifact/CLI/harness tests for:
+  - hash-stable final action authority config
+  - baseline/candidate same final authority
+  - parent `v0_7c` harness report requirement and hash lineage
+  - parent/child authority hash mismatch rejection
+  - runtime inherited authority hash mismatch rejection
+  - v0.7d HDF5 training view child schema metadata
+  - explicit safe-mode CLI enforcement
+  - H12 reading v0.7d policy artifact authority, not selected-adapter geometry thresholds
+- [x] Ran focused v0.7d tests:
+
+```text
+32 passed, 218 deselected
+```
+
+- [x] Ran full relevant MVP-2B/MVP-2C proof-script tests:
+
+```text
+247 passed
+```
+
+- [x] Ran static verification:
+
+```text
+compileall: passed
+ruff: passed
+git diff --check: passed
+```
+
+- [x] Generated v0.7d offline artifacts:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/v0_7d_action_authority_post_adapter_z_gate/
+  v0_7d_final_action_authority_config.json
+  candidate_policy_artifact_v0_7d.json
+  baseline_policy_artifact_v0_7d.json
+  candidate_curated_train_v0_7d.hdf5
+  baseline_uncurated_train_v0_7d.hdf5
+  offline_final_action_authority_gate_v0_7d.json
+  v0_7d_action_authority_manifest.json
+```
+
+- [x] `offline_final_action_authority_gate_v0_7d.json` passed:
+
+```text
+passed=true
+phase_e_candidate_expressibility_unblocked=true
+future_ab_ready=false
+future_ab_ready_source=requires_actual_phase_e_pass_and_calibration_freeze
+candidate_align_final_z_violation_count=0
+baseline_align_final_z_violation_count=0
+heldout_21000_21049_accessed=false
+mvp2_closed=false
+proof_authority=false
+v0_7c_harness_report_sha256=33c607fb95479bd17d5caa98b1b6640aa6e68c6a3b6a4c9f5937ac8fe196dd95
+```
+
+- [x] Regenerated parent v0.7c harness report required by v0.7d:
+
+```text
+policy_slice_under_test=v0_7c
+root_cause_status=classified
+primary_root_cause_class=ACTION_AUTHORITY_POST_ADAPTER_Z_LEAK
+recommended_downstream_slice=v0_7d_action_authority_post_adapter_z_gate
+protected_heldout_21000_21049_accessed=false
+calibration_opened=false
+mvp2_closed=false
+```
+
+- [x] Verified v0.7d H12 authority shape through focused pytest.
+- [x] Blocked `--harness-gated-closure-only --policy-slice v0_7d` to preserve
+  the classified `v0_7c` parent harness report path.
+- [x] Added parent selected adapter config/hash lineage checks:
+  missing config and stale hash now fail closed.
+- [x] Added offline gate selected adapter config fail-closed check:
+  child policy artifacts missing `selected_action_adapter_config` no longer
+  silently default inside adapter simulation.
+- [x] Fixed final code-reviewer blocker:
+  runtime evaluator also rejects missing/stale child `selected_action_adapter_config`
+  before selected adapter execution in `v0_7d`.
+
+- [x] Actual Isaac Phase E for `v0_7d` has been run and failed closed:
+
+```text
+passed=false
+success_count=0
+rollout_count=5
+required_success_count=2
+reason=candidate policy did not pass train-split expressibility sanity.
+heldout_21000_21049_accessed=false
+heldout_opened=false
+```
+
+- [ ] MVP-2 Closed remains blocked.
+- [ ] Next valid step:
+  run `$autoresearch` against the prepared v0.7e artifact-only hysteresis parity
+  mission.
+  - Keep calibration closed.
+  - Keep held-out `21000-21049` sealed.
+  - Success threshold remains `>=2/5` env-native 10-consecutive.
+  - Do not write a repair spec until the validator-backed result passes.
+
+## 2026-06-15 - v0.7e Autoresearch Mission Setup
+
+- [x] Cleared incompatible `ultragoal` state:
+
+```text
+omx state clear --input '{"mode":"ultragoal"}' --json
+cleared=true
+```
+
+- [x] Created mission and sandbox:
+
+```text
+.omx/specs/autoresearch-mvp2e-v07e-hysteresis-parity/mission.md
+.omx/specs/autoresearch-mvp2e-v07e-hysteresis-parity/sandbox.md
+```
+
+- [x] Created validator and pending result:
+
+```text
+.omx/specs/autoresearch-mvp2e-v07e-hysteresis-parity/validate_result.py
+.omx/specs/autoresearch-mvp2e-v07e-hysteresis-parity/result.json
+.omx/specs/autoresearch-mvp2e-v07e-hysteresis-parity/completion.json
+```
+
+- [x] Created autoresearch state:
+
+```text
+.omx/state/autoresearch-mvp2e-v07e-hysteresis-parity/autoresearch-state.json
+```
+
+- [x] Verified validator syntax:
+
+```text
+uv run python -m py_compile .omx/specs/autoresearch-mvp2e-v07e-hysteresis-parity/validate_result.py
+passed
+```
+
+- [x] Verified pending result fails closed:
+
+```text
+uv run python .omx/specs/autoresearch-mvp2e-v07e-hysteresis-parity/validate_result.py
+result is not marked passed
+exit=1
+```
+
+- [x] Ran v0.7e autoresearch analysis:
+
+```text
+uv run python .omx/specs/autoresearch-mvp2e-v07e-hysteresis-parity/run_analysis.py
+shared_scenario_count=5
+```
+
+- [x] Validator passed:
+
+```text
+uv run python .omx/specs/autoresearch-mvp2e-v07e-hysteresis-parity/validate_result.py
+status=passed
+passed=true
+z_window_hypothesis_verdict=supported
+```
+
+- [x] State updated:
+
+```text
+.omx/state/autoresearch-mvp2e-v07e-hysteresis-parity/autoresearch-state.json
+status=complete
+```
+
+- [x] Wrote v0.7e repair design spec:
+
+```text
+docs/superpowers/specs/2026-06-15-mvp2e-v07e-shared-hysteresis-parity-repair-design.md
+```
+
+- [x] Wrote `$ralplan` implementation plan from the v0.7e spec:
+
+```text
+docs/superpowers/plans/2026-06-15-mvp2e-v07e-shared-hysteresis-parity-repair.md
+```
+
+- [x] Completed durable consensus gate:
+
+```text
+.omx/plans/ralplan-architect-review-mvp2e-v07e-shared-hysteresis-parity-repair-iteration1.md
+.omx/plans/ralplan-architect-review-mvp2e-v07e-shared-hysteresis-parity-repair-iteration2.md
+.omx/plans/ralplan-critic-review-mvp2e-v07e-shared-hysteresis-parity-repair-iteration1.md
+.omx/plans/ralplan-consensus-mvp2e-v07e-shared-hysteresis-parity-repair.md
+```
+
+- [ ] Next valid step:
+  run `$ultragoal implement docs/superpowers/plans/2026-06-15-mvp2e-v07e-shared-hysteresis-parity-repair.md`.
+  - Start with RED tests.
+  - Implement shared hysteresis as baseline/candidate-fair infrastructure.
+  - Preserve final post-adapter authority.
+  - Add same-row final-action attribution guard.
+  - Keep calibration closed.
+  - Keep held-out `21000-21049` sealed.
+  - Do not run Isaac Phase E until all v0.7e offline gates pass.
+
+## 2026-06-15 - v0.7e Shared Hysteresis Parity Repair Implementation
+
+- [x] Added v0.7e runtime hysteresis tests in
+  `apps/api/tests/test_mvp2b_isaac_proof_evaluator_script.py`.
+- [x] Implemented v0.7e rollout-local shared hysteresis runtime path in
+  `scripts/run_mvp2b_isaac_proof_evaluator.py`.
+- [x] Added v0.7e training artifact/offline gate tests in
+  `apps/api/tests/test_mvp2c_isaac_training_calibration_script.py`.
+- [x] Implemented v0.7e child slice builder in
+  `scripts/run_mvp2c_isaac_training_calibration.py`.
+- [x] Implemented `--offline-relabel-only --policy-slice v0_7e` CLI build path.
+- [x] Generated v0.7e offline artifacts:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/
+  v0_7e_shared_hysteresis_parity_repair/
+```
+
+- [x] Offline gates all passed:
+
+```text
+offline_hysteresis_parity_gate_v0_7e.passed=true
+attribution_preservation_gate_v0_7e.passed=true
+final_action_authority_regression_gate_v0_7e.passed=true
+phase_e_candidate_expressibility_unblocked=true
+```
+
+- [x] Claim boundaries preserved:
+
+```text
+future_ab_ready=false
+mvp2_closed=false
+policy_uplift_proven=false
+heldout_21000_21049_accessed=false
+calibration_opened=false
+```
+
+- [x] Verification passed:
+
+```text
+focused v0.7e pytest: 17 passed
+relevant regression pytest: 266 passed
+offline artifact build: exit=0
+compileall: passed
+ruff: passed
+git diff --check: passed
+```
+
+- [ ] Ultragoal ledger reconciliation remains blocked by Codex goal snapshot
+  mismatch:
+
+```text
+get_goal.status=complete
+.omx/ultragoal/goals.json activeGoalId=G001... status=in_progress
+```
+
+- [x] Actual Isaac `v0_7e` Phase E expressibility sanity executed.
+
+```text
+runtime_backend=isaac_runtime
+passed=false
+success_count=0
+rollout_count=5
+required_success_count=2
+heldout_21000_21049_accessed=false
+calibration_opened=false
+mvp2_closed=false
+```
+
+- [x] v0.7e runtime dispatch gap fixed:
+  `run_v07e_expressibility_sanity_runtime()` now calls the actual evaluator
+  backend after offline gates pass.
+- [x] Verification passed:
+
+```text
+v0.7e focused pytest: 18 passed
+relevant regression pytest: 267 passed
+compileall: passed
+ruff: passed
+git diff --check: passed
+```
+
+- [ ] Next valid step:
+  write a `v0_7f` diagnosis/spec for why restored z windows still produce
+  `depth≈0`. Keep calibration and held-out `21000-21049` sealed.
+
+## 2026-06-15 - v0.7g XY Authority Saturation Repair Spec
+
+- [x] Wrote v0.7g repair design spec:
+
+```text
+docs/superpowers/specs/2026-06-15-mvp2e-v07g-xy-authority-saturation-repair-design.md
+```
+
+- [x] Grounded the slice in v0.7f evidence:
+
+```text
+primary_root_cause_class=XY_SATURATION_CENTERING_INSTABILITY
+secondary_root_cause_candidates=[
+  Z_OPEN_LATERAL_REGRESSION,
+  Z_OPEN_WITH_NO_VERTICAL_PROGRESS
+]
+recommended_downstream_slice=v0_7g_xy_authority_saturation_repair
+```
+
+- [x] Preserved claim boundaries:
+
+```text
+mvp2_closed=false
+phase_e_passed=false
+calibration_opened=false
+heldout_21000_21049_accessed=false
+env_native_success_authority_unchanged=true
+```
+
+- [x] Spec self-check passed:
+
+```text
+no placeholder / TODO scan matches
+no closure-overclaim scan matches
+git diff --check for spec passed
+```
+
+- [ ] Next valid step:
+  write `$ralplan` implementation plan for
+  `docs/superpowers/specs/2026-06-15-mvp2e-v07g-xy-authority-saturation-repair-design.md`.
+  - Implement shared final post-adapter xy authority.
+  - Keep z authority and env-native stable-hold authority unchanged.
+  - Add candidate/baseline attribution preservation gate.
+  - Keep calibration and held-out `21000-21049` sealed.
+  - Do not run actual Isaac Phase E until offline v0.7g gates pass.
+
+## 2026-06-15 - v0.7g Ralplan Consensus
+
+- [x] Wrote implementation plan:
+
+```text
+docs/superpowers/plans/2026-06-15-mvp2e-v07g-xy-authority-saturation-repair.md
+```
+
+- [x] Wrote PRD/test-spec/context:
+
+```text
+.omx/context/mvp2e-v07g-xy-authority-saturation-repair-20260615T062905Z.md
+.omx/plans/prd-mvp2e-v07g-xy-authority-saturation-repair.md
+.omx/plans/test-spec-mvp2e-v07g-xy-authority-saturation-repair.md
+```
+
+- [x] Architect review reached APPROVE on iteration 3.
+- [x] Critic review reached APPROVE on iteration 1.
+- [x] Consensus artifact written:
+
+```text
+.omx/plans/ralplan-consensus-mvp2e-v07g-xy-authority-saturation-repair.md
+```
+
+- [ ] Next valid step:
+  run repo-local `$ultragoal implement
+  docs/superpowers/plans/2026-06-15-mvp2e-v07g-xy-authority-saturation-repair.md`.
+
+## 2026-06-15 - MVP-2E v0.8b/v0.8c Current Loop
+
+- [x] Ran actual Isaac v0.8b fresh held-out closure on `26000-26049`.
+- [x] Recorded v0.8b closure failure:
+
+```text
+baseline=38/50
+candidate=44/50
+uplift=+0.12
+mvp2_closed=false
+```
+
+- [x] Marked held-out `26000-26049` as burned for future closure.
+- [x] Wrote v0.8c shortfall diagnosis spec:
+
+```text
+docs/superpowers/specs/2026-06-15-mvp2e-v08c-heldout-shortfall-diagnosis-design.md
+```
+
+- [x] Wrote v0.8c implementation plan:
+
+```text
+docs/superpowers/plans/2026-06-15-mvp2e-v08c-heldout-shortfall-diagnosis.md
+```
+
+- [x] Implemented artifact-only v0.8c diagnosis:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/
+  v0_8c_heldout_shortfall_diagnosis/v0_8c_shortfall_diagnosis.json
+```
+
+- [x] v0.8c taxonomy:
+
+```text
+late_seat_window_shortfall: 26007, 26047
+centered_under_depth_progress: 26008, 26034
+off_center_no_capture: 26009, 26043
+unclassified: none
+```
+
+- [ ] Next valid step:
+  write `v0_8d_capture_conditioned_progress_authority` spec and implementation
+  plan, then implement without asking for permission.
+
+## 2026-06-15 - MVP-2E v0.9/v0.9a Current Loop
+
+- [x] Ran actual Isaac `v0_9` fresh held-out closure on `27000-27049`.
+- [x] Recorded v0.9 closure failure:
+
+```text
+actual_rollouts_per_policy=50
+baseline_success_rate=0.88
+candidate_success_rate=0.94
+curated_vs_uncurated_uplift=+0.06
+mvp2_closed=false
+policy_uplift_proven=false
+```
+
+- [x] Marked held-out `27000-27049` as burned for future closure.
+- [x] Wrote v0.9a shortfall diagnosis spec:
+
+```text
+docs/superpowers/specs/2026-06-15-mvp2e-v09a-heldout-uplift-shortfall-diagnosis-design.md
+```
+
+- [x] Wrote v0.9a implementation plan:
+
+```text
+docs/superpowers/plans/2026-06-15-mvp2e-v09a-heldout-uplift-shortfall-diagnosis.md
+```
+
+- [x] Implemented artifact-only v0.9a diagnosis:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/
+  v0_9a_heldout_uplift_shortfall_diagnosis/
+    v0_9a_heldout_uplift_shortfall_diagnosis_report.json
+```
+
+- [x] v0.9a diagnosis:
+
+```text
+paired_outcome_counts={B1_C1:44, B1_C0:0, B0_C1:3, B0_C0:3}
+candidate_recovered_baseline_failure_seeds=[27009, 27022, 27045]
+common_failure_seeds=[27002, 27016, 27041]
+max_possible_uplift_on_opened_heldout=0.12
+opened_heldout_can_no_longer_close_minimum=true
+recommended_downstream_slice=v0_10_fresh_comparator_stress_slice
+```
+
+- [ ] Next valid step:
+  write and implement `v0_10_fresh_comparator_stress_slice`.
+  - Use a new pre-registered calibration range.
+  - Use a new sealed held-out range; do not reuse `27000-27049`.
+  - Keep baseline/candidate trainer, policy class, feature schema, action adapter,
+    and authority layers identical.
+  - Do not claim MVP-2 Closed until actual held-out uplift `>=0.20` passes.
+
+## 2026-06-15 - MVP-2E v0.10/v0.10c Current Loop
+
+- [x] Implemented and ran `v0_10_fresh_comparator_stress_slice`.
+- [x] Diagnosed initial v0.10 calibration collapse with v0.10a:
+
+```text
+primary_root_cause_class=RUNTIME_POLICY_SLICE_AUTHORITY_LINEAGE_MISSING
+candidate_weights_unchanged_from_v09=true
+candidate_authority_hashes_unchanged_from_v09=true
+```
+
+- [x] Repaired runtime lineage in evaluator:
+
+```text
+V10_POLICY_SLICE_ID = "v0_10"
+V10_POLICY_SLICE_ID in V08H_DERIVED_POLICY_SLICE_IDS
+```
+
+- [x] Reran actual Isaac `v0_10` calibration after lineage repair:
+
+```text
+baseline=23/30
+candidate=25/30
+gap=+0.066666666667
+required_gap=+0.20
+heldout_opened=false
+fresh_heldout_32000_32049_accessed=false
+mvp2_closed=false
+```
+
+- [x] Implemented and ran v0.10c artifact-only gap compression diagnosis:
+
+```text
+primary_root_cause_class=CALIBRATION_GAP_COMPRESSED_BY_BASELINE_SUCCESS_FLOOR
+paired_outcome_counts={B1_C1:23, B1_C0:0, B0_C1:2, B0_C0:5}
+candidate_recovered_baseline_failure_seeds=[31018, 31026]
+candidate_degraded_baseline_success_seeds=[]
+candidate_recoveries_observed=2
+candidate_recoveries_required_for_minimum_gap=6
+recommended_downstream_slice=v0_11_attribution_preserving_low_floor_comparator_slice
+```
+
+- [x] Verification:
+
+```bash
+uv run pytest apps/api/tests/test_mvp2c_isaac_training_calibration_script.py -k "v10a or v10b or v10c" -q
+# 5 passed
+
+uv run python -m compileall -q scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_isaac_proof_evaluator.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py
+# passed
+
+uvx ruff check scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_isaac_proof_evaluator.py apps/api/tests/test_mvp2c_isaac_training_calibration_script.py
+# All checks passed
+```
+
+- [ ] Next valid step:
+  write and implement `v0_11_attribution_preserving_low_floor_comparator_slice`.
+  - Fresh calibration and held-out ranges required.
+  - Do not open held-out until calibration passes.
+  - Keep policy/trainer/feature/action adapter/runtime authority parity.
+  - Change only pre-registered comparator view to expose recoverable baseline
+    failures while preserving attribution.
+  - MVP-2 remains not Closed until actual fresh held-out uplift `>=0.20` passes.
+# 2026-06-15 UTC / 2026-06-16 KST - MVP-2 Closed
+
+- [x] Closed MVP-2 with actual Isaac held-out proof:
+
+```text
+policy_slice=v0_14
+slice_id=mvp2e_v14_comparator_provenance_row_balance_slice
+runtime_backend=isaac_runtime
+proof_runtime=dedicated_isaac_connector_insertion_evaluator
+```
+
+- [x] Passed v0.14 artifact-only comparator gate:
+
+```text
+source_provenance_report.passed=true
+baseline_actual_failure_material_ratio=0.5
+failure_to_success_row_ratio=1.0
+duplicate_failure_rows_allowed=false
+fresh_calibration_seed_range=39000-39029
+fresh_heldout_seed_range=40000-40049
+heldout_opened=false
+```
+
+- [x] Passed actual Isaac calibration:
+
+```text
+baseline=5/30 = 0.166666666667
+candidate=26/30 = 0.866666666667
+uplift=+0.70
+policy_influence_preservation_passed=true
+```
+
+- [x] Passed actual Isaac held-out closure:
+
+```text
+actual_rollouts_per_policy=50
+baseline=5/50 = 0.10
+candidate=40/50 = 0.80
+curated_vs_uncurated_uplift=+0.70
+bootstrap_success_rate_difference_ci=[0.56, 0.82]
+mvp2c_close_minimum_passed=true
+stronger_public_evidence_target_passed=true
+mvp2_closed=true
+policy_uplift_proven=true
+```
+
+- [x] Preserved non-claims:
+
+```text
+deployable_real_robot_policy=false
+hmd_openxr_readiness=false
+physical_robot_readiness=false
+real_robot_success=false
+universal_robot_support=false
+visual_policy_performance=false
+```
+
+- [x] Primary closure artifact:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/
+  v0_14_comparator_provenance_row_balance/
+    heldout_closure_gate_v0_14.json
+```
+
+- [ ] Recommended post-closure follow-up:
+  freeze proof package, prepare clean PR/commit set, and update public-facing
+  wording without expanding claims beyond Isaac evaluator-domain learning proof.
+- [x] Mark held-out `40000-40049` as spent for future tuning and future closure
+  proof.

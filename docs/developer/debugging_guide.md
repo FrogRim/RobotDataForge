@@ -3649,3 +3649,1230 @@ held_asset_delta_m=0.095631
 4. held-out 21000-21049는 계속 봉인한다.
 5. horizon increase는 현재 stop condition이므로 단순 해법으로 쓰지 않는다.
 ```
+
+## Stage 0 proof evidence preservation
+
+2026-06-12 reboot 이후 `/tmp/rdf-*` proof evidence가 소실된 사실이 확인됐다.
+이후 Isaac proof run은 `/tmp`를 primary evidence 위치로 사용하지 않는다.
+
+기본 위치:
+
+```text
+storage/proof_evidence/<slice>/
+```
+
+현재 Stage 0 적용 runner:
+
+```text
+scripts/run_mvp2b_isaac_proof_evaluator.py
+scripts/run_mvp2c_isaac_training_calibration.py
+```
+
+각 run은 다음 파일을 생성해야 한다.
+
+```text
+storage/proof_evidence/<slice>/evidence_manifest.json
+```
+
+manifest 확인 절차:
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py --skip-isaac --pretty
+python -m json.tool storage/proof_evidence/mvp2c_isaac_training_calibration/evidence_manifest.json
+```
+
+확인해야 할 필드:
+
+```text
+schema_version=rdf_proof_evidence_manifest_v0.1.0
+proof_slice
+output_dir
+reproducible_command
+files[].path
+files[].sha256
+files[].size_bytes
+evidence_manifest_sha256
+```
+
+주의:
+
+- `evidence_manifest.json`은 자기 자신을 file list에서 제외한다.
+- 대형 trace/HDF5 artifact는 계속 gitignored일 수 있다.
+- git에 남기는 것은 manifest와 sha256 증거다.
+- 소실된 `/tmp` artifact를 소급 재구성해 기존 증거처럼 주장하지 않는다.
+- fixed 40-run gate와 held-out A/B는 이 보존 체계 위에서만 진행한다.
+- 기존 proof evidence가 남아 있으면 `--clean`으로 지우지 않는다. 재실행이 필요하면
+  먼저 evidence manifest와 핵심 gate JSON을 보존한 뒤 별도 slice/output dir을 사용한다.
+
+## MVP-2E v0.6g reset-boundary handling
+
+v0.6g부터 Isaac rollout loop는 env reset boundary를 넘지 않는다. 실제
+Isaac run에서 Factory env의 timeout reset은 `env.step()` 이후 trace row에
+반영되므로, `env.max_episode_length - 1`만으로는 reset 후 row가 한 줄 섞일 수
+있다. 따라서 v0.6g artifact는 post-step reset guard를 명시한다.
+
+적용 규칙:
+
+```text
+env_reset_boundary_steps = env.max_episode_length
+env_reset_post_step_guard_steps = 2
+effective_rollout_budget_steps = min(success_metric.max_steps, env_reset_boundary_steps - env_reset_post_step_guard_steps)
+seat_deadline_steps = effective_rollout_budget_steps - stable_steps_required
+horizon_increase_applied = false
+```
+
+중요한 해석:
+
+- 이 변경은 horizon 증가가 아니다.
+- `max_steps=150`과 `stable_steps_required=10`은 그대로 유지한다.
+- env reset 이후 row는 secondary convergence/regression diagnostic에서 제외한다.
+- env-native success authority를 완화하거나 대체하지 않는다.
+- post-reset row exclusion은 diagnostic 정합용이며 success 보정용이 아니다.
+
+repair probe gate에서 확인할 새 필드:
+
+```text
+env_reset_post_step_guard_steps
+v0_6g_post_reset_tail_handling.post_reset_rows_excluded
+v0_6g_post_reset_tail_handling.per_seed.<seed>.first_excluded_row_index
+v0_6g_post_reset_tail_handling.per_seed.<seed>.excluded_row_count
+```
+
+실제 Isaac 확인 명령:
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 --train-generation-probe-only --repair-probe-only \
+  --repair-probe-controller-version v0_6f \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 --device cuda:0 --pretty
+```
+
+2026-06-12 실제 A3 결과:
+
+```text
+repair_probe_gate_sha256=73a8148344374eeac4bc2abf751b61835fc65947431688bedf1005a7beb35207
+green_light_for_40_run_gate=false
+hard_stop=true
+fixed_40_run_gate_opened=false
+heldout_opened=false
+reset_like_jump_count=0
+post_reset_rows_excluded=false
+seed 16042: env-native 10-consecutive success 유지
+seed 16023: lateral은 안정됐지만 max_insertion_depth_m=0.022587로 under-insertion
+seed 16096: near band 안에 들어왔지만 last-K median regression이 남아 non-seated converged=false
+```
+
+분기:
+
+- `green_light_for_40_run_gate=true`이면 fixed 40-run train-generation gate로 이동한다.
+- `16023`이 여전히 deadline을 못 맞추면 Phase B v0.6h pacing으로 이동한다.
+- `16096`의 regression이 post-reset 제외 후에도 남으면 controller 결함으로 이관한다.
+- held-out `21000-21049`는 열지 않는다.
+
+## MVP-2 Phase E expressibility sanity blocker
+
+2026-06-12 기준 MVP-2 Closed를 막는 현재 blocker는 repair probe나 40-run gate가 아니라
+candidate policy expressibility다.
+
+현재 gate 상태:
+
+```text
+repair_probe_gate.green_light_for_40_run_gate=true
+train_generation_runtime_gate.passed=true
+generated_success_count=28 / generated_rollout_count=40
+expressibility_sanity_gate.passed=false
+expressibility success_count=0 / rollout_count=5
+heldout_opened=false
+heldout_21000_21049_accessed=false
+```
+
+정확한 해석:
+
+- scripted expert / controller는 v0.6i 기준으로 repair probe를 green으로 만들었고,
+  fixed 40-run train-generation gate도 `28/40`으로 통과했다.
+- HDF5 train views와 policy artifacts는 생성됐다.
+- 그러나 candidate policy가 학습에 사용된 train-success seed 5개에서도 env-native
+  10-consecutive success를 하나도 만들지 못했다.
+- 따라서 policy가 expert의 gated behavior를 표현하지 못하거나, policy output과
+  action adapter target 사이에 mismatch가 있을 가능성이 현재 1순위다.
+
+다음 진단 순서:
+
+1. `storage/proof_evidence/mvp2c_isaac_training_calibration/expressibility_sanity_gate.json`
+   의 `trace_paths` 5개를 기준으로 candidate policy rollout 실패 양상을 확인한다.
+2. 같은 seed의 successful expert trace와 candidate policy trace를 비교한다.
+   - phase feature가 같은 의미로 들어가는지
+   - z action이 ALIGN 단계에서 0으로 유지되고 DESCEND/INSERT에서 내려가는지
+   - xy correction 방향과 scale이 expert와 같은 부호/범위인지
+   - policy artifact의 action normalization / inverse adapter가 train-generation trace와 일치하는지
+3. held-out `21000-21049`는 열지 않는다.
+4. calibration presignal도 expressibility gate가 통과하기 전에는 실행하지 않는다.
+5. policy/trainer 변경이 필요하면 새 pre-registered profile로 분리한다. 현재 failed
+   expressibility 결과를 보고 기존 profile의 metric/threshold를 완화하지 않는다.
+
+확인 명령:
+
+```bash
+python -m json.tool storage/proof_evidence/mvp2c_isaac_training_calibration/expressibility_sanity_gate.json
+python -m json.tool storage/proof_evidence/mvp2c_isaac_training_calibration/train_generation_runtime_gate.json
+python -m json.tool storage/proof_evidence/mvp2c_isaac_training_calibration/mvp2c_isaac_training_calibration_report.json
+```
+
+금지:
+
+- expressibility `0/5` 상태에서 calibration 또는 held-out A/B를 실행하지 않는다.
+- deterministic/proxy/synthetic fixture로 MVP-2 Closed를 주장하지 않는다.
+- env-native success authority, `stable_steps=10`, `max_steps=150`을 완화하지 않는다.
+- held-out 결과를 보고 policy class, feature schema, adapter, baseline mix를 바꾸지 않는다.
+
+## MVP-2E v0.7a behavior-state phase relabel next slice
+
+현재 expressibility blocker의 다음 pre-registered spec:
+
+```text
+docs/superpowers/specs/2026-06-12-mvp2e-v07a-behavior-state-phase-relabel-design.md
+```
+
+핵심 변경:
+
+```text
+old depth-derived phase:
+  APPROACH / CONTACT / INSERT / SEAT
+
+new behavior-state phase:
+  ALIGN   = lateral_error_m > 0.001
+  DESCEND = lateral_error_m <= 0.001 AND insertion_depth_m < 0.03
+  HOLD    = lateral_error_m <= 0.001 AND insertion_depth_m >= 0.03
+```
+
+진단 의도:
+
+- 기존 `APPROACH` phase 안에 `z≈0` 정렬 행동과 `z=-0.16` 하강 행동이 섞여
+  linear BC가 "항상 하강"으로 붕괴했다.
+- v0.7a는 기존 `phase`를 덮어쓰지 않고 `behavior_state_phase`를 새 derived field로
+  추가한다.
+- baseline과 candidate 모두 같은 relabel rule, feature schema, trainer, hyperparameter,
+  action adapter를 사용한다.
+- `offline_train_fit_gate`를 통과하기 전에는 Isaac expressibility를 실행하지 않는다.
+
+추가 금지:
+
+- v0.7a implementation 중 offline fit threshold 또는 aggregation rule을 결과 보고 바꾸지 않는다.
+- `v0_7b` residual servo BC는 v0.7a 실패 후 별도 spec으로만 진행한다.
+
+## MVP-2E v0.7a behavior-state phase relabel 실행/해석
+
+`v0_7a`는 새 Isaac train-generation을 만들지 않는다. 먼저 기존 v0.6 parent
+artifacts를 offline relabel한다.
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7a \
+  --offline-relabel-only \
+  --pretty
+```
+
+성공적으로 실행되어도 `offline_train_fit_gate.passed=false`일 수 있다. 2026-06-12
+현재 parent data 기준 결과는 다음과 같다.
+
+```text
+parent_artifact_hash_verdict.passed=true
+parent_cleanliness.passed=true
+offline_train_fit_gate.passed=false
+failure_reason=required_phase_missing
+candidate_phase_row_counts: ALIGN=68256, DESCEND=54592, HOLD=0
+baseline_phase_row_counts: ALIGN=2560, DESCEND=0, HOLD=0
+heldout_21000_21049_accessed=false
+```
+
+이 상태는 runtime 오류가 아니라 fail-closed evidence다. frozen behavior-state rule의
+`HOLD = lateral_error_m <= 0.001 AND insertion_depth_m >= 0.03` 조건을 parent v0.6
+rows가 충족하지 못했다는 뜻이다. 이 threshold를 결과 보고 완화하지 않는다.
+
+`offline_train_fit_gate.passed=true`일 때만 Isaac expressibility를 실행한다.
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7a \
+  --expressibility-sanity-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+현재처럼 offline gate가 false이면 아래 명령은 Isaac을 시작하지 않고 차단된다.
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7a \
+  --expressibility-sanity-only \
+  --pretty
+```
+
+예상 결과:
+
+```text
+runtime_backend=isaac_runtime_not_started
+reason=missing_passed_v0_7a_offline_train_fit_gate
+heldout_21000_21049_accessed=false
+```
+
+금지:
+
+- `offline_train_fit_gate.passed=false` 상태에서 calibration presignal 또는 held-out A/B를 실행하지 않는다.
+- `HOLD=0`을 없애기 위해 v0.7a threshold를 결과 보고 완화하지 않는다.
+- v0.7a 실패를 v0.7b residual servo BC success로 소급 해석하지 않는다.
+
+추가 guard:
+
+- `--policy-slice v0_7a`는 `--offline-relabel-only` 또는 `--expressibility-sanity-only`와 함께 사용할 때만 유효하다.
+- full build path는 아직 `v0_7a`를 end-to-end로 구현하지 않았으므로 아래 형태는 즉시 실패해야 한다.
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7a \
+  --skip-isaac
+```
+
+예상 결과:
+
+```text
+ValueError: --policy-slice v0_7a is only valid with --offline-relabel-only or --expressibility-sanity-only
+```
+
+`offline_train_fit_gate.json` 해석:
+
+- `parent_artifact_hash_verdict.passed=true`에는 `selected_action_adapter.json` file/payload hash도 포함된다.
+- baseline은 report-only이므로 missing phase가 있어도 gate authority가 아니다.
+- baseline missing phase metric은 숨기지 않고 `baseline_same_metrics_report_only` 아래에 `null` metric으로 기록된다.
+
+예:
+
+```text
+baseline_same_metrics_report_only.metric_status=report_only_required_phase_missing
+baseline_same_metrics_report_only.candidate_z_mae_max=null
+```
+
+## MVP-2E v0.7a.1 env-native HOLD relabel 실행/해석
+
+`v0_7a_1`은 `v0_7a` artifacts를 수정하지 않는 child slice다. 핵심 차이는
+`HOLD`를 `insertion_depth_m` 같은 geometry proxy로 만들지 않고,
+`env_native_success` / `env_native_success_mask`에서 직접 읽는다는 점이다.
+
+```text
+HOLD    = env_native_success_mask == true
+DESCEND = not HOLD AND lateral_error_m <= 0.001
+ALIGN   = not HOLD AND lateral_error_m > 0.001
+```
+
+`seat_depth_threshold_m` 또는 `SUCCESS_METRIC.insertion_depth_m_min`를
+`v0_7a_1` relabel config에 다시 넣으면 안 된다. geometry 값은 report-only다.
+
+offline relabel 실행:
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7a_1 \
+  --offline-relabel-only \
+  --pretty
+```
+
+2026-06-12 현재 parent artifacts 기준 최신 결과:
+
+```text
+parent_proof_chain_verdict.passed=true
+candidate_trace_enriched_rows=1280
+candidate_trace_missing_rows=121568
+candidate_authenticated_rows_used=1280
+candidate_phase_row_counts: ALIGN=1280, DESCEND=0, HOLD=0
+candidate_min_hold_rows_per_success_trace=0
+offline_train_fit_gate.passed=false
+failure_reason=required_phase_missing
+future_calibration_blocked_reason=candidate_offline_fit_failed
+heldout_21000_21049_accessed=false
+baseline_report_only_status=report_only_env_native_mask_missing
+```
+
+이 상태는 코드 런타임 실패가 아니라 의도된 fail-closed다. trace hydration은 동작했지만,
+parent `candidate_curated_train.hdf5`에서 runtime trace와 매칭된 train rows가 trace 초반
+window에만 존재했고, 실제 env-native seated/HOLD window가 해당 HDF5 row set에 포함되지 않았다.
+따라서 `HOLD=0`이 정직한 결과이며, 이 상태에서 policy artifact 생성, calibration, held-out A/B를
+열면 안 된다.
+
+expressibility sanity guard:
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7a_1 \
+  --expressibility-sanity-only \
+  --pretty
+```
+
+현재 예상 결과:
+
+```text
+exit status: non-zero expected
+runtime_backend=isaac_runtime_not_started
+reason=missing_passed_v0_7a_1_offline_train_fit_gate
+heldout_21000_21049_accessed=false
+```
+
+다음 valid step은 threshold 완화가 아니다. `v0_7a_1`의 결론은 "env-native authority가
+맞지만 기존 parent HDF5 train view가 seated runtime window를 담지 않는다"이다. 다음 spec은
+runtime trace rows에서 full-horizon train view를 만들거나, 이미 deferred 된 `v0_7b`
+residual servo BC fallback으로 넘어가야 한다. 두 경우 모두 held-out `21000-21049`는 계속
+봉인한다.
+
+## MVP-2E v0.7a.2 trace-native train view 실행/해석
+
+`v0_7a_2`는 `v0_7a_1`의 blocker였던 parent HDF5 row window 손실을 우회한다.
+primary row source는 parent HDF5가 아니라 actual Isaac train-generation trace JSON이다.
+
+```text
+candidate rows = train_generation_runtime_gate.generated_success_trace_paths full trace rows
+baseline rows  = train_generation_runtime_gate.generated_trace_paths full trace rows
+HOLD authority = env_native_success_mask
+```
+
+offline 실행:
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7a_2 \
+  --offline-relabel-only \
+  --pretty
+```
+
+2026-06-12 현재 결과:
+
+```text
+artifact_dir=storage/proof_evidence/mvp2c_isaac_training_calibration/v0_7a_2_trace_native_train_view
+candidate_curated_train_v0_7a_2.hdf5 exists
+baseline_uncurated_train_v0_7a_2.hdf5 exists
+candidate_policy_artifact_v0_7a_2.json exists
+baseline_policy_artifact_v0_7a_2.json exists
+candidate_phase_row_counts: ALIGN=1973, DESCEND=1422, HOLD=284
+baseline_phase_row_counts: ALIGN=3321, DESCEND=1826, HOLD=308
+candidate_min_hold_rows_per_success_trace=10
+candidate_min_consecutive_hold_rows_per_success_trace=10
+offline_train_fit_gate_v0_7a_2.passed=true
+heldout_21000_21049_accessed=false
+```
+
+즉 `v0_7a_2`는 train-view blocker를 해소했고, phase-conditioned NumPy BC가 expert trace
+rows를 offline metric 기준으로 fit할 수 있음을 보였다. 이 결과는 Phase E 실행 허가일 뿐,
+MVP-2 Closed 또는 held-out uplift 증명이 아니다.
+
+Phase E 실행:
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7a_2 \
+  --expressibility-sanity-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+2026-06-12 현재 결과:
+
+```text
+runtime_backend=isaac_runtime
+rollout_count=5
+success_count=0
+required_success_count=2
+passed=false
+reason=candidate policy did not pass train-split expressibility sanity.
+heldout_21000_21049_accessed=false
+```
+
+이 상태는 의도된 fail-closed다. offline fit은 통과했지만 실제 Isaac rollout에서 정책이
+train-split expressibility sanity gate를 통과하지 못했다. calibration, held-out A/B,
+MVP-2 Closed 선언은 금지된다.
+
+다음 valid step은 threshold 완화가 아니라 `v0_7b` residual servo BC spec이다. 이유는
+trace-native rows와 env-native HOLD authority는 통과했지만, 순수 phase-conditioned linear BC
+policy class가 Isaac rollout으로 transfer되지 않았기 때문이다.
+
+## MVP-2E v0.7b residual servo BC 실행/해석
+
+`v0_7b`는 full-action BC를 반복하지 않는다. baseline과 candidate가 같은 frozen base geometry
+servo를 공유하고, policy는 residual만 학습한다.
+
+```text
+actual_trace_action = base_servo_action + learned_residual
+residual_target = actual_trace_action - base_servo_action
+```
+
+중요한 claim boundary:
+
+- `v0_7b`는 MVP-2 Closed가 아니다.
+- `v0_7b`는 held-out `21000-21049`를 열지 않는다.
+- recovery overlay는 shared source만 허용한다.
+- policy-specific rollout trace, 특히 prior `v0_7a_2` candidate Phase E trace는 train recovery source로 쓰지 않는다.
+- recovery source가 없거나 실패/empty이면 offline build는 policy artifact를 만들지 않고 fail-closed해야 한다.
+
+shared recovery induction 실행:
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7b \
+  --recovery-overlay-induction-only \
+  --pretty
+```
+
+현재 구현 상태에서 이 명령은 실제 Isaac trace를 만들지 않고 다음처럼 닫힌다.
+
+```text
+passed=false
+runtime_backend=isaac_runtime_not_started
+reason=shared_train_recovery_induction_requires_actual_isaac_runtime
+```
+
+이 출력은 정상적인 fail-closed 상태다. proof가 아니며, 다음 단계는 실제 Isaac runtime으로 shared recovery
+trace를 생성하는 것이다.
+
+offline residual build 실행:
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7b \
+  --offline-relabel-only \
+  --pretty
+```
+
+현재 recovery source가 실패/empty이면 다음처럼 닫혀야 한다.
+
+```text
+failed_closed=true
+failure_reason=recovery_overlay_source_unavailable
+mvp2_closed=false
+heldout_21000_21049_accessed=false
+```
+
+이 상태에서 `candidate_policy_artifact_v0_7b.json`, `baseline_policy_artifact_v0_7b.json`,
+`candidate_curated_train_v0_7b.hdf5`, `baseline_uncurated_train_v0_7b.hdf5`가 없는 것은 정상이다.
+비어 있는 recovery source를 조용히 받아들이면 안 된다.
+
+Phase E expressibility 실행:
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7b \
+  --expressibility-sanity-only \
+  --pretty
+```
+
+`offline_residual_fit_gate_v0_7b.passed=true` 전에는 Isaac을 시작하지 않고 다음처럼 닫혀야 한다.
+
+```text
+exit_code=1
+passed=false
+runtime_backend=isaac_runtime_not_started
+reason=missing_passed_v0_7b_offline_residual_fit_gate
+```
+
+다음 valid step:
+
+1. 실제 Isaac runtime으로 `shared_train_recovery_induction_v0_7b.json`에 `passed=true`와 recovery traces를 만든다.
+2. `--offline-relabel-only`를 다시 실행해 residual HDF5와 policy artifacts를 만든다.
+3. offline residual fit gate가 통과한 뒤에만 `--expressibility-sanity-only`를 실행한다.
+4. Phase E가 통과해도 calibration freeze와 sealed held-out A/B positive uplift 전까지 MVP-2 Closed로 표기하지 않는다.
+
+2026-06-12 최신 상태:
+
+shared recovery induction은 실제 Isaac runtime으로 통과했다.
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7b \
+  --recovery-overlay-induction-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+```text
+passed=true
+runtime_backend=isaac_runtime
+trace_path_count=5
+rollout_count=5
+source_seeds=[19003,19012,19129,19030,19119]
+heldout_21000_21049_accessed=false
+```
+
+그 다음 offline residual build도 통과했다.
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7b \
+  --offline-relabel-only \
+  --pretty
+```
+
+```text
+offline_residual_fit_gate_v0_7b.passed=true
+candidate_gate_passed=true
+phase_e_candidate_expressibility_unblocked=true
+future_ab_ready=true
+heldout_21000_21049_accessed=false
+```
+
+주의: 위 `future_ab_ready=true`는 `v0_7b` historical artifact의 당시 의미다.
+`v0_7d` 이후에는 offline gate 통과만으로 A/B readiness를 true로 만들지 않는다.
+`future_ab_ready`는 actual Isaac Phase E 통과와 calibration freeze 이후에만 열 수 있다.
+
+하지만 actual Isaac Phase E는 fail-closed됐다.
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7b \
+  --expressibility-sanity-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+```text
+passed=false
+runtime_backend=isaac_runtime
+rollout_count=5
+success_count=0
+required_success_count=2
+reason=candidate policy did not pass train-split expressibility sanity.
+heldout_21000_21049_accessed=false
+```
+
+해석:
+
+```text
+v0_7b recovered the missing shared recovery source and offline residual artifacts.
+The remaining blocker is actual closed-loop action authority, not artifact generation.
+```
+
+Phase E trace 진단:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/v0_7b_residual_servo_bc/
+  expressibility_sanity_gate_v0_7b.json
+  isaac_runtime_expressibility_sanity_v0_7b/isaac_runtime_heldout_rollout_traces/*
+```
+
+관측된 패턴:
+
+```text
+all 5 rollouts: env_native_max_consecutive_success_steps=0
+metric phase: mostly APPROACH/ALIGN
+max insertion depth: 0.0
+base_servo_z: about -0.001
+residual_z: large positive or negative
+post_adapter_z: often saturated at +0.16 or -0.16
+```
+
+즉 learned residual이 base servo의 z gate를 우회하고 있다. `v0_7b`에서 이것을 사후 패치해
+Phase E를 다시 돌리는 것은 pre-registration을 깨므로 하지 않는다.
+
+다음 valid step:
+
+```text
+Write v0_7c spec/plan for residual action authority gating.
+The likely design is:
+  base_servo_action + residual_prediction is still the policy form,
+  but behavior-state z authority must be enforced after residual reconstruction,
+  and offline gates must catch ALIGN-state post-adapter z saturation/sign violations.
+
+Do not open calibration or held-out 21000-21049 before a fresh Phase E pass.
+```
+
+## 2026-06-12 - v0.7c Phase E fail-closed debugging note
+
+`v0_7c`는 `v0_7b`의 residual z bypass를 막기 위해 post-residual action
+authority filter를 추가한 slice다.
+
+재생성 순서:
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7c \
+  --offline-relabel-only \
+  --pretty
+```
+
+기대 상태:
+
+```text
+offline_residual_fit_gate_v0_7c.passed=true
+offline_action_authority_gate_v0_7c.passed=true
+heldout_21000_21049_accessed=false
+```
+
+actual Isaac Phase E:
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7c \
+  --expressibility-sanity-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+현재 결과:
+
+```text
+passed=false
+runtime_backend=isaac_runtime
+rollout_count=5
+success_count=0
+required_success_count=2
+heldout_21000_21049_accessed=false
+```
+
+관련 artifact:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/v0_7c_residual_action_authority_gate/
+  expressibility_sanity_gate_v0_7c.json
+  isaac_runtime_expressibility_sanity_v0_7c/isaac_runtime_heldout_rollout_traces/*.json
+```
+
+진단 체크:
+
+```text
+controller_action_diagnostics.residual_z_after_authority == 0.0 in ALIGN
+controller_action_diagnostics.raw_action_after_authority[2] == -0.001 in ALIGN
+controller_action_diagnostics.post_adapter_action_vector[2] == -0.032 in ALIGN
+env_native_max_consecutive_success_steps == 0
+```
+
+해석:
+
+- `v0_7c` filter는 learned residual z를 정상적으로 제거한다.
+- 남은 문제는 residual이 아니라 base servo의 `ALIGN` z authority다.
+- `ALIGN`에서 base servo가 `-0.001` z를 내고, adapter가 이를 `-0.032`로
+  스케일해 아직 centered/stable이 아닌 상태에서도 하강한다.
+- 따라서 `v0_7c`를 사후 수정하지 말고 새 pre-registered slice에서
+  `ALIGN` post-adapter z motion까지 막아야 한다.
+
+다음 valid step:
+
+```text
+v0_7d candidate:
+  ALIGN z authority = no post-adapter z motion until env-native centering is stable
+  offline gate = ALIGN post-adapter z == 0 plus residual z == 0
+  keep held-out 21000-21049 sealed
+  rerun offline gates, then Phase E only
+```
+
+## MVP-2E harness-gated closure diagnostic
+
+`v0_7d`를 바로 만들지 않고, 현재 `v0_7c` evidence를 먼저 harness로 분류한다.
+이 모드는 artifact-only이며 Isaac, training, calibration, held-out을 실행하지 않는다.
+
+실행:
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7c \
+  --harness-gated-closure-only \
+  --pretty
+```
+
+주의:
+
+```text
+--harness-gated-closure-only --clean  # 금지. 기존 v0.7c evidence를 삭제하면 안 됨.
+```
+
+생성 artifact:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/harness_gated_closure/
+  mvp2e_harness_config.json
+  harness_trace_index.json
+  mvp2e_harness_report.json
+  harness_research_rationale.json
+  mvp2e_harness_gate_manifest.json
+```
+
+현재 진단 결과:
+
+```text
+root_cause_status=classified
+primary_root_cause_class=ACTION_AUTHORITY_POST_ADAPTER_Z_LEAK
+secondary_root_cause_candidates=[BASE_SERVO_PREMATURE_DESCENT]
+recommended_downstream_slice=v0_7d_action_authority_post_adapter_z_gate
+trace_count=5
+heldout_21000_21049_accessed=false
+mvp2_closed=false
+```
+
+핵심 해석:
+
+- H0 passed: scenario/evaluator/held-out seal은 유지된다.
+- H1/H2 failed: `ALIGN`에서 `residual_z_after_authority == 0.0`이지만
+  `post_adapter_action_vector[2] == -0.032`가 되어 adapter 이후 하강이 재도입된다.
+- H3 failed: base servo 또는 adapter 조합이 centered/stable 전 하강을 만든다.
+- H4 passed: fixed 40-run train-generation gate는 28/40으로 유지된다.
+- H14 passed: `isaac_runtime_heldout_rollout_traces` directory name은 legacy diagnostic
+  label이며 protected seed `21000-21049` 접근이 아니다.
+- H15 passed: baseline/candidate adapter, authority hash, trainer/schema fairness는
+  현재 evidence에서 공유된다.
+
+다음 디버깅 규칙:
+
+- `mvp2e_harness_report.json` 없이는 `v0_7d`를 만들지 않는다.
+- missing required H1/H2/H3/H15 evidence이면 downstream slice 추천은 `null`이어야 한다.
+- legacy path label의 `heldout` 문자열만 보고 held-out leakage로 판단하지 않는다.
+- held-out leakage는 protected seed `21000-21049` 접근으로만 판정한다.
+
+## MVP-2E harness review reinforcement
+
+외부 검수 반영 후 harness report는 다음 추가 의미를 갖는다.
+
+```text
+H12 failed:
+  stable_hold_uses_geometry_thresholds_instead_of_env_native_mask
+
+secondary_root_cause_candidates:
+  BASE_SERVO_PREMATURE_DESCENT
+  PHASE_LABEL_RUNTIME_MISMATCH
+
+recommended_downstream_repair_requirements:
+  enforce_config_independent_post_adapter_z_authority
+  block_align_z_motion_after_final_action_mutation_until_centered
+  replace_stable_hold_geometry_thresholds_with_env_native_mask
+```
+
+중요 해석:
+
+- H1/H2는 여전히 primary blocker다. `ALIGN`에서 adapter 이후 z motion이
+  재도입된다.
+- H12는 현재 v0.7c가 착좌에 도달하지 못했기 때문에 직접 원인은 아니지만,
+  착좌 후 10-consecutive env-native hold window를 쌓는 단계에서 다음 blocker가
+  될 수 있는 authority mismatch다.
+- close-critical harness가 `not_evaluated`이면 close-critical pass가 아니다.
+  `unevaluated_close_critical_harnesses`가 비어 있지 않으면 MVP-2 closed를 주장할 수 없다.
+- `stable_hold_depth_m`, `stable_hold_lateral_m`, `stable_hold_orientation_deg`는
+  report-only diagnostic으로만 허용한다. hold readiness authority로 쓰면 fail-closed한다.
+
+다음 spec:
+
+```text
+docs/superpowers/specs/2026-06-12-mvp2e-v07d-action-authority-post-adapter-z-gate-design.md
+```
+
+## MVP-2E v0.7d review-fix debugging contract
+
+`v0_7d`는 `v0_7c` harness report가 먼저 classified 상태여야 생성된다.
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7c \
+  --harness-gated-closure-only \
+  --pretty
+```
+
+요구되는 parent evidence:
+
+```text
+root_cause_status=classified
+primary_root_cause_class=ACTION_AUTHORITY_POST_ADAPTER_Z_LEAK
+recommended_downstream_slice=v0_7d_action_authority_post_adapter_z_gate
+protected_heldout_21000_21049_accessed=false
+calibration_opened=false
+```
+
+그 다음에만 `v0_7d` offline artifact를 생성한다.
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --offline-relabel-only \
+  --policy-slice v0_7d \
+  --pretty
+```
+
+현재 통과 기준:
+
+```text
+offline_final_action_authority_gate_v0_7d.passed=true
+phase_e_candidate_expressibility_unblocked=true
+future_ab_ready=false
+future_ab_ready_source=requires_actual_phase_e_pass_and_calibration_freeze
+candidate_align_final_z_violation_count=0
+baseline_align_final_z_violation_count=0
+stable_hold_authority=env_native_success_mask
+heldout_21000_21049_accessed=false
+```
+
+디버깅 규칙:
+
+- `stable_hold` readiness는 `env_native_success_mask`만 authority로 인정한다.
+- `stable_hold_depth_m`, `stable_hold_lateral_m`, `stable_hold_orientation_deg`는
+  selected-adapter diagnostic일 뿐 hold authority가 아니다.
+- `v0_7d` child policy artifact는 parent `authority_filter_config_sha256`와
+  `final_post_adapter_authority_config.inherited_authority_filter_config_sha256`가
+  일치해야 한다. Runtime evaluator도 이 mismatch를 즉시 거부한다.
+- `v0_7d` child policy artifact와 offline gate는
+  `selected_action_adapter_config`와 해당 sha256 lineage도 요구한다. config가 없으면
+  adapter simulation이 `{}` default로 진행되지 않고 fail-closed된다.
+- Runtime evaluator도 `v0_7d`에서는 selected adapter 실행 전에
+  `selected_action_adapter_config` 존재와 sha256 일치를 검증한다. 누락 또는 stale hash는
+  `v0_7d_selected_action_adapter_config_missing` /
+  `v0_7d_selected_action_adapter_config_hash_mismatch`로 fail-closed되어야 한다.
+- `future_ab_ready=false`가 정상이다. offline gate는 Phase E 실행 가능 여부만
+  의미한다.
+- `--harness-gated-closure-only --policy-slice v0_7d`는 CLI에서 거부된다.
+  harness-gated closure report는 parent `v0_7c` classified evidence 보존용이고,
+  `v0_7d` child slice는 `offline_final_action_authority_gate_v0_7d.json`으로
+  검증한다.
+
+v0.7d 구현 전 금지선:
+
+- selected action adapter config를 결과에 맞춰 재선택하지 않는다.
+- env-native success threshold, `stable_steps=10`, `max_steps=150`을 바꾸지 않는다.
+- calibration이나 held-out `21000-21049`를 열지 않는다.
+- `adapter_not_instrumented` 또는 `no_v06_controller`를 final z gate bypass 조건으로
+  사용하지 않는다.
+
+## MVP-2E v0.7d implementation guardrails
+
+승인된 plan:
+
+```text
+docs/superpowers/plans/2026-06-12-mvp2e-v07d-action-authority-post-adapter-z-gate.md
+```
+
+v0.7d offline artifact build는 반드시 explicit safe mode로만 실행한다.
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --offline-relabel-only \
+  --policy-slice v0_7d \
+  --pretty
+```
+
+다음 명령 형태는 implicit full/offline run으로 취급하지 말고 거부해야 한다.
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7d \
+  --pretty
+```
+
+v0.7d debug 순서:
+
+1. RED tests를 먼저 추가한다.
+2. runtime full inference path가 다음 순서로 실행되는지 확인한다.
+
+```text
+v0_7c base servo
+-> v0_7c residual/pre-adapter authority
+-> selected action adapter
+-> v0_7d final post-adapter authority
+-> env.step action
+```
+
+3. offline adapter simulation이 runtime adapter semantics와 parity를 갖는지
+   테스트한다.
+4. H12는 `selected_action_adapter_config`의 geometry threshold를 수정하지 말고,
+   top-level `stable_hold_authority`와
+   `final_post_adapter_authority_config.stable_hold_authority`를 확인한다.
+5. `offline_final_action_authority_gate_v0_7d.json`이 `passed=true`가 되기 전에는
+   Isaac Phase E를 실행하지 않는다.
+
+계속 금지되는 것:
+
+- calibration open
+- held-out `21000-21049` access
+- `mvp2_closed=true`
+- `policy_uplift_proven=true`
+- `selected_action_adapter.json` 또는 historical `v0_7c` artifact mutation
+
+## MVP-2E v0.7d action-authority debug result
+
+`v0_7d`는 `v0_7c` artifact를 patch하지 않고 child slice로 생성한다.
+
+핵심 runtime 순서:
+
+```text
+v0_7c residual/base policy
+-> v0_7c pre-adapter residual authority
+-> selected_action_adapter
+-> v0_7d final_post_adapter_z_authority
+-> Isaac final action
+```
+
+검증된 offline gate:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/
+  v0_7d_action_authority_post_adapter_z_gate/
+    offline_final_action_authority_gate_v0_7d.json
+```
+
+통과 조건:
+
+```text
+passed=true
+candidate_align_final_z_violation_count=0
+baseline_align_final_z_violation_count=0
+candidate_bad_block_reason_count=0
+baseline_bad_block_reason_count=0
+stable_hold_authority=env_native_success_mask
+future_ab_ready=false
+future_ab_ready_source=requires_actual_phase_e_pass_and_calibration_freeze
+heldout_21000_21049_accessed=false
+```
+
+`v0_7d`에서 HDF5 training view도 child slice metadata를 가져야 한다.
+
+```text
+schema_version=rdf_mvp2e_v07d_action_authority_manifest_v0.1.0
+policy_slice=v0_7d
+final_post_adapter_authority_id=final_post_adapter_z_authority_gate_v0_7d
+stable_hold_authority=env_native_success_mask
+```
+
+다음 runtime 실행 순서:
+
+1. `offline_final_action_authority_gate_v0_7d.passed=true`를 확인한다.
+2. 그 다음에만 actual Isaac Phase E expressibility sanity를 실행한다.
+3. Phase E threshold는 기존 값 그대로 유지한다.
+
+```text
+rollout_count=5
+required_success_count=2
+success_authority=env_native_10_consecutive
+```
+
+해석 주의:
+
+- `v0_7d` builder는 classified `v0_7c` harness report를 parent evidence로
+  요구한다. 공용 harness report를 보존하려면 먼저 `v0_7c` harness-only 결과를
+  유지한다.
+- `--harness-gated-closure-only --policy-slice v0_7d`는 공용 harness report를
+  덮어쓰지 못하도록 CLI에서 fail-closed된다.
+- `v0_7d` 자체의 offline authority gate는
+  `offline_final_action_authority_gate_v0_7d.json`을 기준으로 본다.
+- H12가 `passed`이면 stable-hold authority가 env-native mask로 이동했다는 뜻이다.
+- Phase E를 실행하기 전까지 `v0_7d`는 train-split runtime success 증거가 아니다.
+
+계속 금지되는 것:
+
+- calibration open
+- held-out `21000-21049` access
+- selected action adapter reselection
+- env-native success threshold 완화
+- `mvp2_closed=true`
+- `policy_uplift_proven=true`
+
+## MVP-2E v0.7e shared hysteresis parity repair
+
+`v0_7e`는 `v0_7d` child slice 위에 shared rollout-local hysteresis authority를
+추가한 repair slice다. 이 slice는 Phase E를 바로 실행하지 않고, 먼저 offline
+gate 3개가 모두 통과해야 한다.
+
+Offline artifact build:
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --offline-relabel-only \
+  --policy-slice v0_7e \
+  --pretty
+```
+
+확인할 artifact:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/
+  v0_7e_shared_hysteresis_parity_repair/
+    offline_hysteresis_parity_gate_v0_7e.json
+    attribution_preservation_gate_v0_7e.json
+    final_action_authority_regression_gate_v0_7e.json
+    v0_7e_shared_hysteresis_parity_manifest.json
+```
+
+Phase E를 열 수 있는 최소 offline 조건:
+
+```text
+offline_hysteresis_parity_gate_v0_7e.passed=true
+attribution_preservation_gate_v0_7e.passed=true
+final_action_authority_regression_gate_v0_7e.passed=true
+phase_e_candidate_expressibility_unblocked=true
+heldout_21000_21049_accessed=false
+calibration_opened=false
+mvp2_closed=false
+policy_uplift_proven=false
+```
+
+`attribution_preservation_gate_v0_7e`는 shared hysteresis가 baseline/candidate
+차이를 지워버리는지를 막는 gate다. 다음 값이 fail이면 Phase E를 실행하지 않는다.
+
+```text
+same_shared_infrastructure_equalities_all_true
+candidate_baseline_policy_artifacts_differ
+candidate_baseline_final_action_delta_l2_mean > 1e-6
+candidate_baseline_final_action_delta_nonzero_fraction >= 0.10
+```
+
+현재 artifact 기준:
+
+```text
+offline_hysteresis_parity_gate_v0_7e.passed=true
+attribution_preservation_gate_v0_7e.passed=true
+final_action_authority_regression_gate_v0_7e.passed=true
+phase_e_candidate_expressibility_unblocked=true
+future_ab_ready=false
+mvp2_closed=false
+policy_uplift_proven=false
+heldout_21000_21049_accessed=false
+calibration_opened=false
+```
+
+다음 runtime command는 위 offline 조건이 모두 true일 때만 실행한다.
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_7e \
+  --expressibility-sanity-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+해석 주의:
+
+- `v0_7e` offline gate pass는 actual Isaac policy success가 아니다.
+- Phase E success 기준은 그대로 `>=2/5` env-native 10-consecutive다.
+- Phase E가 실패하면, next slice는 새 harness report로 원인을 다시 분류한다.
+- Phase E가 통과해도 MVP-2 Closed가 아니다. calibration freeze와 sealed held-out
+  A/B positive uplift가 추가로 필요하다.
+
+## MVP-2E v0.8b/v0.8c actual held-out shortfall debugging
+
+`v0_8b`는 actual Isaac held-out closure를 실행한 slice다. 이 slice는 fresh
+held-out `26000-26049`를 열었고 실패했으므로, 해당 range는 이후 closure에
+재사용하지 않는다.
+
+v0.8b closure command:
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_8b \
+  --scenario-aware-seat-window-authority-only \
+  --isaac-task Isaac-Factory-PegInsert-Direct-v0 \
+  --device cuda:0 \
+  --pretty
+```
+
+Observed result:
+
+```text
+baseline_success_rate=0.76
+candidate_success_rate=0.88
+curated_vs_uncurated_uplift=0.12
+mvp2_closed=false
+```
+
+v0.8c artifact-only diagnosis command:
+
+```bash
+uv run python scripts/run_mvp2c_isaac_training_calibration.py \
+  --scenario-profile v0_6 \
+  --policy-slice v0_8c \
+  --heldout-shortfall-diagnosis-only \
+  --pretty
+```
+
+Key artifact:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/
+  v0_8c_heldout_shortfall_diagnosis/v0_8c_shortfall_diagnosis.json
+```
+
+Interpretation:
+
+```text
+late_seat_window_shortfall: reaches success too late for 10-step hold
+centered_under_depth_progress: centered but insertion depth does not progress enough
+off_center_no_capture: z opens outside effective capture region and depth stays zero
+```
+
+Do not fix v0.8b by reusing `26000-26049`. The next closure attempt must use a
+new pre-registered held-out range, with `27000-27049` reserved as the next
+candidate.
+
+## MVP-2 v0.14 closure spent held-out rule
+
+`v0_14_comparator_provenance_row_balance`는 actual Isaac held-out
+`40000-40049`를 열어서 MVP-2 Closed를 달성했다. 이 range는 이제 audit evidence로
+보존해야 하지만 future tuning이나 future closure proof에 재사용하면 안 된다.
+
+최종 증거:
+
+```text
+storage/proof_evidence/mvp2c_isaac_training_calibration/
+  v0_14_comparator_provenance_row_balance/
+    heldout_closure_gate_v0_14.json
+```
+
+Closure result:
+
+```text
+calibration_39000_39029:
+  baseline=5/30
+  candidate=26/30
+  uplift=+0.70
+
+heldout_40000_40049:
+  baseline=5/50
+  candidate=40/50
+  uplift=+0.70
+  mvp2_closed=true
+  policy_uplift_proven=true
+```
+
+금지:
+
+- `40000-40049` 결과를 보고 policy, comparator, adapter, threshold, metric,
+  curation rule을 조정하지 않는다.
+- `40000-40049`를 다른 slice의 closure proof로 재사용하지 않는다.
+- `40000-40049`를 “새 held-out”처럼 문서화하지 않는다.
+- 기존 `heldout_closure_gate_v0_14.json` 또는 root `heldout_closure_gate.json`이
+  `40000-40049` spent 상태를 표시하면
+  `--comparator-provenance-row-balance-runtime`을 다시 실행하지 않는다. 현재
+  runtime은 이 상태를 감지하면 Isaac 실행 또는 fresh artifact 재작성 전에
+  `v0_14_heldout_40000_40049_already_spent_audit_only`로 fail-closed한다.
+
+허용:
+
+- `40000-40049` artifact를 audit, provenance 확인, buyer-facing limitation 설명,
+  regression fixture 설계 참고 자료로 보존한다.
+- future closure attempt는 fresh pre-registered held-out range를 별도로 잡고,
+  calibration pass 전에는 열지 않는다.
