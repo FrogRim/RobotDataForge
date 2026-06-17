@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      # The MVP-2 package verifier is stdlib-only by design, so it runs on a bare
+      # interpreter with no project dependencies. This re-derives the closure
+      # verdict from the git-tracked data/ bundle on every push — if anyone mutates
+      # a verdict-critical artifact, this step fails (the asset is self-defending).
+      - name: MVP-2 package independent verification (Level B)
+        run: >-
+          python3 scripts/verify_mvp2_package.py
+          docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+
+      - name: Tests (non-Isaac)
+        run: uv run pytest -q
+
+      - name: Lint
+        run: uvx ruff check scripts apps/api
