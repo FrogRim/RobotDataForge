@@ -1,0 +1,10 @@
+{
+  "candidate_row_count": 7345,
+  "failure_reason": "",
+  "failure_reasons": [],
+  "failure_row_count": 288,
+  "passed": true,
+  "policy_slice": "v0_14",
+  "schema_version": "rdf_mvp2e_v14_source_provenance_report_v0.1.0",
+  "source_provenance_report_sha256": "7957d02473060da51c585742143d1a9fa23b57ea71a8deec01817178be629e05"
+}

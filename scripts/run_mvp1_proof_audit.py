@@ -17,7 +17,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_VERSION = "rdf_mvp1_proof_audit_v0.3.0"
+SCHEMA_VERSION = "rdf_mvp1_proof_audit_v0.4.0"
 REQUIRED_PHASES = {"APPROACH", "ALIGN", "CONTACT", "INSERT", "SEAT", "RELEASE"}
 TRANSITION_RICH_PHASES = {"APPROACH", "CONTACT", "INSERT", "SEAT"}
 MVP1_TASK_MARKERS = ("peg", "hole", "insert", "connector")
@@ -469,6 +469,7 @@ def build_mvp2_policy_uplift_status(
     learning: dict[str, Any] | None,
     learning_manifest_path: Path,
     live_scan: dict[str, Any],
+    mvp2_harness: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     measurement = _policy_uplift_measurement(learning)
     measurement_report = _policy_measurement_report(learning)
@@ -477,25 +478,36 @@ def build_mvp2_policy_uplift_status(
     negative_evidence = heldout_recorded and not positive_uplift
     result_report_path = measurement.get("report_path")
     result_report_exists = isinstance(result_report_path, str) and Path(result_report_path).exists()
+    harness = mvp2_harness if isinstance(mvp2_harness, dict) else {}
+    harness_transition_ready = harness.get("candidate_transition_coverage_passed") is True
+    harness_stronger_policy_ready = harness.get("stronger_policy_trainer_selected") is True
+    transition_rich_ready = _transition_rich_live_evidence(live_scan) or harness_transition_ready
+    stronger_policy_ready = _stronger_policy_or_trainer(measurement_report) or harness_stronger_policy_ready
     gates = [
         gate(
             "transition_rich_accepted_dataset",
-            _transition_rich_live_evidence(live_scan),
+            transition_rich_ready,
             required=False,
             evidence={
                 "required_phases": sorted(TRANSITION_RICH_PHASES),
                 "live_candidates": live_scan.get("candidates", []),
+                "harness_candidate_transition_coverage_passed": harness_transition_ready,
+                "harness_candidate_present_required_phases": harness.get("candidate_dataset_present_required_phases"),
+                "harness_candidate_missing_required_phases": harness.get("candidate_dataset_missing_required_phases"),
             },
             remediation="Collect accepted replay-verified demonstrations that include approach/contact/insert/seat transitions.",
         ),
         gate(
             "stronger_policy_trainer",
-            _stronger_policy_or_trainer(measurement_report),
+            stronger_policy_ready,
             required=False,
             evidence={
                 "report_path": result_report_path,
                 "baseline": None if measurement_report is None else measurement_report.get("baseline"),
                 "candidate": None if measurement_report is None else measurement_report.get("candidate"),
+                "harness_stronger_policy_trainer_selected": harness_stronger_policy_ready,
+                "selected_policy_class": harness.get("selected_policy_class"),
+                "selected_trainer": harness.get("selected_trainer"),
             },
             remediation="Use a policy/trainer stronger than the current smoke-grade linear BC path before claiming learning-proven.",
         ),
@@ -563,6 +575,13 @@ def build_mvp2_policy_ab_harness_summary(report_path: Path | None) -> dict[str, 
             "proof_eligible": False,
             "adapter_id": None,
             "source_evidence_type": None,
+            "mvp2a_policy_ab_ready": False,
+            "mvp2a_next_recommended_gate": None,
+            "candidate_transition_coverage_passed": False,
+            "candidate_train_set_overfit_passed": False,
+            "stronger_policy_trainer_selected": False,
+            "selected_policy_class": None,
+            "selected_trainer": None,
             "policy_uplift_not_claimed": True,
             "limitations": ["MVP-2 policy A/B harness report path was not provided."],
         }
@@ -579,12 +598,34 @@ def build_mvp2_policy_ab_harness_summary(report_path: Path | None) -> dict[str, 
             "proof_eligible": False,
             "adapter_id": None,
             "source_evidence_type": None,
+            "mvp2a_policy_ab_ready": False,
+            "mvp2a_next_recommended_gate": None,
+            "candidate_transition_coverage_passed": False,
+            "candidate_train_set_overfit_passed": False,
+            "stronger_policy_trainer_selected": False,
+            "selected_policy_class": None,
+            "selected_trainer": None,
             "policy_uplift_not_claimed": True,
             "limitations": ["MVP-2 policy A/B harness report is missing or invalid JSON."],
         }
 
     proof_source = report.get("proof_source") if isinstance(report.get("proof_source"), dict) else {}
     claim_boundary = report.get("claim_boundary") if isinstance(report.get("claim_boundary"), dict) else {}
+    mvp2a = (
+        report.get("mvp2a_transition_policy_readiness")
+        if isinstance(report.get("mvp2a_transition_policy_readiness"), dict)
+        else {}
+    )
+    candidate = (
+        mvp2a.get("candidate_curated_train")
+        if isinstance(mvp2a.get("candidate_curated_train"), dict)
+        else {}
+    )
+    policy_trainer_selection = (
+        mvp2a.get("policy_trainer_selection")
+        if isinstance(mvp2a.get("policy_trainer_selection"), dict)
+        else {}
+    )
     return {
         "available": True,
         "path": str(report_path),
@@ -598,9 +639,295 @@ def build_mvp2_policy_ab_harness_summary(report_path: Path | None) -> dict[str, 
         "adapter_id": proof_source.get("adapter_id"),
         "source_evidence_type": proof_source.get("source_evidence_type"),
         "validator_backend": proof_source.get("validator_backend"),
+        "mvp2a_policy_ab_ready": mvp2a.get("mvp2a_policy_ab_ready") is True,
+        "mvp2a_next_recommended_gate": mvp2a.get("next_recommended_gate"),
+        "candidate_transition_coverage_passed": candidate.get("transition_coverage_passed") is True,
+        "candidate_train_set_overfit_passed": candidate.get("train_set_overfit_passed") is True,
+        "stronger_policy_trainer_selected": mvp2a.get("stronger_policy_trainer_selected") is True,
+        "selected_policy_class": policy_trainer_selection.get("policy_class"),
+        "selected_trainer": policy_trainer_selection.get("trainer"),
+        "candidate_dataset_present_required_phases": candidate.get("dataset_present_required_phases"),
+        "candidate_dataset_missing_required_phases": candidate.get("dataset_missing_required_phases"),
+        "candidate_transition_rich_episode_count": candidate.get("transition_rich_episode_count"),
         "policy_uplift_not_claimed": claim_boundary.get("policy_uplift_claimed") is False,
         "limitations": report.get("limitations") if isinstance(report.get("limitations"), list) else [],
     }
+
+
+def _numbers_match(left: Any, right: Any) -> bool:
+    if not isinstance(left, (int, float)) or not isinstance(right, (int, float)):
+        return False
+    return abs(float(left) - float(right)) <= 1e-9
+
+
+def _load_mvp2_validator_report(report: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None, list[str]]:
+    artifact_paths = report.get("artifact_paths")
+    if not isinstance(artifact_paths, dict):
+        return None, None, ["MVP-2 learning-proven report artifact_paths are missing."]
+    raw_path = artifact_paths.get("policy_eval_report")
+    if not isinstance(raw_path, str) or not raw_path:
+        return None, None, ["MVP-2 learning-proven report artifact_paths.policy_eval_report is missing."]
+    validator_report = read_json(Path(raw_path))
+    if validator_report is None:
+        return None, raw_path, ["MVP-2 held-out policy validator report is missing or invalid JSON."]
+    return validator_report, raw_path, []
+
+
+def _mvp2_validator_report_blockers(report: dict[str, Any], validator_report: dict[str, Any] | None) -> list[str]:
+    if validator_report is None:
+        return []
+    blockers: list[str] = []
+    for key in ("baseline_success_rate", "candidate_success_rate", "curated_vs_uncurated_uplift"):
+        if not _numbers_match(report.get(key), validator_report.get(key)):
+            blockers.append(f"MVP-2 report {key} does not match held-out policy validator report.")
+    if report.get("validator_evidence_tier") != validator_report.get("evidence_tier"):
+        blockers.append("MVP-2 validator_evidence_tier does not match held-out policy validator report.")
+    if validator_report.get("evidence_tier") != "heldout_policy_eval":
+        blockers.append("MVP-2 held-out policy validator report evidence_tier is not heldout_policy_eval.")
+    if validator_report.get("primary_metric") != POLICY_UPLIFT_PRIMARY_METRIC:
+        blockers.append("MVP-2 held-out policy validator report primary_metric is not policy_success_rate.")
+    eval_suite = validator_report.get("eval_suite")
+    if not isinstance(eval_suite, dict):
+        blockers.append("MVP-2 held-out policy validator report eval_suite is missing.")
+    else:
+        if eval_suite.get("source_kind") != "external_trainer_eval_suite":
+            blockers.append("MVP-2 held-out policy validator report eval_suite.source_kind is not external_trainer_eval_suite.")
+        if eval_suite.get("proof_role") != "external_policy_eval_suite":
+            blockers.append("MVP-2 held-out policy validator report eval_suite.proof_role is not external_policy_eval_suite.")
+        if "schema_only" in str(eval_suite.get("id")).lower():
+            blockers.append("MVP-2 held-out policy validator report eval_suite.id is schema-only.")
+        scenario_ids = eval_suite.get("scenario_ids")
+        if not isinstance(scenario_ids, list) or not scenario_ids:
+            blockers.append("MVP-2 held-out policy validator report eval_suite.scenario_ids are missing.")
+        elif any("schema_only" in str(item).lower() for item in scenario_ids):
+            blockers.append("MVP-2 held-out policy validator report eval_suite.scenario_ids include schema-only ids.")
+    return blockers
+
+
+def _mvp2_external_evidence_blockers(report: dict[str, Any]) -> list[str]:
+    evidence = report.get("external_rollout_evidence")
+    if not isinstance(evidence, dict):
+        return ["MVP-2 learning-proven report external_rollout_evidence is missing."]
+    blockers: list[str] = []
+    if evidence.get("source_kind") != "external_heldout_policy_eval":
+        blockers.append("MVP-2 external_rollout_evidence.source_kind is not external_heldout_policy_eval.")
+    if evidence.get("proof_grade") is not True:
+        blockers.append("MVP-2 external_rollout_evidence.proof_grade is not true.")
+    heldout_suite = evidence.get("heldout_suite")
+    if not isinstance(heldout_suite, dict):
+        blockers.append("MVP-2 external_rollout_evidence.heldout_suite is missing.")
+    elif not isinstance(heldout_suite.get("scenario_set_sha256"), str) or not heldout_suite.get("scenario_set_sha256"):
+        blockers.append("MVP-2 external_rollout_evidence.heldout_suite.scenario_set_sha256 is missing.")
+    for key in (
+        "baseline_policy_artifact_sha256",
+        "candidate_policy_artifact_sha256",
+        "baseline_training_artifact_sha256",
+        "candidate_training_artifact_sha256",
+    ):
+        if not isinstance(evidence.get(key), str) or not evidence.get(key):
+            blockers.append(f"MVP-2 external_rollout_evidence.{key} is missing.")
+    for key in ("baseline_external_evaluator_run", "candidate_external_evaluator_run"):
+        evaluator_run = evidence.get(key)
+        if not isinstance(evaluator_run, dict):
+            blockers.append(f"MVP-2 external_rollout_evidence.{key} is missing.")
+            continue
+        if evaluator_run.get("generated_outside_rdf_local_proxy") is not True:
+            blockers.append(
+                f"MVP-2 external_rollout_evidence.{key}.generated_outside_rdf_local_proxy is not true."
+            )
+        for field in ("run_id", "runner_version", "run_log_uri"):
+            if not isinstance(evaluator_run.get(field), str) or not evaluator_run.get(field):
+                blockers.append(f"MVP-2 external_rollout_evidence.{key}.{field} is missing.")
+    return blockers
+
+
+def build_mvp2_learning_proven_policy_eval_summary(report_path: Path | None) -> dict[str, Any]:
+    if report_path is None:
+        return {
+            "available": False,
+            "path": None,
+            "learning_results_measured": False,
+            "learning_proven": False,
+            "proof_eligible": False,
+            "negative_or_tie_result_recorded": False,
+            "evidence_tier": None,
+            "validator_evidence_tier": None,
+            "primary_metric": None,
+            "baseline_success_rate": None,
+            "candidate_success_rate": None,
+            "curated_vs_uncurated_uplift": None,
+            "blockers": ["MVP-2 learning-proven report path was not provided."],
+            "limitations": [],
+        }
+
+    report = read_json(report_path)
+    if report is None:
+        return {
+            "available": False,
+            "path": str(report_path),
+            "learning_results_measured": False,
+            "learning_proven": False,
+            "proof_eligible": False,
+            "negative_or_tie_result_recorded": False,
+            "evidence_tier": None,
+            "validator_evidence_tier": None,
+            "primary_metric": None,
+            "baseline_success_rate": None,
+            "candidate_success_rate": None,
+            "curated_vs_uncurated_uplift": None,
+            "blockers": ["MVP-2 learning-proven report is missing or invalid JSON."],
+            "limitations": [],
+        }
+
+    baseline_rate = report.get("baseline_success_rate")
+    candidate_rate = report.get("candidate_success_rate")
+    uplift = report.get("curated_vs_uncurated_uplift")
+    positive_rates = (
+        isinstance(baseline_rate, (int, float))
+        and isinstance(candidate_rate, (int, float))
+        and isinstance(uplift, (int, float))
+        and candidate_rate > baseline_rate
+        and uplift > 0
+    )
+    validator_report, validator_report_path, validator_load_blockers = _load_mvp2_validator_report(report)
+    validator_blockers = [
+        *validator_load_blockers,
+        *_mvp2_validator_report_blockers(report, validator_report),
+        *_mvp2_external_evidence_blockers(report),
+    ]
+    validator_report_compatible = not validator_blockers
+    reported_learning_results_measured = report.get("learning_results_measured") is True
+    learning_results_measured = bool(reported_learning_results_measured and validator_report_compatible)
+    proof_grade_mvp2_report = bool(
+        report.get("evidence_tier") == "external_heldout_policy_eval"
+        and report.get("validator_evidence_tier") == "heldout_policy_eval"
+        and validator_report_compatible
+    )
+    learning_proven = bool(
+        report.get("passed") is True
+        and learning_results_measured
+        and report.get("learning_proven") is True
+        and report.get("proof_eligible") is True
+        and proof_grade_mvp2_report
+        and positive_rates
+    )
+    negative_or_tie = bool(learning_results_measured and not learning_proven)
+    blockers = report.get("blockers") if isinstance(report.get("blockers"), list) else []
+    blockers = [*blockers, *validator_blockers]
+    if not proof_grade_mvp2_report and report.get("learning_proven") is True:
+        blockers = [
+            *blockers,
+            "MVP-2 learning-proven report is not proof-grade external held-out policy evaluation evidence.",
+        ]
+    limitations = report.get("limitations") if isinstance(report.get("limitations"), list) else []
+    proof_source = report.get("proof_source") if isinstance(report.get("proof_source"), dict) else {}
+    return {
+        "available": True,
+        "path": str(report_path),
+        "schema_version": report.get("schema_version"),
+        "reported_learning_results_measured": reported_learning_results_measured,
+        "learning_results_measured": learning_results_measured,
+        "learning_proven": learning_proven,
+        "proof_eligible": learning_proven,
+        "negative_or_tie_result_recorded": negative_or_tie,
+        "evidence_tier": report.get("evidence_tier"),
+        "validator_evidence_tier": report.get("validator_evidence_tier"),
+        "primary_metric": report.get("primary_metric"),
+        "baseline_success_rate": baseline_rate,
+        "candidate_success_rate": candidate_rate,
+        "curated_vs_uncurated_uplift": uplift,
+        "proof_grade_external_heldout_policy_eval": proof_grade_mvp2_report,
+        "policy_eval_report_path": validator_report_path,
+        "validator_report_compatible": validator_report_compatible,
+        "adapter_id": proof_source.get("adapter_id"),
+        "no_real_robot_evidence": report.get("no_real_robot_evidence"),
+        "no_isaac_rollout_evidence": report.get("no_isaac_rollout_evidence"),
+        "blockers": blockers,
+        "limitations": limitations,
+    }
+
+
+def _merge_mvp2_learning_proven_report(
+    *,
+    mvp2_status: dict[str, Any],
+    mvp2_learning_proven: dict[str, Any],
+    learning_proven_policy_uplift_achieved: bool,
+    policy_uplift_positive: bool,
+) -> dict[str, Any]:
+    proof = dict(mvp2_status)
+    if mvp2_learning_proven.get("available") is not True:
+        return proof
+
+    proof_grade_external = mvp2_learning_proven.get("proof_grade_external_heldout_policy_eval") is True
+    report_path = mvp2_learning_proven.get("path")
+    learning_results_measured = (
+        mvp2_learning_proven.get("learning_results_measured") is True and proof_grade_external
+    )
+    gate_evidence = {
+        "report_path": report_path,
+        "learning_results_measured": mvp2_learning_proven.get("learning_results_measured"),
+        "proof_grade_external_heldout_policy_eval": proof_grade_external,
+        "proof_eligible": mvp2_learning_proven.get("proof_eligible"),
+        "evidence_tier": mvp2_learning_proven.get("evidence_tier"),
+        "validator_evidence_tier": mvp2_learning_proven.get("validator_evidence_tier"),
+        "primary_metric": mvp2_learning_proven.get("primary_metric"),
+        "baseline_success_rate": mvp2_learning_proven.get("baseline_success_rate"),
+        "candidate_success_rate": mvp2_learning_proven.get("candidate_success_rate"),
+        "curated_vs_uncurated_uplift": mvp2_learning_proven.get("curated_vs_uncurated_uplift"),
+    }
+    merged_gates: list[dict[str, Any]] = []
+    for item in proof.get("gates", []):
+        if not isinstance(item, dict):
+            continue
+        merged = dict(item)
+        name = merged.get("name")
+        evidence = dict(merged.get("evidence") or {})
+        if name == "heldout_policy_ab_recorded" and learning_results_measured:
+            merged["passed"] = True
+            merged["remediation"] = None
+            evidence.update(gate_evidence)
+        elif name == "curated_vs_uncurated_policy_uplift_positive" and policy_uplift_positive:
+            merged["passed"] = True
+            merged["remediation"] = None
+            evidence.update(gate_evidence)
+        elif name == "positive_or_negative_result_report" and learning_results_measured:
+            merged["passed"] = True
+            merged["remediation"] = None
+            evidence.update(
+                {
+                    "report_path": report_path,
+                    "exists": isinstance(report_path, str) and Path(report_path).exists(),
+                    "result": "positive" if policy_uplift_positive else "negative_or_tie",
+                    "proof_grade_external_heldout_policy_eval": proof_grade_external,
+                }
+            )
+        merged["evidence"] = evidence
+        merged_gates.append(merged)
+
+    summary = dict(proof.get("summary") or {})
+    if proof_grade_external:
+        summary.update(
+            {
+                "heldout_policy_ab_recorded": learning_results_measured,
+                "curated_vs_uncurated_uplift": mvp2_learning_proven.get("curated_vs_uncurated_uplift"),
+                "proof_eligible": mvp2_learning_proven.get("proof_eligible"),
+                "evidence_tier": mvp2_learning_proven.get("evidence_tier"),
+                "validator_evidence_tier": mvp2_learning_proven.get("validator_evidence_tier"),
+                "primary_metric": mvp2_learning_proven.get("primary_metric"),
+                "baseline_success_rate": mvp2_learning_proven.get("baseline_success_rate"),
+                "candidate_success_rate": mvp2_learning_proven.get("candidate_success_rate"),
+                "negative_result_report": "not_applicable"
+                if learning_proven_policy_uplift_achieved
+                else "preserved",
+            }
+        )
+    proof["gates"] = merged_gates
+    proof["learning_proven"] = learning_proven_policy_uplift_achieved
+    proof["negative_evidence_recorded"] = bool(
+        proof.get("negative_evidence_recorded") or mvp2_learning_proven.get("negative_or_tie_result_recorded")
+    )
+    proof["summary"] = summary
+    return proof
 
 
 def _stage_passed(gate_map: dict[str, Gate], gate_names: tuple[str, ...]) -> bool:
@@ -669,6 +996,7 @@ def build_audit(
     output_path: Path | None = None,
     min_live_trajectories: int = 1,
     mvp2_policy_ab_harness_report_path: Path | None = None,
+    mvp2_learning_proven_report_path: Path | None = None,
 ) -> dict[str, Any]:
     readiness = read_json(readiness_report_path)
     curation = read_json(curation_manifest_path)
@@ -874,12 +1202,30 @@ def build_audit(
     missing_required = [item for item in required_gates if not item.passed]
     status = "pass" if not missing_required else "partial" if passed_required else "fail"
     staged_status = build_staged_status(gates)
+    mvp2_harness = build_mvp2_policy_ab_harness_summary(mvp2_policy_ab_harness_report_path)
     mvp2_status = build_mvp2_policy_uplift_status(
         learning=learning,
         learning_manifest_path=learning_manifest_path,
         live_scan=live_scan,
+        mvp2_harness=mvp2_harness,
     )
-    mvp2_harness = build_mvp2_policy_ab_harness_summary(mvp2_policy_ab_harness_report_path)
+    mvp2_learning_proven = build_mvp2_learning_proven_policy_eval_summary(mvp2_learning_proven_report_path)
+    learning_proven_policy_uplift_achieved = bool(
+        mvp2_status["learning_proven"] or mvp2_learning_proven["learning_proven"]
+    )
+    policy_uplift_positive = bool(policy_uplift_ready or mvp2_learning_proven["learning_proven"])
+    policy_uplift_negative_evidence_recorded = bool(
+        mvp2_status["negative_evidence_recorded"] or mvp2_learning_proven["negative_or_tie_result_recorded"]
+    )
+    heldout_policy_ab_recorded = bool(
+        heldout_policy_measurement_recorded or mvp2_learning_proven["learning_results_measured"]
+    )
+    mvp2_policy_uplift_proof = _merge_mvp2_learning_proven_report(
+        mvp2_status=mvp2_status,
+        mvp2_learning_proven=mvp2_learning_proven,
+        learning_proven_policy_uplift_achieved=learning_proven_policy_uplift_achieved,
+        policy_uplift_positive=policy_uplift_positive,
+    )
     report = {
         "schema_version": SCHEMA_VERSION,
         "proof_name": "MVP-1 Validated Dataset Pipeline Proof",
@@ -889,10 +1235,11 @@ def build_audit(
         "mvp1_dataset_pipeline_proof_achieved": status == "pass",
         "learning_ready_dataset_artifact": status == "pass",
         "policy_uplift_required_for_mvp1": False,
-        "learning_proven_policy_uplift_achieved": mvp2_status["learning_proven"],
+        "learning_proven_policy_uplift_achieved": learning_proven_policy_uplift_achieved,
         "staged_mvp1": staged_status,
-        "mvp2_policy_uplift_proof": mvp2_status,
+        "mvp2_policy_uplift_proof": mvp2_policy_uplift_proof,
         "mvp2_policy_ab_harness": mvp2_harness,
+        "mvp2_learning_proven_policy_eval": mvp2_learning_proven,
         "passed_required_gates": len(passed_required),
         "required_gate_count": len(required_gates),
         "gates": [
@@ -917,13 +1264,13 @@ def build_audit(
             "live_insertion_evidence_count": live_scan["candidate_count"],
             "trainer_dry_run_passed": trainer_ready,
             "learning_ready": status == "pass",
-            "learning_proven": mvp2_status["learning_proven"],
-            "heldout_policy_ab_recorded": heldout_policy_measurement_recorded,
-            "policy_uplift_positive": policy_uplift_ready,
-            "policy_uplift_negative_evidence_recorded": mvp2_status["negative_evidence_recorded"],
+            "learning_proven": learning_proven_policy_uplift_achieved,
+            "heldout_policy_ab_recorded": heldout_policy_ab_recorded,
+            "policy_uplift_positive": policy_uplift_positive,
+            "policy_uplift_negative_evidence_recorded": policy_uplift_negative_evidence_recorded,
             "policy_uplift_not_required_for_mvp1": True,
             "do_not_claim_full_mvp1": bool(missing_required),
-            "do_not_claim_policy_uplift": not mvp2_status["learning_proven"],
+            "do_not_claim_policy_uplift": not learning_proven_policy_uplift_achieved,
         },
     }
     if output_path is not None:
@@ -950,6 +1297,10 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=ROOT / "storage" / "mvp2_policy_ab_harness" / "mvp2_policy_ab_harness_report.json",
     )
+    parser.add_argument(
+        "--mvp2-learning-proven-report",
+        type=Path,
+    )
     parser.add_argument("--output", type=Path, default=ROOT / "storage" / "mvp1_proof" / "proof_audit.json")
     parser.add_argument("--min-live-trajectories", type=int, default=1)
     parser.add_argument("--pretty", action="store_true")
@@ -970,6 +1321,7 @@ def main() -> int:
         output_path=args.output,
         min_live_trajectories=args.min_live_trajectories,
         mvp2_policy_ab_harness_report_path=args.mvp2_policy_ab_harness_report,
+        mvp2_learning_proven_report_path=args.mvp2_learning_proven_report,
     )
     if args.pretty:
         print(stable_json(report))

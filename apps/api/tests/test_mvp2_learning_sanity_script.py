@@ -41,6 +41,16 @@ def _force_all_hdf5_phases(hdf5_path: Path, phase: str) -> None:
                 dataset[index] = json.dumps({"action_phase": phase})
 
 
+def test_mvp2_learning_sanity_reads_command_state_task_phase() -> None:
+    phase, source, confidence = mvp2_sanity._phase_from_metadata(
+        {"command_state_row": {"task_phase": "seat"}}
+    )
+
+    assert phase == "SEAT"
+    assert source == "command_state_row.task_phase"
+    assert confidence == 0.8
+
+
 def test_mvp2_learning_sanity_passes_transition_rich_readiness_bundle(tmp_path: Path) -> None:
     output_dir = tmp_path / "mvp1_readiness"
     assert readiness.build_bundle(output_dir, clean=True)["passed"] is True

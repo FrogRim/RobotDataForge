@@ -1,0 +1,299 @@
+{
+  "schema_version": "rdf_mvp2_external_proof_package_v0.1.0",
+  "package_id": "mvp2_learning_proven_evidence_package_v0_14",
+  "created_at": "2026-06-16",
+  "created_timezone": "Asia/Seoul",
+  "status": "frozen_for_external_technical_review",
+  "source_git": {
+    "branch": "codex/mvp2-learning-proven-uplift",
+    "head_at_package_creation": "9dab396762b2bcfcb3cfa74296e50eeab8889c8c",
+    "proof_commit": "705d08536955c16590cf0e97982c8e35f8c17581"
+  },
+  "claim": {
+    "domain": "Isaac held-out evaluator domain",
+    "policy_slice": "v0_14",
+    "slice_id": "mvp2e_v14_comparator_provenance_row_balance_slice",
+    "parent_policy_slice": "v0_13",
+    "runtime_backend": "isaac_runtime",
+    "proof_runtime": "dedicated_isaac_connector_insertion_evaluator",
+    "mvp2_closed": true,
+    "policy_uplift_proven": true,
+    "primary_metric": "policy_success_rate",
+    "calibration": {
+      "seed_range": "39000-39029",
+      "baseline_successes": 5,
+      "baseline_rollouts": 30,
+      "candidate_successes": 26,
+      "candidate_rollouts": 30,
+      "absolute_gap": 0.7
+    },
+    "heldout_closure": {
+      "seed_range": "40000-40049",
+      "baseline_successes": 5,
+      "baseline_rollouts": 50,
+      "baseline_success_rate": 0.1,
+      "candidate_successes": 40,
+      "candidate_rollouts": 50,
+      "candidate_success_rate": 0.8,
+      "absolute_uplift": 0.7000000000000001,
+      "confidence_interval": {
+        "available": true,
+        "method": "bootstrap_success_rate_difference",
+        "iterations": 2000,
+        "lower": 0.56,
+        "upper": 0.82
+      }
+    }
+  },
+  "spent_heldout_ranges": [
+    {
+      "range": "40000-40049",
+      "status": "spent_for_mvp2_v0_14_closure",
+      "future_tuning_allowed": false,
+      "future_closure_reuse_allowed": false,
+      "same_heldout_reuse_allowed_for_closure": false,
+      "reason": "Used by the v0_14 actual Isaac held-out closure gate."
+    }
+  ],
+  "non_claims": {
+    "real_robot_success": false,
+    "physical_robot_readiness": false,
+    "hmd_openxr_readiness": false,
+    "visual_policy_performance": false,
+    "deployable_real_robot_policy": false,
+    "universal_robot_support": false,
+    "marketplace_readiness": false,
+    "production_certification": false
+  },
+  "artifact_index": [
+    {
+      "role": "root_evidence_manifest",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/evidence_manifest.json",
+      "file_sha256": "12678323b4796080136d75a7c8a277e812c0eedf2b46f4134345c2559302334e",
+      "internal_manifest_sha256": "e3792596e9aab972c4af61896338a39b00da0c8849c672b6cdf6fa11ae123c5e"
+    },
+    {
+      "role": "heldout_closure_gate",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/heldout_closure_gate_v0_14.json",
+      "file_sha256": "ddb30bc37c8c3c79a5634680d712a836b0923ca407459415a49c1619ca0452fc",
+      "data_path": "data/heldout_closure_gate_v0_14.json",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "role": "calibration_presignal_gate",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/calibration_presignal_gate_v0_14.json",
+      "file_sha256": "54405c4e104d6850ac2904e9c4a55dbc45e6e52a11b63781276685a674c48e12",
+      "data_path": "data/calibration_presignal_gate_v0_14.json",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "role": "comparator_provenance_row_balance_gate",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/v0_14_comparator_provenance_row_balance_gate.json",
+      "file_sha256": "75002044909cca6b52b3e581bde060c7582f55f30af72a9a6e2a54526bd3dd2c",
+      "data_path": "data/v0_14_comparator_provenance_row_balance_gate.json",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "role": "comparator_manifest",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/v0_14_comparator_provenance_row_balance_manifest.json",
+      "file_sha256": "fd79e7d1f730342f19491532f53a35e9bc14e999c356377a89c3bd5df5175f4f",
+      "data_path": "data/v0_14_comparator_provenance_row_balance_manifest.json",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "role": "row_balance_report",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/v0_14_row_balance_report.json",
+      "file_sha256": "6a489c467e067828fe94b2c37788308b835fe9df929072545d67cc82eb69e395",
+      "data_path": "data/v0_14_row_balance_report.json",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "role": "source_provenance_report",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/v0_14_source_provenance_report.json",
+      "file_sha256": "8f51c41483548cbd3ac80a6132dc24065a6a565ed0423bdceb8f012280316a69",
+      "data_path": "data/v0_14_source_provenance_report.json",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "role": "learning_proven_report",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/mvp2_learning_proven_policy_eval/mvp2_learning_proven_report.json",
+      "file_sha256": "e20a27469f49ecf3b872f4ae53fcb741533a7700541cc37bcdaca52b34012cd5",
+      "data_path": "data/mvp2_learning_proven_report.json",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "role": "baseline_heldout_rollouts",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/external_rollouts/baseline_external_rollouts.json",
+      "file_sha256": "aac10b47624de21d42fb144c333e5dc1ea7bdf0158662969e68f4a2ef5d748bf",
+      "data_path": "data/baseline_external_rollouts.json",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "role": "candidate_heldout_rollouts",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/external_rollouts/candidate_external_rollouts.json",
+      "file_sha256": "6ad81c474e654489f2d098cf8f90e0f347b4a9b6e94d368642054f8acda2ca76",
+      "data_path": "data/candidate_external_rollouts.json",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "role": "baseline_policy_artifact",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/baseline_policy_artifact_v0_14.json",
+      "data_path": "data/baseline_policy_artifact_v0_14.json",
+      "hash_convention": "canonical_payload_excluding_self",
+      "canonical_payload_sha256": "318d10f4626e0ace61b9180eb0bf735e2a8cddbe1d537847b129f26dbbe028e7"
+    },
+    {
+      "role": "candidate_policy_artifact",
+      "path": "storage/proof_evidence/mvp2c_isaac_training_calibration/v0_14_comparator_provenance_row_balance/candidate_policy_artifact_v0_14.json",
+      "data_path": "data/candidate_policy_artifact_v0_14.json",
+      "hash_convention": "canonical_payload_excluding_self",
+      "canonical_payload_sha256": "871103f8ac29e0ef8a33f80c9a8a07539177cf093fe41f579b2d02498e54a5a9"
+    }
+  ],
+  "review_gaps": [
+    "separate_physical_machine_reproduction_not_done",
+    "live_isaac_rerun_not_done_for_this_package_creation_step",
+    "legal_or_commercial_due_diligence_not_done",
+    "real_robot_hmd_openxr_visual_policy_deployable_policy_claims_out_of_scope"
+  ],
+  "codex_use": {
+    "used": true,
+    "role": "documentation, artifact inspection, claim-boundary self-review, validation command execution",
+    "authority": "source artifacts, tests, and commits remain authoritative"
+  },
+  "seed_ranges": {
+    "training": "19000-19359",
+    "calibration_selector": "20000-20029",
+    "fresh_calibration_presignal": "39000-39029",
+    "heldout_closure": "40000-40049",
+    "pre_closure_burned": [
+      "19000-19359",
+      "20000-20029",
+      "39000-39029"
+    ],
+    "post_closure_spent": [
+      "40000-40049"
+    ],
+    "derivation": "pre_closure_burned derived from heldout_closure_gate.heldout_leakage_guard.checked_channels + fresh_calibration_39000_39029; verifier re-derives and checks disjointness from held-out scenario_ids."
+  },
+  "package_audit_ci_seed": 20260617,
+  "level_c_traces": {
+    "trace_count_expected": 100,
+    "per_trace_sha256": {
+      "baseline_0000_held_out_40000_isaac_trace.json": "44c68c3a405c2ac6d5c621b459c8384b1704da89ea4c66b5eebc7e6c51b7a55f",
+      "baseline_0001_held_out_40001_isaac_trace.json": "b188a91c32c00ab51568ce879d92a0e81d33b362c62dce1dee7e297d397e8412",
+      "baseline_0002_held_out_40002_isaac_trace.json": "00b9d5d4821e53968178748763287b8a15a8e6ee9233035b2c0e5c49101c3749",
+      "baseline_0003_held_out_40003_isaac_trace.json": "26612acc1ce86cec2dc9aea249ea038c8a25f485039bcd80048d3a0888fa23dc",
+      "baseline_0004_held_out_40004_isaac_trace.json": "3b5549e3d01e88e2812ac0aa4790554d5cf3c56a10ed773a292f2643cfb17429",
+      "baseline_0005_held_out_40005_isaac_trace.json": "4c99395e033598936ac9901149067fe725cf99810fa66a5802c6f10426ba4c00",
+      "baseline_0006_held_out_40006_isaac_trace.json": "8abed30bc5c75e8e9a93eb8d4ed8d9f430491878b021eddea8e6bede467506da",
+      "baseline_0007_held_out_40007_isaac_trace.json": "72ae97ef97a216a97485a6e32775c5871820485cfdc2176eda5632651c7f6894",
+      "baseline_0008_held_out_40008_isaac_trace.json": "5e44fa92ed13cf98cbdd4238e8231ff16ce22b8e9b4ee6cd6ef4bfb05f75eaf0",
+      "baseline_0009_held_out_40009_isaac_trace.json": "d7e53d018d901803a7cbb220bba15ac1bdcfd2c550c068caac3e782751a54f3f",
+      "baseline_0010_held_out_40010_isaac_trace.json": "c7b14b8a6f986ff24f0bb826c605e24f91459202e082bcbb5e2d6b844946d32b",
+      "baseline_0011_held_out_40011_isaac_trace.json": "a080b4c051e689ddc96e9237ef18c4a7922ef43c3d8b9d9dc1243c27ed96f2e7",
+      "baseline_0012_held_out_40012_isaac_trace.json": "2641a7827401e2e0e477ce015773e11a844b6a81b7866c26340cfe35413dd834",
+      "baseline_0013_held_out_40013_isaac_trace.json": "70066a93ac2c7954b5f09294c64caec82b82e2130e0604e42c9356919d5b7791",
+      "baseline_0014_held_out_40014_isaac_trace.json": "dc949aa43b6f329c3fdbcd1b7cd44636815675f65930d76fa4d0a86e54558659",
+      "baseline_0015_held_out_40015_isaac_trace.json": "5fd14195066c71947388918863e3c707e9b9a5488413b53f88339cfebd3a8e36",
+      "baseline_0016_held_out_40016_isaac_trace.json": "b8b5f1a6923ef88b383a12d6edbbd4e9edfed3d0a76f93060720d7918dc733b6",
+      "baseline_0017_held_out_40017_isaac_trace.json": "8cd309c40f5452f38c3039666aebf6c87df32ad401e60895ae83e2c85ae52045",
+      "baseline_0018_held_out_40018_isaac_trace.json": "b35869af64f3a7c03a52cb41d37929fac39c60b50bacfa18d777fa0bc458829b",
+      "baseline_0019_held_out_40019_isaac_trace.json": "d13e89bf63ede687a7c127c5131eb54b9980340eda3d783fea216318235432b0",
+      "baseline_0020_held_out_40020_isaac_trace.json": "07b9222d53e592b8b405343d7f3d7ae610446d2e232b46c2d68502f6b5302e8f",
+      "baseline_0021_held_out_40021_isaac_trace.json": "ff821ad363e92e70032fe883fd54ba77841def013c5d2974ce5cefe4801549cb",
+      "baseline_0022_held_out_40022_isaac_trace.json": "08bd391993843171c0dd0e24bcb75e39e1c03e9d1211678e987b5e8a60488524",
+      "baseline_0023_held_out_40023_isaac_trace.json": "20d24dd5db6e71a8cda7c8a736a40947d78a6094b0903bc13bcb68a787eb096a",
+      "baseline_0024_held_out_40024_isaac_trace.json": "9345c116a36c801cc3c80ab67262fa98a3817aa162b74219730019aca34cf04c",
+      "baseline_0025_held_out_40025_isaac_trace.json": "7e0eaa2280375932bebed7825b1149e2f8a04c9929c8bd6f7f479c843f61934d",
+      "baseline_0026_held_out_40026_isaac_trace.json": "fd50b7d97bb8bf43d87d6fcc5575c77616fb1598999196591198fb7fe6ca157d",
+      "baseline_0027_held_out_40027_isaac_trace.json": "f95e174720594de35d29b98413eceed71a650e2ea1822500e46cf47d6f6b2899",
+      "baseline_0028_held_out_40028_isaac_trace.json": "7cfb1c449f4c2ab4f080e14dfefd0d0a3694a9c8bab58373f63b0872e0b83125",
+      "baseline_0029_held_out_40029_isaac_trace.json": "2b65bb04894fb561c7d861a1414afcfab7f86e94fa304cb0ec939fcd8c62f298",
+      "baseline_0030_held_out_40030_isaac_trace.json": "862a750746661bfd5442d875f4a3f7bcfec0c5c51f87b22b10d330551810db15",
+      "baseline_0031_held_out_40031_isaac_trace.json": "6a9fd12f5e975a1d1a8d3291c67bbb16d6893fcb2c5b328133af04dcec7a59a2",
+      "baseline_0032_held_out_40032_isaac_trace.json": "8cedae47cd404fbc02e0458b275eb15eea26b4889b1e3be677469c555960c195",
+      "baseline_0033_held_out_40033_isaac_trace.json": "0cca69a7f18a2255b5e2d4ea8e0af60545fdbbbd48089ed23b9999a9264a965f",
+      "baseline_0034_held_out_40034_isaac_trace.json": "b24631a115bcff69eb74ca40a284ecb80e2a44275e183c5f5a98366bdc770963",
+      "baseline_0035_held_out_40035_isaac_trace.json": "184db402b72fd3a292ba089e08c712b027dc5df59c4c407cf2b2372194211a02",
+      "baseline_0036_held_out_40036_isaac_trace.json": "57741cf3738dd086f94725ab391085ad3bc5b8371ab2f4f1584995bfd06a6cd4",
+      "baseline_0037_held_out_40037_isaac_trace.json": "0583662202fd41af4fa7ef06b22e85c06fdc1e7a8a94a5c4fa257c8086314fce",
+      "baseline_0038_held_out_40038_isaac_trace.json": "bcfc4be15ac2b6686ea8355521e1f350856899f2203e90f5f274c309a87c0547",
+      "baseline_0039_held_out_40039_isaac_trace.json": "5efe7c4a8fae11f94194958f1e8476916958458b5cb97bdf7905614d199d4b3e",
+      "baseline_0040_held_out_40040_isaac_trace.json": "c38b5edc4f1733e14edc9e07635eb887ca87c89a135c0396396a237a43888651",
+      "baseline_0041_held_out_40041_isaac_trace.json": "3ddc552b0a0bcff2e97d364d7fe0a537fce02f9ca608678df21d30a24f5e4f9c",
+      "baseline_0042_held_out_40042_isaac_trace.json": "df631a4f3e35af3348b80f13e040e8dfcf87554464bc37afacbc629481f63653",
+      "baseline_0043_held_out_40043_isaac_trace.json": "2d6d1a04b85f88bfc90f6cec6772767527412d3ecf871fb4ac0d5ac8b931ed98",
+      "baseline_0044_held_out_40044_isaac_trace.json": "e8aa74cd3d88e7e769b35d26f746d2daf7a43b9581ff106d451d6d5b8de69841",
+      "baseline_0045_held_out_40045_isaac_trace.json": "b8af8105fbcb1e39cfef2ef6aac45e4abe8db5f98e543708d1d64d70abe057f9",
+      "baseline_0046_held_out_40046_isaac_trace.json": "110d77685e3f87818e566dbfc78ba9a9d8c5b4df9f4ff07899d6fa0481820f16",
+      "baseline_0047_held_out_40047_isaac_trace.json": "644f562d34b447e176bb7e76b51abf243094699e00844fe31f7f542d30424cc4",
+      "baseline_0048_held_out_40048_isaac_trace.json": "7c18ad117c9e4b0dc2ea071278de082d4953041e2b8acbb2ccecea0bc26b7243",
+      "baseline_0049_held_out_40049_isaac_trace.json": "818e9eb0f4ef7bb44c9ae536675e6d78496d67a47d634ed716a6d24ba804a426",
+      "candidate_0000_held_out_40000_isaac_trace.json": "2901b88dbb814389bbbae4763f40e9f7b65d1ce9090b1d764b2cbe5dbf926c6b",
+      "candidate_0001_held_out_40001_isaac_trace.json": "24b59fcbecbd1b9fec970ea0a6b78c1e95922c31ad0ae929de5dba11d3cb1aa1",
+      "candidate_0002_held_out_40002_isaac_trace.json": "3822f24b32be397d155bd6998ba86436b6baf66121327580acaa9bc0ad1575ea",
+      "candidate_0003_held_out_40003_isaac_trace.json": "532ab48de08d03faf493ef7c5cf198001643c6ba913c9352db9b5bea0572eb50",
+      "candidate_0004_held_out_40004_isaac_trace.json": "1c85b347e128ac62e7e657786e8c7688b3e4186a5e8407175c75f0cecb74324f",
+      "candidate_0005_held_out_40005_isaac_trace.json": "2d6ca3c4b0dd3142f075e7693bc7ae0e467d3ccd854dbe7976fb6c57a167a084",
+      "candidate_0006_held_out_40006_isaac_trace.json": "52f1fe30b37dbc550afcb037d740f5376f1e46c8b4bb1a5a1d76ecf544a75162",
+      "candidate_0007_held_out_40007_isaac_trace.json": "09db33ebb9105022f3805d224a1f8b4a0a10d1ad777c9a25245d550b2764ea30",
+      "candidate_0008_held_out_40008_isaac_trace.json": "853899a69fd7d432aaa89bc5d1315af087a1d5c48be801f7671a490b2fe9b9b1",
+      "candidate_0009_held_out_40009_isaac_trace.json": "d046da4ef2b5218825fce795cd3c96bacf6cbf7fb6caf30e3ae078df1752158e",
+      "candidate_0010_held_out_40010_isaac_trace.json": "fc55a750063a942c9351a8f18d9c9bbb34214ec02ea1d5fc988f746511ded637",
+      "candidate_0011_held_out_40011_isaac_trace.json": "3076dbb2ee82818d7a57a1b1cb63dd779fb0d318af8ad10d7bc5896fe2757f3f",
+      "candidate_0012_held_out_40012_isaac_trace.json": "bc620b50cd2b3cb77e8ba583b957a720d914ca469140fdb0bb1ea0d4aee9cd24",
+      "candidate_0013_held_out_40013_isaac_trace.json": "ca486b77199f5ddcec630f89eb08d1dcf4f9693e1c528f64127dd5debaa8c2e6",
+      "candidate_0014_held_out_40014_isaac_trace.json": "126c847f4398118df57bb5ce8bf92d65fecbd7e5c33a0485809c5f53e3be8de2",
+      "candidate_0015_held_out_40015_isaac_trace.json": "aeb0c5d067d6960966a926a760b337369fbfc689dd487ec0ad1c3bdcadd248ce",
+      "candidate_0016_held_out_40016_isaac_trace.json": "123d78a5ce41fc8d38f2234c76011231c50a89b519d41f1659ca81d2c0c31c85",
+      "candidate_0017_held_out_40017_isaac_trace.json": "f7c282880275aa2c75225afaeb83f6190edbf33e481ce5217cf1dcfe92c58005",
+      "candidate_0018_held_out_40018_isaac_trace.json": "575c402b76a11800ef1f9dd59453995c61313412a5b733774066e649df24ad88",
+      "candidate_0019_held_out_40019_isaac_trace.json": "7e3e6e93364d6cbaed7834d703b263731cb11ca373a296f275e56e31c0b97997",
+      "candidate_0020_held_out_40020_isaac_trace.json": "604169b5281441d547f43b15f9ef072b25d483331ba8b078595107fd50071444",
+      "candidate_0021_held_out_40021_isaac_trace.json": "190fa9b8c48be4a7c38b4f685fc5f6321453cd22aacf0c26e5abaf13dcf4600f",
+      "candidate_0022_held_out_40022_isaac_trace.json": "9228e12277ffd41eccaeb2a4cdb1140d38b73a4cf8ad682905cf38a5ea7cb2bb",
+      "candidate_0023_held_out_40023_isaac_trace.json": "d8d2c38140323a6d739f42e0e0e890f8d4d0695942883b42a275294faa0f2b8d",
+      "candidate_0024_held_out_40024_isaac_trace.json": "d15317980e58f2b19929b6e8d6f93bb75d356ece557fe2c3ab09633f5cad97b2",
+      "candidate_0025_held_out_40025_isaac_trace.json": "f256f9c9a730f6a1b81943f58788175902a29d0e1eb260b4c60a08230d1d3852",
+      "candidate_0026_held_out_40026_isaac_trace.json": "91af2fdda77e6358dc5f8d3516e1ca7dbe00fc8a2bca362c898ba9c40acf904c",
+      "candidate_0027_held_out_40027_isaac_trace.json": "7932fa6bf1f82eb281de6a2b35402d99e3d494049f335cb98d5bc336c1675f66",
+      "candidate_0028_held_out_40028_isaac_trace.json": "2b505ce45ab5690b06586cc1660c48b28358a7c0d33ac6fb6486dd68798203eb",
+      "candidate_0029_held_out_40029_isaac_trace.json": "ab1e915a2b2ddd87cd780af4b5e86cd56b6ad32a9d595cf5e802c85dc6bbc8df",
+      "candidate_0030_held_out_40030_isaac_trace.json": "d2b402382f414aeb14e0ac0d0c6740c7b4e2854ed835e98264a22a217aae1aa6",
+      "candidate_0031_held_out_40031_isaac_trace.json": "6027ba75e5b0b844b2c50a9e27807981b81238ae6d371545ecebeb4bb0ca2862",
+      "candidate_0032_held_out_40032_isaac_trace.json": "e03f4d1b3815024fbf4f35d3c3a0b6d05ea6749f463aa4b3023fc5b19e3ba260",
+      "candidate_0033_held_out_40033_isaac_trace.json": "d916f5901cad52ed583da803ca24104a36ac0004257f41e1472d56de438bad21",
+      "candidate_0034_held_out_40034_isaac_trace.json": "99dabd984a077a6d505b58510ad1eece40eed8a4778bbb947259b20f94594e52",
+      "candidate_0035_held_out_40035_isaac_trace.json": "2d7606d164b2b466b8a319cfa3b8e152f2402518e4db721ea12b79795a678d2a",
+      "candidate_0036_held_out_40036_isaac_trace.json": "59c9bfe8b8ef43e5257fe5f6d9a6997f4cb88aa91939f45f1e371d3bea9d7ecd",
+      "candidate_0037_held_out_40037_isaac_trace.json": "fdda827d0d0ba2f3c57c885f332d32fea5f2bc111f077ecfcb4ef80869bb80bd",
+      "candidate_0038_held_out_40038_isaac_trace.json": "38f0d8031b1ccb4ee84e82488b9566cf66ca8c6a90e2e91f271b0917f26167d1",
+      "candidate_0039_held_out_40039_isaac_trace.json": "2e7b5a210175f16de0f836a1cd2eac20edf8499bee2ed0a1a3029ef4d38727e4",
+      "candidate_0040_held_out_40040_isaac_trace.json": "079f12980321d46202984c56292ec4e013d9c5b1b770c1dc2f0764100b0ada32",
+      "candidate_0041_held_out_40041_isaac_trace.json": "fa6b25a16e7313620541712e48d4f0aff02d4d8ff9b950deb555881fb00d7156",
+      "candidate_0042_held_out_40042_isaac_trace.json": "f088e11e238a5852f3041ee34f9472b45836776a2b75a692dc84def299b81dfd",
+      "candidate_0043_held_out_40043_isaac_trace.json": "51b34e71576f14d092f10c44cac35b1e74087348df15c9262ea14e3c4febc1d9",
+      "candidate_0044_held_out_40044_isaac_trace.json": "facf5a449576098dc5b765d1d88315c0fae97a16f3213d0b8aad788ce01e7a17",
+      "candidate_0045_held_out_40045_isaac_trace.json": "00208da44a34ecce9015147fc658944b166f3d3f61572adf7509a4b32bdfeb79",
+      "candidate_0046_held_out_40046_isaac_trace.json": "afd270d7deef06ca05eb16327f60c16e02118b02d749e3ee5470b74600678abf",
+      "candidate_0047_held_out_40047_isaac_trace.json": "4e9df9218a8472a1b90d10a835d7b6b14162389a703d1478523e84779e2fe460",
+      "candidate_0048_held_out_40048_isaac_trace.json": "493d36f2e2a6ef4c8df71af55a0a990b16fb13412749979a300cd8a68fba47ac",
+      "candidate_0049_held_out_40049_isaac_trace.json": "34eedc200aba92185729757389ac5ef4ac21cad8a592e5aac58346b01e390dad"
+    },
+    "trace_tarball_sha256": null,
+    "trace_tarball_status": "out_of_band_not_required_for_level_b",
+    "deep_verification_mode": "optional"
+  },
+  "clone_only_reproduction": {
+    "performed": true,
+    "date": "2026-06-18",
+    "method": "fresh git clone into a separate directory; committed contents only; bare python3 (no project deps, no Isaac)",
+    "branch_head": "1ba43c0",
+    "verifier": "scripts/verify_mvp2_package.py",
+    "level_b_result": "VERIFIED (11 hard-checks, exit 0)",
+    "storage_v0_14_tracked_files_in_clone": 0,
+    "level_c_traces_present_in_clone": 0,
+    "note": "The verdict was recomputed solely from the git-tracked data/ bundle; no v0_14 storage artifacts or per-step traces exist in a fresh clone. Reproduction on a separate physical machine remains an open gap."
+  }
+}

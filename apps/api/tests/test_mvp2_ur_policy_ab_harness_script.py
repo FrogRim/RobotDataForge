@@ -95,6 +95,7 @@ def test_mvp2_ur_harness_creates_mvp2_named_dataset_and_eval_artifacts(tmp_path:
         output_dir / "mvp2_policy_ab_harness_report.json",
         output_dir / "mvp2_policy_eval_input_template.json",
         output_dir / "mvp2_heldout_suite_manifest.json",
+        output_dir / "mvp2a_policy_trainer_selection_report.json",
         output_dir / "baseline_uncurated" / "baseline_uncurated_train.hdf5",
         output_dir / "candidate_curated" / "candidate_curated_train.hdf5",
         output_dir / "rollout_ingest_contract_fixture" / "baseline_rollouts.schema_fixture.json",
@@ -110,8 +111,20 @@ def test_mvp2_ur_harness_creates_mvp2_named_dataset_and_eval_artifacts(tmp_path:
     assert template["schema_version"] == "rdf_mvp2_policy_eval_input_v0.1.0"
     assert template["baseline"]["dataset_view"] == "baseline_uncurated_recorded_log_harness"
     assert template["candidate"]["dataset_view"] == "candidate_curated_accepted"
+    assert template["baseline"]["policy_class"] == "phase_conditioned_sequence_bc_policy_v0"
+    assert template["candidate"]["policy_class"] == "phase_conditioned_sequence_bc_policy_v0"
+    assert template["baseline"]["trainer"] == "rdf_phase_conditioned_sequence_bc_trainer_contract_v0"
+    assert template["candidate"]["trainer"] == "rdf_phase_conditioned_sequence_bc_trainer_contract_v0"
+    assert template["baseline"]["trainer_selection_report_path"] == str(
+        output_dir / "mvp2a_policy_trainer_selection_report.json"
+    )
+    assert template["candidate"]["trainer_selection_report_path"] == str(
+        output_dir / "mvp2a_policy_trainer_selection_report.json"
+    )
     assert template["baseline"]["rollout_results"] == []
     assert template["candidate"]["rollout_results"] == []
+    assert template["claim_boundary"]["policy_trained"] is False
+    assert template["claim_boundary"]["policy_uplift_claimed"] is False
 
 
 def test_mvp2_schema_only_rollout_ingest_is_not_policy_evidence(tmp_path: Path) -> None:
@@ -259,6 +272,67 @@ def test_mvp2_harness_cli_writes_report_and_preserves_claim_boundary(tmp_path: P
     report = read_json(output_dir / "mvp2_policy_ab_harness_report.json")
     assert report["passed"] is True
     assert report["learning_results_measured"] is False
+    assert report["learning_proven"] is False
+
+
+def test_mvp2_harness_ingests_transition_rich_ur_train_material(tmp_path: Path) -> None:
+    harness = load_script("run_mvp2_ur_policy_ab_harness")
+    output_dir = tmp_path / "mvp2_policy_ab_harness"
+
+    report = harness.build_mvp2_ur_policy_ab_harness(
+        output_dir=output_dir,
+        mvp1plus_output_dir=tmp_path / "mvp1plus_embodiment_proof",
+        clean=True,
+        refresh_mvp1plus=True,
+    )
+
+    readiness = report["mvp2a_transition_policy_readiness"]
+    candidate = readiness["candidate_curated_train"]
+    artifact_paths = report["artifact_paths"]
+
+    assert readiness["schema_version"] == "rdf_mvp2a_transition_policy_readiness_v0.1.0"
+    assert readiness["passed"] is True
+    assert readiness["mvp2a_policy_ab_ready"] is True
+    assert readiness["learning_results_measured"] is False
+    assert readiness["curated_vs_uncurated_uplift"] is None
+    assert readiness["learning_proven"] is False
+    assert readiness["stronger_policy_trainer_selected"] is True
+    assert readiness["next_recommended_gate"] == "external_heldout_policy_rollout_generation"
+
+    assert candidate["transition_coverage_passed"] is True
+    assert candidate["train_set_overfit_passed"] is True
+    assert candidate["dataset_present_required_phases"] == ["APPROACH", "CONTACT", "INSERT", "SEAT"]
+    assert candidate["dataset_missing_required_phases"] == []
+    assert candidate["transition_rich_episode_count"] == 1
+    assert candidate["sample_count"] == 4
+
+    selection = readiness["policy_trainer_selection"]
+    assert selection["schema_version"] == "rdf_mvp2a_policy_trainer_selection_v0.1.0"
+    assert selection["selected"] is True
+    assert selection["policy_class"] == "phase_conditioned_sequence_bc_policy_v0"
+    assert selection["trainer"] == "rdf_phase_conditioned_sequence_bc_trainer_contract_v0"
+    assert selection["selection_basis"]["transition_coverage_passed"] is True
+    assert selection["selection_basis"]["train_set_overfit_passed"] is True
+    assert selection["selection_basis"]["candidate_sample_count"] == 4
+    assert selection["claim_boundary"]["policy_trained"] is False
+    assert selection["claim_boundary"]["rollout_results_measured"] is False
+    assert selection["claim_boundary"]["policy_uplift_claimed"] is False
+    assert selection["claim_boundary"]["proof_eligible"] is False
+
+    curation_path = Path(candidate["curation_manifest_path"])
+    split_path = Path(candidate["split_manifest_path"])
+    sanity_path = Path(candidate["learning_sanity_report_path"])
+    readiness_path = Path(artifact_paths["mvp2a_transition_policy_readiness_report"])
+    selection_path = Path(artifact_paths["mvp2a_policy_trainer_selection_report"])
+    for path in (curation_path, split_path, sanity_path, readiness_path, selection_path):
+        assert path.exists(), str(path)
+    assert read_json(selection_path) == selection
+
+    curation = read_json(curation_path)
+    split = read_json(split_path)
+    assert curation["accepted_episode_ids"] == report["exports"]["candidate"]["episode_ids"]
+    assert split["splits"]["train"] == report["exports"]["candidate"]["episode_ids"]
+    assert report["harness_ready"] is True
     assert report["learning_proven"] is False
 
 

@@ -13,6 +13,21 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[3]
+TELEOP_SE3_AGENT_SOURCE = Path(
+    os.environ.get(
+        "RDF_TELEOP_SE3_AGENT_PATH",
+        "/home/kangrim/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py",
+    )
+)
+
+
+def read_live_teleop_source() -> str:
+    if not TELEOP_SE3_AGENT_SOURCE.is_file():
+        pytest.skip(
+            f"IsaacLab teleop_se3_agent.py is not installed in this environment: "
+            f"{TELEOP_SE3_AGENT_SOURCE}"
+        )
+    return TELEOP_SE3_AGENT_SOURCE.read_text(encoding="utf-8")
 
 
 def load_script(name: str):
@@ -481,9 +496,7 @@ def test_analyze_hmd_motion_mapping_distinguishes_gated_anchor_fallback(
 
 
 def test_live_teleop_rejects_xr_anchor_pose_as_valid_hand() -> None:
-    source = Path(
-        "/home/kangrim/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py"
-    ).read_text(encoding="utf-8")
+    source = read_live_teleop_source()
 
     assert "rdf_pose_is_anchor_fallback" in source
     assert "not rdf_pose_is_anchor_fallback" in source
@@ -493,9 +506,7 @@ def test_live_teleop_rejects_xr_anchor_pose_as_valid_hand() -> None:
 
 
 def test_live_teleop_rebases_after_tracking_loss_before_resuming_control() -> None:
-    source = Path(
-        "/home/kangrim/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py"
-    ).read_text(encoding="utf-8")
+    source = read_live_teleop_source()
 
     assert "tracking_reentry_pending" in source
     assert "tracking_resume_valid_count" in source
@@ -504,9 +515,7 @@ def test_live_teleop_rebases_after_tracking_loss_before_resuming_control() -> No
 
 
 def test_live_teleop_auto_recenter_requires_stable_right_wrist_window() -> None:
-    source = Path(
-        "/home/kangrim/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py"
-    ).read_text(encoding="utf-8")
+    source = read_live_teleop_source()
 
     assert "rdf_auto_recenter_stable_m" in source
     assert "auto_recenter_last_wrist_pose" in source
@@ -578,9 +587,7 @@ def test_live_smoke_default_hmd_panel_is_close_and_readable() -> None:
 
 
 def test_live_teleop_hmd_guidance_panel_exposes_input_and_motion_status() -> None:
-    source = Path(
-        "/home/kangrim/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py"
-    ).read_text(encoding="utf-8")
+    source = read_live_teleop_source()
 
     assert "TRACKING:" in source
     assert "CONTROL:" in source
@@ -1955,9 +1962,7 @@ def test_raw_wrist_direct_ee_config_has_reacquire_window_defaults() -> None:
 
 
 def test_live_teleop_exposes_raw_wrist_spike_reacquire_policy() -> None:
-    source = Path(
-        "/home/kangrim/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py"
-    ).read_text(encoding="utf-8")
+    source = read_live_teleop_source()
 
     assert "rdf_raw_wrist_reacquire_valid_frames" in source
     assert "raw_wrist_spike_reacquire_pending" in source
@@ -2397,13 +2402,7 @@ def test_runtime_recorder_builds_sim_step_boundary_metadata_from_env_step_tuple(
 def test_live_teleop_tracks_raw_wrist_mode_metadata_while_tracking_gate_holds_control() -> (
     None
 ):
-    teleop_path = Path(
-        "/home/kangrim/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py"
-    )
-    if not teleop_path.exists():
-        pytest.skip("IsaacLab teleop_se3_agent.py is not installed in this environment")
-
-    source = teleop_path.read_text(encoding="utf-8")
+    source = read_live_teleop_source()
 
     assert '"selected_teleop_control_mode": teleop_control_mode' in source
     assert '"tracking_gate_reason": tracking_gate_reason' in source
@@ -2416,13 +2415,7 @@ def test_live_teleop_tracks_raw_wrist_mode_metadata_while_tracking_gate_holds_co
 
 
 def test_live_teleop_passes_env_step_result_to_runtime_recorder() -> None:
-    teleop_path = Path(
-        "/home/kangrim/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py"
-    )
-    if not teleop_path.exists():
-        pytest.skip("IsaacLab teleop_se3_agent.py is not installed in this environment")
-
-    source = teleop_path.read_text(encoding="utf-8")
+    source = read_live_teleop_source()
 
     assert "env_step_result = env.step(actions)" in source
     assert "env_step_result=env_step_result" in source

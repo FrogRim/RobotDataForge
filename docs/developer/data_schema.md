@@ -1462,3 +1462,409 @@ MVP-2 Rebase first slice는 다음 boundary를 항상 유지한다.
 `run_mvp1_proof_audit.py`는 `mvp2_policy_ab_harness` summary를 읽을 수 있지만,
 이 summary는 MVP-1 gate를 통과시키거나 `learning_proven_policy_uplift_achieved`
 를 `true`로 만들지 않는다.
+
+## MVP-2 Learning-Proven Policy Eval Artifact
+
+MVP-2 learning-proven artifact는 UR policy A/B harness 위에서 curated dataset
+view가 uncurated dataset view보다 held-out policy success rate에서 실제로
+높은지 측정한 report다. 단, default local offline runner는 deterministic
+quality-signal proxy이므로 MVP-2 Closed evidence가 아니다. MVP-2 Closed는
+external proof-grade held-out policy eval rollout provenance가 있을 때만 가능하다.
+기본 위치는 다음과 같다.
+
+```text
+storage/mvp2_learning_proven_policy_eval/
+```
+
+Primary report:
+
+```text
+storage/mvp2_learning_proven_policy_eval/mvp2_learning_proven_report.json
+```
+
+주요 schema version:
+
+```json
+{
+  "mvp2_learning_proven_report": "rdf_mvp2_learning_proven_policy_eval_v0.1.0",
+  "local_offline_rollout": "rdf_mvp2_local_offline_rollout_v0.1.0",
+  "local_offline_heldout_suite": "rdf_mvp2_local_offline_heldout_suite_v0.1.0",
+  "external_policy_eval_template": "rdf_mvp2_external_policy_eval_template_v0.1.0",
+  "policy_eval_report": "rdf_mvp1c_heldout_policy_eval_v0.2.0"
+}
+```
+
+MVP-2 Closed 조건은 다음 값이 동시에 true/positive일 때만 충족된다.
+
+```json
+{
+  "learning_results_measured": true,
+  "learning_proven": true,
+  "proof_eligible": true,
+  "evidence_tier": "external_heldout_policy_eval",
+  "validator_evidence_tier": "heldout_policy_eval",
+  "curated_vs_uncurated_uplift": "> 0"
+}
+```
+
+또한 `candidate_success_rate`는 반드시 `baseline_success_rate`보다 커야 한다.
+Negative 또는 tie 결과는 `learning_results_measured=true`인 evidence로 보존되지만
+`learning_proven=false`, `proof_eligible=false`로 남아 MVP-2를 close하지 않는다.
+
+Local offline path는 harness의 schema-only held-out suite를 그대로 쓰지 않는다.
+Wrapper는 local offline suite와 rollout JSON을 만들지만, 이 경로는
+`evidence_tier=local_offline_policy_eval_proxy`, `validator_evidence_tier=null`,
+`learning_proven=false`, `proof_eligible=false`로 남아야 한다. 즉 default local
+offline output은 local readiness/proxy evidence이며 validator proof input/report를
+생성하지 않는다.
+
+```json
+{
+  "id": "mvp2_local_offline_ur_policy_eval_suite",
+  "held_out": true,
+  "task_type": "connector_insertion",
+  "source_kind": "local_offline_derived_from_harness_template",
+  "proof_role": "local_offline_policy_eval_suite",
+  "heldout_manifest_path": "storage/mvp2_learning_proven_policy_eval/mvp2_local_offline_heldout_suite_manifest.json",
+  "not_physical_or_isaac_evidence": true
+}
+```
+
+Schema-only rollout ingest fixture와 local deterministic proxy는 MVP-2 proof로
+승격할 수 없다. 다음 marker 중 하나가 rollout input에 있거나 `schema_*`
+rollout id / `deterministic_dataset_quality_signal` label source가 감지되면 wrapper는
+`run_real_policy_eval.py`를 호출하지 않고 non-proof report를 쓴다.
+
+```json
+{
+  "fixture_kind": "schema_only_rollout_ingest_contract",
+  "source_kind": "schema_only_rollout_ingest_contract"
+}
+```
+
+외부 evaluator가 채워야 할 proof package template은 다음 위치에 생성된다.
+
+```text
+storage/mvp2_learning_proven_policy_eval/external_policy_eval_template/
+```
+
+주요 template artifact:
+
+```text
+external_policy_eval_request.json
+baseline_external_rollouts.template.json
+candidate_external_rollouts.template.json
+external_policy_eval_template_report.json
+```
+
+이 template은 `proof_ready=false`, `mvp2_closed=false`,
+`template_is_not_evidence=true`를 기록한다. 즉, 외부 evaluator가 실제
+baseline/candidate held-out rollout 결과를 채워 넣기 전까지는 MVP-2 evidence가
+아니다.
+
+```json
+{
+  "source_kind": "external_heldout_policy_eval_template",
+  "proof_role": "external_trainer_policy_eval_template",
+  "template_is_not_evidence": true,
+  "required_final_values": {
+    "source_kind": "external_heldout_policy_eval",
+    "proof_role": "external_trainer_policy_eval"
+  },
+  "heldout_suite": {
+    "scenario_ids": ["TODO_external_heldout_scenario_00"]
+  },
+  "rollout_results": []
+}
+```
+
+채워진 external rollout JSON만 `source_kind=external_heldout_policy_eval`,
+`proof_role=external_trainer_policy_eval`, external `heldout_suite`, trainer,
+eval runner, policy artifact provenance, non-empty `rollout_results`를 포함해야
+한다. 채우지 않은 template 파일을 그대로 ingest하면 wrapper는 validator 호출 전
+non-proof report로 차단한다.
+
+External `heldout_suite.id`와 `heldout_suite.scenario_ids`는 schema-only fixture
+값이면 안 된다. `schema_only`가 포함된 suite id 또는 scenario id는 proof-grade
+provenance가 아니므로 wrapper가 validator 호출 전에 차단한다.
+
+`mvp2_learning_proven_report.json`의 주요 buyer-facing field는 다음과 같다.
+
+```json
+{
+  "evidence_tier": "external_heldout_policy_eval",
+  "validator_evidence_tier": "heldout_policy_eval",
+  "primary_metric": "policy_success_rate",
+  "baseline_success_rate": 0.7,
+  "candidate_success_rate": 1.0,
+  "curated_vs_uncurated_uplift": 0.3,
+  "proof_source": {
+    "adapter_id": "universal_robots_ur_industrial_arm",
+    "source_evidence_type": "file_backed_recorded_log_fixture",
+    "validator_backend": "NormalizedTrajectoryContractValidator"
+  },
+  "claim_boundary": {
+    "real_robot_success_claimed": false,
+    "physical_robot_readiness_claimed": false,
+    "hmd_readiness_claimed": false
+  }
+}
+```
+
+`run_mvp1_proof_audit.py`는 새 report를
+`mvp2_learning_proven_policy_eval` summary로 읽는다. 이 report path는 명시적으로
+전달해야 하며, `evidence_tier=external_heldout_policy_eval`와
+`validator_evidence_tier=heldout_policy_eval`가 아닌 report는 positive uplift로
+승격하지 않는다. `policy_uplift_required_for_mvp1=false`는 계속 유지된다.
+
+### MVP-2A transition / policy readiness report
+
+현재 UR policy A/B harness는 MVP-2 Closed를 주장하지 않고, 그 전에 필요한
+`MVP-2A` readiness를 별도 artifact로 남긴다.
+
+```text
+storage/mvp2_policy_ab_harness/mvp2a_transition_policy_readiness_report.json
+storage/mvp2_policy_ab_harness/mvp2a_policy_trainer_selection_report.json
+storage/mvp2_policy_ab_harness/candidate_curated/curation_manifest.json
+storage/mvp2_policy_ab_harness/candidate_curated/split_manifest.json
+storage/mvp2_policy_ab_harness/candidate_curated/mvp2_learning_sanity_report.json
+```
+
+주요 schema:
+
+```json
+{
+  "schema_version": "rdf_mvp2a_transition_policy_readiness_v0.1.0",
+  "passed": true,
+  "mvp2a_policy_ab_ready": true,
+  "learning_results_measured": false,
+  "curated_vs_uncurated_uplift": null,
+  "learning_proven": false,
+  "stronger_policy_trainer_selected": true,
+  "next_recommended_gate": "external_heldout_policy_rollout_generation",
+  "policy_trainer_selection": {
+    "schema_version": "rdf_mvp2a_policy_trainer_selection_v0.1.0",
+    "selected": true,
+    "policy_class": "phase_conditioned_sequence_bc_policy_v0",
+    "trainer": "rdf_phase_conditioned_sequence_bc_trainer_contract_v0"
+  },
+  "candidate_curated_train": {
+    "transition_coverage_passed": true,
+    "train_set_overfit_passed": true,
+    "dataset_present_required_phases": ["APPROACH", "CONTACT", "INSERT", "SEAT"],
+    "dataset_missing_required_phases": [],
+    "transition_rich_episode_count": 1,
+    "sample_count": 4
+  }
+}
+```
+
+`run_mvp2_learning_sanity.py`는 frame metadata의 `action_phase` / `phase`,
+`task_state.action_phase`, 그리고 command-state fixture의
+`command_state_row.task_phase`를 transition phase source로 읽는다.
+
+`run_mvp1_proof_audit.py`의 `mvp2_policy_ab_harness` summary는
+`mvp2a_policy_ab_ready`, `mvp2a_next_recommended_gate`,
+`candidate_transition_coverage_passed`, `candidate_train_set_overfit_passed`,
+`stronger_policy_trainer_selected`, `selected_policy_class`, `selected_trainer`를
+함께 노출한다. 이 값들은 MVP-2 Closed evidence가 아니라, 다음 proof-grade
+held-out policy A/B를 실행해도 되는지 판단하는 pre-A/B readiness evidence다.
+현재 UR recorded-log fixture는 `APPROACH`, `CONTACT`, `INSERT`, `SEAT`를 모두
+포함하도록 projection된다. `mvp2a_policy_ab_ready=true`는 transition-rich train
+material과 trainer/policy contract 선택이 준비됐다는 뜻이며, policy training이나
+positive uplift를 증명하지 않는다. MVP-2 Closed는 여전히 external held-out rollout
+JSON에서 positive curated > uncurated uplift가 확인되어야 한다.
+
+### MVP-2 phase-conditioned local eval proxy artifact
+
+`MVP-2A` readiness 이후 `scripts/run_mvp2_phase_conditioned_external_eval.py`는
+phase-conditioned local evaluator proxy를 생성한다. 이 evaluator는
+`baseline_uncurated`와 `candidate_curated` HDF5 train material을 읽고 같은
+local held-out proxy suite에 대해 rollout JSON을 만든다. 이 artifact는 positive
+proxy delta를 보존하지만, 독립 external held-out policy rollout evidence가 아니므로
+MVP-2 Closed proof로 승격하지 않는다.
+
+주요 artifact:
+
+```text
+storage/mvp2_phase_conditioned_local_eval_proxy/mvp2_phase_conditioned_local_eval_proxy_report.json
+storage/mvp2_phase_conditioned_local_eval_proxy/phase_conditioned_proxy_rollouts/baseline_uncurated_proxy_rollouts.json
+storage/mvp2_phase_conditioned_local_eval_proxy/phase_conditioned_proxy_rollouts/candidate_curated_proxy_rollouts.json
+storage/mvp2_phase_conditioned_local_eval_proxy/mvp2_learning_proven_policy_eval/mvp2_learning_proven_report.json
+```
+
+최상위 report schema:
+
+```json
+{
+  "schema_version": "rdf_mvp2_phase_conditioned_local_eval_proxy_v0.1.0",
+  "passed": true,
+  "mvp2_closed": false,
+  "proxy_results_measured": true,
+  "proxy_uplift_positive": true,
+  "learning_results_measured": true,
+  "learning_proven": false,
+  "proof_eligible": false,
+  "evidence_tier": "local_phase_conditioned_policy_eval_proxy",
+  "validator_evidence_tier": null,
+  "primary_metric": "policy_success_rate",
+  "baseline_success_rate": 0.4,
+  "candidate_success_rate": 0.9,
+  "curated_vs_uncurated_uplift": 0.5,
+  "selected_policy_class": "phase_conditioned_sequence_bc_policy_v0",
+  "selected_trainer": "rdf_phase_conditioned_sequence_bc_trainer_contract_v0",
+  "eval_runner": "rdf_phase_conditioned_task_state_heldout_eval_v0",
+  "claim_boundary": {
+    "mvp2_learning_proven_claimed": false,
+    "real_robot_success_claimed": false,
+    "physical_robot_readiness_claimed": false,
+    "hmd_readiness_claimed": false,
+    "isaac_runtime_success_claimed": false
+  }
+}
+```
+
+생성된 rollout JSON은 반드시 proxy provenance를 포함한다. `source_kind`가
+`local_phase_conditioned_policy_eval_proxy`인 파일은 positive delta가 있어도
+`run_mvp2_learning_proven_policy_eval.py`에서 proof-grade external evidence로
+승격되지 않는다.
+
+```json
+{
+  "source_kind": "local_phase_conditioned_policy_eval_proxy",
+  "proof_role": "local_phase_conditioned_policy_eval_proxy",
+  "policy_artifact_id": "rdf_mvp2_candidate_curated_phase_policy_...",
+  "policy_class": "phase_conditioned_sequence_bc_policy_v0",
+  "trainer": "rdf_phase_conditioned_sequence_bc_trainer_contract_v0",
+  "eval_runner": "rdf_phase_conditioned_task_state_heldout_eval_v0",
+  "proxy_only": true,
+  "not_external_proof_grade_evidence": true,
+  "heldout_suite": {
+    "id": "local_ur_phase_conditioned_heldout_policy_eval_proxy_suite",
+    "held_out": true,
+    "task_type": "connector_insertion",
+    "source_kind": "local_phase_conditioned_eval_suite",
+    "proof_role": "local_phase_conditioned_policy_eval_proxy_suite"
+  },
+  "rollout_results": []
+}
+```
+
+이 artifact가 닫는 것은 MVP-2A 이후의 local proxy readiness gap이다. MVP-2
+Closed는 여전히 독립 external held-out evaluator가 생성한
+`source_kind=external_heldout_policy_eval`, `proof_role=external_trainer_policy_eval`
+rollout JSON과 positive curated > uncurated policy success가 필요하다. 다음 claim은
+false로 유지한다.
+
+- real robot success
+- physical UR readiness
+- Isaac runtime success
+- HMD/OpenXR readiness
+- marketplace 또는 production readiness
+
+## MVP-2C Isaac Training / Calibration Artifact Schema
+
+`scripts/run_mvp2c_isaac_training_calibration.py`는 MVP-2B와 분리된 fresh proof
+attempt artifact를 생성한다.
+
+주요 artifact:
+
+```text
+scenario_manifest.json
+action_adapter_candidates.json
+action_adapter_registry_hash.json
+baseline_noise_mix_config.json
+generator_config_hashes.json
+calibration_selection_report.json
+selected_action_adapter.json
+policy_eval_binding.json
+train_raw_trajectories/
+normalized_trajectory_contracts/
+curation_manifest.json
+baseline_uncurated_train.hdf5
+candidate_curated_train.hdf5
+baseline_policy_artifact.json
+candidate_policy_artifact.json
+external_rollouts/baseline_external_rollouts.json
+external_rollouts/candidate_external_rollouts.json
+mvp2_learning_proven_policy_eval/mvp2_learning_proven_report.json
+mvp2c_isaac_training_calibration_report.json
+visual_evidence/metric_trace_comparison.png
+```
+
+최상위 report 필수 경계:
+
+```json
+{
+  "schema_version": "rdf_mvp2c_isaac_training_calibration_v0.1.0",
+  "mvp2_closed": false,
+  "mvp2c_close_minimum_passed": false,
+  "stronger_public_evidence_target_passed": false,
+  "runtime_backend": "isaac_runtime",
+  "train_generation_runtime_backend": "deterministic_test_backend",
+  "train_generation_runtime_gate": {
+    "actual_train_generation_evidence": false,
+    "training_trajectory_source": "deterministic_domain_generator"
+  },
+  "actual_rollouts_per_policy": 20,
+  "baseline_noise_mix_ratio": 0.25,
+  "accepted_failure_ratio": {
+    "accepted": 3,
+    "failure_or_noisy": 1
+  },
+  "scripted_expert_config_sha256": "...",
+  "controlled_failure_config_sha256": "...",
+  "train_generation_config_sha256": "...",
+  "selected_action_adapter": {
+    "selector_score_config_sha256": "...",
+    "selected_adapter_sha256": "...",
+    "selected_adapter_config": {
+      "adapter_mode": "per_axis_signed_xy_downward_servo",
+      "xy_source": "state_feedback",
+      "xy_state_feedback_gain": 4.0,
+      "xy_action_clip": 0.035,
+      "z_action_scale": 24.0,
+      "z_action_clip": 0.12,
+      "rotation_action_scale": 1.0,
+      "stable_hold_action": [0.0, 0.0, -0.02, 0.0, 0.0, 0.0, 1.0]
+    },
+    "selected_adapter_config_sha256": "...",
+    "selector_score_pre_registered": true,
+    "same_adapter_used_for_baseline_and_candidate": true,
+    "heldout_excluded": true,
+    "selected_adapter_frozen_before_heldout": true
+  },
+  "calibration_only_selection_passed": true,
+  "heldout_leakage_guard_passed": true,
+  "non_claims": {
+    "deployable_real_robot_policy": false,
+    "visual_policy_performance": false,
+    "real_robot_success": false,
+    "physical_robot_readiness": false,
+    "universal_robot_support": false
+  }
+}
+```
+
+MVP-2C close minimum은 다음이 모두 참일 때만 true가 된다.
+
+```text
+train_generation_runtime_gate.passed=true
+train_generation_runtime_backend=isaac_runtime
+train_generation_runtime_gate.actual_train_generation_evidence=true
+train_generation_runtime_gate.training_trajectory_source=isaac_runtime_scripted_expert_rollout
+runtime_gate.passed=true
+runtime_backend=isaac_runtime
+proof_runtime=dedicated_isaac_connector_insertion_evaluator
+calibration_only_selection_passed=true
+heldout_leakage_guard_passed=true
+actual_rollouts_per_policy >= 20
+existing_mvp2_validator.learning_proven=true
+existing_mvp2_validator.proof_eligible=true
+candidate_success_rate > baseline_success_rate
+curated_vs_uncurated_uplift >= 0.20
+```
+
+`stronger_public_evidence_target_passed`는 close minimum과 별도다. 공개
+benchmark 또는 investor-facing claim에는 policy당 50개 이상 rollout과 confidence
+interval evidence가 필요하다.
