@@ -35,6 +35,46 @@
 - `40000-40049`를 다시 tuning, calibration, threshold tuning,
   hyperparameter selection, future closure에 사용해도 된다.
 
+## Confidence Interval Disclosure (두 CI는 별개다)
+
+이 closure에는 서로 다른 두 개의 bootstrap CI가 기록돼 있으며 **섞으면 안 된다**.
+
+| 출처 | 값 | method | seed | 재현성 |
+| --- | --- | --- | --- | --- |
+| closure gate (`heldout_closure_gate_v0_14.json`) | `[0.56, 0.82]` | bootstrap_success_rate_difference | 미기록 | bit-단위 재현 불가 |
+| learning report (`mvp2_learning_proven_report.json`) | `[0.56, 0.84]` | deterministic_bootstrap | `23` | 재현 가능 |
+
+규칙(고정):
+
+> Closure decision is deterministic and does not depend on bootstrap CI.
+> The original closure gate CI [0.56, 0.82] is retained as historical reported
+> evidence, but it is not bit-reproducible because the RNG seed was not recorded.
+> The verifier recomputes a separate package-audit CI with an explicit fixed seed.
+> That recomputed CI is audit evidence, not a retroactive replacement for the
+> original closure gate CI.
+
+`scripts/verify_mvp2_package.py`가 보고하는 package-audit CI는 seed `20260617`로
+재계산된 **advisory** field다. closure 판정(`mvp2_closed`, uplift>=0.20)은 이 CI에
+의존하지 않는다.
+
+## Statistical Scope (n=1 held-out run)
+
+이 closure는 단일 held-out band(`40000-40049`, 50 rollouts/policy)에 대한 **1회**
+sealed 실행이다. uplift `+0.70`은 강한 existence proof지만, 복수 held-out band에
+대한 분산 추정은 아니다. 통계적 견고성(robustness)을 한 단계 올리려면 새 held-out
+band에서의 independent replication이 필요하다(아래 "What Would Be Needed Next").
+
+## Non-Claim Coverage Note (hash-locked 범위)
+
+8종 non-claim 중 hash-locked closure gate(`data/heldout_closure_gate_v0_14.json`)는
+6종을 직접 기록한다(real_robot_success, physical_robot_readiness,
+hmd_openxr_readiness, visual_policy_performance, deployable_real_robot_policy,
+universal_robot_support). 나머지 2종(marketplace_readiness,
+production_certification)은 `package_manifest.json`의 non_claims 블록에만 존재한다.
+verifier는 manifest를 8종 권위로 검증하고, gate가 기록한 6종이 모순(true로 뒤집힘)
+되지 않는지 함께 확인한다. 즉 marketplace/production non-claim의 무결성은 현재
+manifest 레이어에 있으며, 향후 closure gate에 8종 전부를 박는 것이 더 강하다.
+
 ## Held-Out Rule
 
 `40000-40049`는 한 번 열렸고, closure 판단에 사용됐다. 따라서 이 range의

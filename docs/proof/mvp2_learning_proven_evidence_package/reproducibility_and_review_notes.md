@@ -21,6 +21,34 @@
 동일 closure를 다시 실행하면 runtime guard가 fail closed해야 한다. 재현 목적의
 새 실행은 새 output directory와 새 held-out range를 사용해야 한다.
 
+## Independent Recompute Verification (1차 경로, Isaac 불필요)
+
+외부 감사자가 우리를 신뢰하지 않고 closure 판정을 독립 재계산하는 가장 강한 경로다.
+판정-임계 artifact는 `data/`에 git-tracked 사본으로 포함되므로 clone 한 번이면 된다.
+
+```bash
+# Level B (기본, 오프라인, stdlib-only)
+python3 scripts/verify_mvp2_package.py \
+  docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+
+# Level C (out-of-band per-step trace가 로컬에 있을 때)
+python3 scripts/verify_mvp2_package.py \
+  docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json \
+  --deep --traces-dir <isaac_runtime_heldout_rollout_traces dir>
+```
+
+verifier는 11개 hard-check를 raw rollout 기록에서 재계산한다: hash 무결성(file-bytes
+9개 + policy canonical 2개 + rollout↔policy binding), rate(baseline 5/50, candidate
+40/50), uplift(0.70), threshold(>=0.20), label(success==consecutive>=10),
+closure(`mvp2_closed`/`policy_uplift_proven`/50), seed disjointness(held-out
+40000-40049가 leakage-guard 전 channel과 disjoint), spent/no-reuse, forbidden-claims
+8종, manifest-claim-consistency(사람이 읽는 manifest claim 블록이 recomputed/gate와
+일치), audit-ci-seed-pinned(`package_audit_ci_seed==20260617`). `--deep`는 추가로
+per-trace sha256 hash-lock + per-step mask consecutive 재유도를 검증한다.
+`VERDICT: VERIFIED` + exit 0이면 독립 검증 통과다. 어떤 artifact·manifest claim·trace
+hash를 변조하면 해당 hard-check가 fail한다(이 동작은
+`apps/api/tests/test_verify_mvp2_package.py`의 tamper matrix로 회귀 보호된다).
+
 ## Local Verification Commands
 
 패키지 작성 시 사용한 self-review 명령이다.

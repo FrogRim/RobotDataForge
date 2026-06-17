@@ -3,6 +3,26 @@
 이 index는 외부 리뷰어가 어떤 파일을 어떤 순서로 확인해야 하는지 정리한다.
 SHA-256은 2026-06-16 로컬 worktree에서 `sha256sum`으로 계산했다.
 
+## Recompute Bundle (`data/`) — 독립 검증 입력
+
+판정-임계 artifact 11개의 git-tracked 사본이 `data/`에 있다. 각 사본은 storage 원본과
+**동일한 SHA-256**을 가진다(file-bytes 9개) — `package_manifest.json`의
+`artifact_index[].data_path` + `file_sha256`로 묶여 있다. 정책 artifact 2개는
+canonical-payload 해시(`policy_artifact_sha256` 필드 제외)로 검증하며, 이 값은 각
+policy의 자기선언 해시 및 rollout이 선언한 `policy_artifact_sha256`과 일치한다
+(rollout↔policy binding).
+
+독립 재계산:
+
+```bash
+python3 scripts/verify_mvp2_package.py \
+  docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+```
+
+`package_manifest.json`은 data/ 추가로 갱신됐으므로, 이 문서 본문의 옛 package
+manifest SHA-256은 더 이상 권위가 아니다. 권위는 manifest가 나열하는 개별 artifact
+해시와 verifier의 재계산 결과다.
+
 ## Root Package Evidence
 
 | Role | Path | File SHA-256 |

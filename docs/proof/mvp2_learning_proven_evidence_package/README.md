@@ -42,6 +42,29 @@ re-use에 쓰면 안 된다.
 이 문서 패키지는 사람이 읽는 freeze layer다. 실제 검토자는 `evidence_index.md`의
 경로와 SHA-256을 기준으로 원본 artifact를 확인해야 한다.
 
+## Independent Verification (no Isaac, no trust)
+
+판정-임계 artifact는 이 패키지의 `data/`에 git-tracked 사본(11개 JSON, <1MB)으로
+포함된다. 외부 감사자는 우리 머신·Isaac·prover 신뢰 없이 단 한 번의 clone으로
+closure 판정을 **독립 재계산**할 수 있다.
+
+```bash
+git clone <repo>
+python3 scripts/verify_mvp2_package.py \
+  docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+# → 11 hard-check 재계산: hash·rate(5/50,40/50)·uplift(0.70)·threshold·label·
+#   closure·seed-disjointness·spent·forbidden-claims·manifest-claim-consistency·
+#   audit-ci-seed-pinned → VERDICT: VERIFIED (exit 0)
+```
+
+verifier는 stdlib-only이며 raw rollout 기록에서 직접 재계산한다(Level B). 무거운
+per-step Isaac trace(out-of-band)가 로컬에 있으면 `--deep --traces-dir <path>`로
+per-step `env_native_success_mask`에서 consecutive run까지 재유도한다(Level C).
+
+closure 판정은 결정적이며 bootstrap CI에 의존하지 않는다. verifier가 보고하는
+package-audit CI는 명시적 seed(20260617)로 재계산된 advisory이며, closure gate의
+원본 CI를 대체하지 않는다. 자세한 절차는 `reproducibility_and_review_notes.md`.
+
 ## Package Contents
 
 - `README.md`: 외부 검토용 요약.
@@ -50,7 +73,10 @@ re-use에 쓰면 안 된다.
 - `reproducibility_and_review_notes.md`: 재현 명령, 검증 절차, 리뷰 관점.
 - `v0_14_comparator_provenance_row_balance_appendix.md`: comparator provenance와
   row-balance 세부 설명.
-- `package_manifest.json`: machine-readable package manifest.
+- `package_manifest.json`: machine-readable package manifest (artifact 경로 + SHA-256
+  + seed_ranges + package_audit_ci_seed + Level C trace 해시).
+- `data/`: 판정-임계 artifact 11개 JSON git-tracked 사본 (verifier 입력).
+  `scripts/verify_mvp2_package.py`로 독립 재계산.
 
 ## Codex Use Disclosure
 
