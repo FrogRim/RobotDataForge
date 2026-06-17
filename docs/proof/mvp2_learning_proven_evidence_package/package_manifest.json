@@ -151,7 +151,7 @@
     }
   ],
   "review_gaps": [
-    "third_party_reproduction_on_separate_machine_not_done",
+    "separate_physical_machine_reproduction_not_done",
     "live_isaac_rerun_not_done_for_this_package_creation_step",
     "legal_or_commercial_due_diligence_not_done",
     "real_robot_hmd_openxr_visual_policy_deployable_policy_claims_out_of_scope"
@@ -284,5 +284,16 @@
     "trace_tarball_sha256": null,
     "trace_tarball_status": "out_of_band_not_required_for_level_b",
     "deep_verification_mode": "optional"
+  },
+  "clone_only_reproduction": {
+    "performed": true,
+    "date": "2026-06-18",
+    "method": "fresh git clone into a separate directory; committed contents only; bare python3 (no project deps, no Isaac)",
+    "branch_head": "1ba43c0",
+    "verifier": "scripts/verify_mvp2_package.py",
+    "level_b_result": "VERIFIED (11 hard-checks, exit 0)",
+    "storage_v0_14_tracked_files_in_clone": 0,
+    "level_c_traces_present_in_clone": 0,
+    "note": "The verdict was recomputed solely from the git-tracked data/ bundle; no v0_14 storage artifacts or per-step traces exist in a fresh clone. Reproduction on a separate physical machine remains an open gap."
   }
 }

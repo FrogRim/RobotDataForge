@@ -21,6 +21,24 @@
 동일 closure를 다시 실행하면 runtime guard가 fail closed해야 한다. 재현 목적의
 새 실행은 새 output directory와 새 held-out range를 사용해야 한다.
 
+## Fresh-Clone Reproduction Record (2026-06-18)
+
+clone-only 재현을 실제로 수행했다. 별도 디렉토리에 `git clone`한 뒤(working tree
+잔여물 없이 커밋된 내용만), 프로젝트 의존성 없이 bare `python3`로 verifier를 돌렸다.
+
+```text
+clone branch HEAD                         : 1ba43c0
+clone 내 storage/ tracked 파일            : 3 (proof_evidence README + mvp2b/mvp2c 작은 manifest)
+clone 내 v0_14 closure 디렉토리 tracked   : 0  ← 실제 closure 증거/trace는 gitignored
+clone 내 Level C per-step trace           : 0  (--deep coverage 0/100 missing)
+verifier Level B 결과                     : VERIFIED (11 hard-check, exit 0)
+```
+
+즉 판정은 **오직 git-tracked `data/` 번들**에서 재계산됐고, fresh clone에는 v0_14
+storage artifact도 per-step trace도 존재하지 않는다. 이는 self-attestation 갭이
+닫혔음을 end-to-end로 보인다. 단, **별도 물리 머신** 재현은 아직 open gap이다
+(`package_manifest.json`의 `review_gaps`와 `clone_only_reproduction` 참조).
+
 ## Independent Recompute Verification (1차 경로, Isaac 불필요)
 
 외부 감사자가 우리를 신뢰하지 않고 closure 판정을 독립 재계산하는 가장 강한 경로다.
