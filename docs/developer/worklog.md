@@ -17194,3 +17194,59 @@ git diff --check
 - legal/commercial due diligence는 수행하지 않았다.
 - 다음 public/external reference는 이 package path를 기준으로 삼고,
   `40000-40049`는 계속 audit-only로 유지해야 한다.
+
+## 2026-06-17 KST - CI verify-and-test 외부 IsaacLab 경로 portability 수정
+
+### 작업 내용
+
+GitHub Actions `CI / verify-and-test` 실패 원인을 확인하고 수정했다. 실패 지점은
+MVP-2 package verifier가 아니라 `uv run pytest -q` 단계였으며,
+`apps/api/tests/test_teleop_diagnostics_scripts.py`의 일부 live teleop source-inspection
+테스트가 GitHub runner에 존재하지 않는 로컬 절대경로
+`/home/kangrim/IsaacLab/scripts/environments/teleoperation/teleop_se3_agent.py`를
+직접 읽으면서 `FileNotFoundError`를 냈다.
+
+변경 파일:
+
+```text
+apps/api/tests/test_teleop_diagnostics_scripts.py
+docs/developer/worklog.md
+Handoff.md
+```
+
+### 판단 이유
+
+이 테스트들은 외부 IsaacLab checkout에 대한 adapter regression 검사이며, repo clone만으로
+항상 실행 가능한 MVP-2 verifier와 성격이 다르다. 따라서 CI 전체 테스트 범위를 줄이지 않고,
+외부 파일이 없으면 해당 source-inspection 테스트만 명시적으로 `pytest.skip`하도록
+공통 helper를 추가했다. 로컬 IsaacLab가 있는 환경에서는 기존 검사가 계속 실행된다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+RDF_TELEOP_SE3_AGENT_PATH=/tmp/rdf_missing_teleop_se3_agent.py \
+  uv run pytest apps/api/tests/test_teleop_diagnostics_scripts.py -q \
+  -k "live_teleop_rejects_xr_anchor_pose_as_valid_hand or live_teleop_rebases_after_tracking_loss_before_resuming_control or live_teleop_auto_recenter_requires_stable_right_wrist_window or live_teleop_hmd_guidance_panel_exposes_input_and_motion_status or live_teleop_exposes_raw_wrist_spike_reacquire_policy or live_teleop_tracks_raw_wrist_mode_metadata_while_tracking_gate_holds_control or live_teleop_passes_env_step_result_to_runtime_recorder"
+# 7 skipped, 69 deselected
+
+RDF_TELEOP_SE3_AGENT_PATH=/tmp/rdf_missing_teleop_se3_agent.py uv run pytest -q
+# 756 passed, 13 skipped
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uvx ruff check scripts apps/api
+# All checks passed
+
+uv run python -m compileall -q scripts apps/api
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- GitHub Actions 재실행 결과는 push 후 확인해야 한다.
+- `teleop_se3_agent.py` 자체는 여전히 repo 밖 external IsaacLab source이며, 해당 파일의
+  내용 검사는 파일이 있는 개발 머신에서만 수행된다.
