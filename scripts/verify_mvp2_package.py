@@ -402,6 +402,37 @@ def check_forbidden_claims(manifest: dict, gate: dict, report: Report) -> None:
     )
 
 
+def check_non_claims_attestation(pkg_dir: Path, gate: dict, report: Report) -> None:
+    """All 8 non-claims must be asserted in a hash-locked artifact (not only the
+    unprotected manifest), bound to the specific closure gate. The closure gate is
+    frozen and records only 6; this attestation makes all 8 hash-locked."""
+    att_path = pkg_dir / "data" / "non_claims_attestation.json"
+    problems: list[str] = []
+    if not att_path.is_file():
+        report.add("non_claims_attestation", False, "attestation file missing")
+        return
+    att = _load_json(att_path)
+    nc = att.get("non_claims", {})
+    for key in FORBIDDEN_CLAIM_KEYS:
+        if nc.get(key) is not False:
+            problems.append(f"attestation.{key}={nc.get(key)}")
+    gate_sha = sha256_file(pkg_dir / "data" / "heldout_closure_gate_v0_14.json")
+    if att.get("binds_to_closure_gate_sha256") != gate_sha:
+        problems.append("binds_to_closure_gate_sha256 != closure gate file hash")
+    # consistency: gate's recorded subset must agree.
+    gate_nc = gate.get("non_claims", {})
+    for key in FORBIDDEN_CLAIM_KEYS:
+        if key in gate_nc and gate_nc[key] is not False:
+            problems.append(f"gate.{key}={gate_nc[key]}")
+    report.add(
+        "non_claims_attestation",
+        not problems,
+        "8 non-claims hash-locked and bound to the closure gate"
+        if not problems
+        else "; ".join(problems),
+    )
+
+
 def check_manifest_claim_consistency(manifest: dict, gate: dict, report: Report) -> None:
     """The human-read manifest claim block must agree with recomputed evidence and
     the gate — an external reviewer reads this block, so it cannot drift."""
@@ -537,6 +568,7 @@ def verify_package(manifest_path, deep: bool = False, traces_dir=None) -> Report
     check_seed_disjointness(data, gate, report)
     check_spent_no_reuse(manifest, gate, report)
     check_forbidden_claims(manifest, gate, report)
+    check_non_claims_attestation(pkg_dir, gate, report)
     check_manifest_claim_consistency(manifest, gate, report)
     check_audit_ci_seed_pinned(manifest, report)
 

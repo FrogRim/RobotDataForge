@@ -41,7 +41,7 @@ PACKAGE = ROOT / "docs" / "proof" / "mvp2_learning_proven_evidence_package"
 DATA = PACKAGE / "data"
 MANIFEST = PACKAGE / "package_manifest.json"
 
-# data/ = 11 files (spec C1a source map).
+# data/ = 12 files (spec C1a source map + step-3 non_claims_attestation).
 EXPECTED_FILE_BYTES = (
     "baseline_external_rollouts.json",
     "candidate_external_rollouts.json",
@@ -52,6 +52,7 @@ EXPECTED_FILE_BYTES = (
     "v0_14_row_balance_report.json",
     "v0_14_source_provenance_report.json",
     "mvp2_learning_proven_report.json",
+    "non_claims_attestation.json",
 )
 EXPECTED_CANONICAL = {
     "baseline_policy_artifact_v0_14.json": "baseline",
@@ -84,7 +85,7 @@ def _manifest_entry_by_data_filename(manifest: dict, filename: str) -> dict | No
 class TestBundleIntegrity:
     """C1b contract — RED until T3 copies data/ and amends the manifest."""
 
-    def test_all_eleven_data_files_present(self):
+    def test_all_twelve_data_files_present(self):
         missing = [
             name
             for name in (*EXPECTED_FILE_BYTES, *EXPECTED_CANONICAL)
@@ -92,7 +93,7 @@ class TestBundleIntegrity:
         ]
         assert missing == [], f"data/ bundle incomplete, missing: {missing}"
         present = sorted(p.name for p in DATA.glob("*.json"))
-        assert len(present) == 11, f"data/ must hold exactly 11 JSON files, got {present}"
+        assert len(present) == 12, f"data/ must hold exactly 12 JSON files, got {present}"
 
     def test_file_bytes_hashes_match_manifest(self):
         manifest = json.loads(MANIFEST.read_text())
@@ -135,6 +136,7 @@ HARD_CHECKS = (
     "seed_disjointness",
     "spent_no_reuse",
     "forbidden_claims",
+    "non_claims_attestation",
     "manifest_claim_consistency",
     "audit_ci_seed_pinned",
 )
@@ -503,3 +505,110 @@ class TestStdlibOnlyGuard:
         modules.discard("__future__")
         non_stdlib = modules - set(sys.stdlib_module_names)
         assert non_stdlib == set(), f"verifier must be stdlib-only, found: {non_stdlib}"
+
+
+ATTESTATION = DATA / "non_claims_attestation.json"
+
+
+class TestNonClaimsAttestation:
+    """Step 3 (a): all 8 non-claims must be asserted in a hash-locked artifact,
+    not only in the unprotected manifest. RED until the attestation + check exist."""
+
+    def test_attestation_file_present_with_eight_false(self):
+        doc = json.loads(ATTESTATION.read_text())
+        nc = doc["non_claims"]
+        for key in FORBIDDEN_CLAIM_KEYS:
+            assert nc.get(key) is False, f"attestation must assert {key}=false"
+        assert len(nc) == 8
+
+    def test_attestation_binds_to_closure_gate(self):
+        doc = json.loads(ATTESTATION.read_text())
+        gate = json.loads((DATA / "heldout_closure_gate_v0_14.json").read_text())
+        # binding value must equal the closure gate's file-bytes sha256.
+        expected = _sha256_file(DATA / "heldout_closure_gate_v0_14.json")
+        assert doc["binds_to_closure_gate_sha256"] == expected
+        assert gate.get("mvp2_closed") is True  # sanity: bound to the real gate
+
+    def test_attestation_is_hash_locked_in_manifest(self):
+        manifest = json.loads(MANIFEST.read_text())
+        entry = _manifest_entry_by_data_filename(manifest, "non_claims_attestation.json")
+        assert entry is not None and entry.get("file_sha256")
+        assert _sha256_file(ATTESTATION) == entry["file_sha256"]
+
+    def test_verifier_uses_attestation_as_authority(self):
+        v = _load_verifier()
+        report = v.verify_package(MANIFEST)
+        by = {c.name: c for c in report.checks}
+        assert "non_claims_attestation" in by
+        assert by["non_claims_attestation"].passed is True
+        assert report.ok is True
+
+    def test_attestation_claim_flip_fails(self, tmp_path):
+        v = _load_verifier()
+        manifest = _copy_package(tmp_path)
+        f = manifest.parent / "data" / "non_claims_attestation.json"
+        doc = json.loads(f.read_text())
+        doc["non_claims"]["production_certification"] = True
+        f.write_text(json.dumps(doc))
+        _rehash_file_bytes(manifest, "non_claims_attestation.json")
+        report = v.verify_package(manifest)
+        assert {c.name: c for c in report.checks}["non_claims_attestation"].passed is False
+
+    def test_attestation_wrong_binding_fails(self, tmp_path):
+        v = _load_verifier()
+        manifest = _copy_package(tmp_path)
+        f = manifest.parent / "data" / "non_claims_attestation.json"
+        doc = json.loads(f.read_text())
+        doc["binds_to_closure_gate_sha256"] = "0" * 64
+        f.write_text(json.dumps(doc))
+        _rehash_file_bytes(manifest, "non_claims_attestation.json")
+        report = v.verify_package(manifest)
+        assert {c.name: c for c in report.checks}["non_claims_attestation"].passed is False
+
+
+class TestTraceTarball:
+    """Step 3 (b): the Level C trace tarball is actually generated and hash-locked."""
+
+    def test_manifest_records_tarball_hash_and_recipe(self):
+        manifest = json.loads(MANIFEST.read_text())
+        ltc = manifest["level_c_traces"]
+        assert ltc["trace_tarball_sha256"] is not None
+        assert len(ltc["trace_tarball_sha256"]) == 64
+        assert ltc.get("trace_tarball_recipe"), "deterministic recipe must be documented"
+        assert ltc["trace_tarball_status"] != "out_of_band_not_required_for_level_b"
+
+
+class TestTarballBuilderDeterminism:
+    """The out-of-band trace tarball hash only means something if the build is
+    byte-reproducible. Lock that here."""
+
+    def _load_builder(self):
+        name = "build_mvp2_trace_tarball"
+        spec = importlib.util.spec_from_file_location(name, ROOT / "scripts" / f"{name}.py")
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[name] = mod
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_build_is_byte_reproducible(self, tmp_path):
+        b = self._load_builder()
+        src = tmp_path / "traces"
+        src.mkdir()
+        (src / "b_trace.json").write_text('{"trace": [1, 2]}')
+        (src / "a_trace.json").write_text('{"trace": [3]}')
+        blob1 = b.build_tarball_bytes(src)
+        blob2 = b.build_tarball_bytes(src)
+        assert blob1 == blob2 and len(blob1) > 0
+
+    def test_build_is_order_independent(self, tmp_path):
+        """Entries are sorted by name, so file-creation order must not matter."""
+        b = self._load_builder()
+        d1 = tmp_path / "d1"
+        d1.mkdir()
+        (d1 / "a.json").write_text("{}")
+        (d1 / "b.json").write_text("{}")
+        d2 = tmp_path / "d2"
+        d2.mkdir()
+        (d2 / "b.json").write_text("{}")
+        (d2 / "a.json").write_text("{}")
+        assert b.build_tarball_bytes(d1) == b.build_tarball_bytes(d2)
