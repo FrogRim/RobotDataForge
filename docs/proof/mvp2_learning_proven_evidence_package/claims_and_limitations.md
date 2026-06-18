@@ -64,16 +64,19 @@ sealed 실행이다. uplift `+0.70`은 강한 existence proof지만, 복수 held
 대한 분산 추정은 아니다. 통계적 견고성(robustness)을 한 단계 올리려면 새 held-out
 band에서의 independent replication이 필요하다(아래 "What Would Be Needed Next").
 
-## Non-Claim Coverage Note (hash-locked 범위)
+## Non-Claim Coverage (8/8 hash-locked)
 
-8종 non-claim 중 hash-locked closure gate(`data/heldout_closure_gate_v0_14.json`)는
-6종을 직접 기록한다(real_robot_success, physical_robot_readiness,
-hmd_openxr_readiness, visual_policy_performance, deployable_real_robot_policy,
-universal_robot_support). 나머지 2종(marketplace_readiness,
-production_certification)은 `package_manifest.json`의 non_claims 블록에만 존재한다.
-verifier는 manifest를 8종 권위로 검증하고, gate가 기록한 6종이 모순(true로 뒤집힘)
-되지 않는지 함께 확인한다. 즉 marketplace/production non-claim의 무결성은 현재
-manifest 레이어에 있으며, 향후 closure gate에 8종 전부를 박는 것이 더 강하다.
+8종 non-claim 전부가 이제 hash-locked artifact에 박혀 있다. closure gate
+(`data/heldout_closure_gate_v0_14.json`)는 spent/frozen이라 6종만 기록하지만, 그
+gate를 수정하지 않고 별도 hash-locked 증서
+**`data/non_claims_attestation.json`** 를 추가했다. 이 증서는 8종 전부 false이며
+`binds_to_closure_gate_sha256`로 해당 closure gate의 file-bytes sha256에 묶여 있어
+(다른 proof에 재사용 불가) 그 자체가 manifest artifact_index에 file-bytes로
+hash-lock된다. verifier의 `non_claims_attestation` hard-check가 8종 권위를 이 증서로
+삼고, gate가 기록한 6종이 모순(true로 뒤집힘)되지 않는지 함께 확인한다.
+
+즉 marketplace/production을 포함한 8종 전부의 무결성이 더 이상 unprotected manifest가
+아니라 hash-locked·gate-bound 증서에 있다.
 
 ## Held-Out Rule
 

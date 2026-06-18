@@ -148,6 +148,13 @@
       "data_path": "data/candidate_policy_artifact_v0_14.json",
       "hash_convention": "canonical_payload_excluding_self",
       "canonical_payload_sha256": "871103f8ac29e0ef8a33f80c9a8a07539177cf093fe41f579b2d02498e54a5a9"
+    },
+    {
+      "role": "non_claims_attestation",
+      "path": "docs/proof/mvp2_learning_proven_evidence_package/data/non_claims_attestation.json",
+      "data_path": "data/non_claims_attestation.json",
+      "hash_convention": "file_bytes",
+      "file_sha256": "f0817eb9c1768449bb198bda07eda1f9ded0a81f239bd4bea9212ebed2e527e8"
     }
   ],
   "review_gaps": [
@@ -281,9 +288,11 @@
       "candidate_0048_held_out_40048_isaac_trace.json": "493d36f2e2a6ef4c8df71af55a0a990b16fb13412749979a300cd8a68fba47ac",
       "candidate_0049_held_out_40049_isaac_trace.json": "34eedc200aba92185729757389ac5ef4ac21cad8a592e5aac58346b01e390dad"
     },
-    "trace_tarball_sha256": null,
-    "trace_tarball_status": "out_of_band_not_required_for_level_b",
-    "deep_verification_mode": "optional"
+    "trace_tarball_sha256": "56df9bb588c2baa48c13d5a5ec189f363ee8c89a968706747c77bb5cc8c6d372",
+    "trace_tarball_status": "generated_out_of_band",
+    "deep_verification_mode": "optional",
+    "trace_tarball_recipe": "python3 scripts/build_mvp2_trace_tarball.py <isaac_runtime_heldout_rollout_traces dir> <out.tar.gz>  # deterministic: sorted names, normalized tar metadata, gzip mtime=0",
+    "trace_tarball_filename": "v0_14_heldout_traces.tar.gz"
   },
   "clone_only_reproduction": {
     "performed": true,

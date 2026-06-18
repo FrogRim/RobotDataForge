@@ -128,6 +128,9 @@ verifier가 비-zero로 종료해야 하는 조건 (하나라도 깨지면 FAIL)
                        recomputed와 일치 ; claim.mvp2_closed==gate.mvp2_closed==true ;
                        claim.policy_uplift_proven==true (사람이 읽는 claim 블록의 drift 차단)
 11. audit ci seed    : manifest.package_audit_ci_seed == 20260617 (고정 seed 강제)
+12. non-claims attest : data/non_claims_attestation.json이 8종 전부 false +
+                        binds_to_closure_gate_sha256 == closure gate file hash
+                        (8종 전부를 hash-locked·gate-bound 증서로; frozen gate는 6종만 기록)
 --deep 추가 hard-check (trace 있을 때):
    level_c_hashlock          : per_trace_sha256 비어있지 않음 ; len==trace_count_expected==100 ;
                                rollout trace 이름 set == manifest hash 이름 set (map 제거/부분/drift 차단)
@@ -272,7 +275,7 @@ coverage 기대: verifier의 모든 hard 체크 함수가 green 1 + tamper 1 이
 [ ] CI가 매 push에서 verifier Level B 실행 ; data/ 파일 변조 시 CI fail
 [ ] --deep가 로컬 trace에서 mask→consecutive 재유도, 100/100 일치 보고
 [ ] 문서가 두 CI를 별개로 명시 + closure 판정이 CI 비의존임을 명시 + n=1 disclose
-[ ] hard-fail 11기준 전부 코드로 강제 + 테스트로 커버 (+ --deep trace hash-lock)
+[ ] hard-fail 12기준 전부 코드로 강제 + 테스트로 커버 (+ --deep trace hash-lock)
 [ ] verifier stdlib-only (import guard 테스트 통과)
 ```
 

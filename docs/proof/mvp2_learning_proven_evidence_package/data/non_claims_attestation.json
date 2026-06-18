@@ -1,0 +1,16 @@
+{
+  "schema_version": "rdf_mvp2_non_claims_attestation_v0.1.0",
+  "package_id": "mvp2_learning_proven_evidence_package_v0_14",
+  "binds_to_closure_gate_sha256": "ddb30bc37c8c3c79a5634680d712a836b0923ca407459415a49c1619ca0452fc",
+  "non_claims": {
+    "real_robot_success": false,
+    "physical_robot_readiness": false,
+    "hmd_openxr_readiness": false,
+    "visual_policy_performance": false,
+    "deployable_real_robot_policy": false,
+    "universal_robot_support": false,
+    "marketplace_readiness": false,
+    "production_certification": false
+  },
+  "note": "Hash-locked attestation that all 8 non-claims are false, bound to the v0_14 closure gate. The closure gate itself is frozen and records only 6; this artifact makes all 8 hash-locked without modifying the spent gate."
+}
