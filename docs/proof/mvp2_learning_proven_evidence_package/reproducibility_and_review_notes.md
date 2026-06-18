@@ -55,17 +55,39 @@ python3 scripts/verify_mvp2_package.py \
   --deep --traces-dir <isaac_runtime_heldout_rollout_traces dir>
 ```
 
-verifier는 11개 hard-check를 raw rollout 기록에서 재계산한다: hash 무결성(file-bytes
-9개 + policy canonical 2개 + rollout↔policy binding), rate(baseline 5/50, candidate
+verifier는 12개 hard-check를 raw rollout 기록에서 재계산한다: hash 무결성(file-bytes
+10개 + policy canonical 2개 + rollout↔policy binding), rate(baseline 5/50, candidate
 40/50), uplift(0.70), threshold(>=0.20), label(success==consecutive>=10),
 closure(`mvp2_closed`/`policy_uplift_proven`/50), seed disjointness(held-out
 40000-40049가 leakage-guard 전 channel과 disjoint), spent/no-reuse, forbidden-claims
-8종, manifest-claim-consistency(사람이 읽는 manifest claim 블록이 recomputed/gate와
-일치), audit-ci-seed-pinned(`package_audit_ci_seed==20260617`). `--deep`는 추가로
+8종, non-claims-attestation(8종 전부 hash-locked·gate-bound 증서), manifest-claim-
+consistency(사람이 읽는 manifest claim 블록이 recomputed/gate와 일치),
+audit-ci-seed-pinned(`package_audit_ci_seed==20260617`). `--deep`는 추가로
 per-trace sha256 hash-lock + per-step mask consecutive 재유도를 검증한다.
 `VERDICT: VERIFIED` + exit 0이면 독립 검증 통과다. 어떤 artifact·manifest claim·trace
 hash를 변조하면 해당 hard-check가 fail한다(이 동작은
 `apps/api/tests/test_verify_mvp2_package.py`의 tamper matrix로 회귀 보호된다).
+
+## Level C Trace Tarball (out-of-band, hash-locked + reproducible)
+
+100개 per-step Isaac trace는 git에 담기엔 크므로 out-of-band 단일 tarball로 묶고
+manifest에 sha256만 hash-lock한다(`level_c_traces.trace_tarball_sha256`). 그 해시가
+의미를 가지려면 tarball이 byte-재현 가능해야 하므로 결정적 빌더를 쓴다(정렬된 이름,
+정규화된 tar 메타데이터, gzip mtime=0).
+
+```bash
+# trace를 가진 사람은 동일 tarball + 동일 sha256를 재생성할 수 있다
+python3 scripts/build_mvp2_trace_tarball.py \
+  <isaac_runtime_heldout_rollout_traces dir> <out.tar.gz>
+# → sha256가 manifest.level_c_traces.trace_tarball_sha256와 일치해야 함
+
+# 받은 tarball 무결성 확인은 표준 도구로 충분
+sha256sum <out.tar.gz>   # == manifest.level_c_traces.trace_tarball_sha256
+```
+
+tarball을 풀면 `--deep` 검증 입력이 된다(per-trace sha256 hash-lock + per-step mask
+consecutive 재유도). tarball hosting 위치는 별도 결정 사항이며, 무결성 anchor(sha256)와
+재생성 recipe는 manifest에 고정돼 있다.
 
 ## Local Verification Commands
 

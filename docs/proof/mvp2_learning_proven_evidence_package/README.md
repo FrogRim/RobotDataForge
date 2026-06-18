@@ -52,9 +52,9 @@ closure 판정을 **독립 재계산**할 수 있다.
 git clone <repo>
 python3 scripts/verify_mvp2_package.py \
   docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
-# → 11 hard-check 재계산: hash·rate(5/50,40/50)·uplift(0.70)·threshold·label·
-#   closure·seed-disjointness·spent·forbidden-claims·manifest-claim-consistency·
-#   audit-ci-seed-pinned → VERDICT: VERIFIED (exit 0)
+# → 12 hard-check 재계산: hash·rate(5/50,40/50)·uplift(0.70)·threshold·label·
+#   closure·seed-disjointness·spent·forbidden-claims·non-claims-attestation·
+#   manifest-claim-consistency·audit-ci-seed-pinned → VERDICT: VERIFIED (exit 0)
 ```
 
 verifier는 stdlib-only이며 raw rollout 기록에서 직접 재계산한다(Level B). 무거운
