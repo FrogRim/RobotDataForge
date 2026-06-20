@@ -1,0 +1,6 @@
+{
+  "calibration_only_selection_passed": true,
+  "heldout_excluded": true,
+  "same_adapter_used_for_baseline_and_candidate": true,
+  "selected_adapter_frozen_before_heldout": true
+}

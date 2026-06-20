@@ -1,0 +1,10 @@
+{
+  "artifact_index": [
+    {
+      "data_path": "learning_proven_report.json",
+      "file_sha256": "047064ff9c5c073368c4c33894c5b8de07a79b41e321a2dbe6335829e32579a6",
+      "hash_convention": "file_bytes"
+    }
+  ],
+  "package_name": "mvp3a_learning_proven_addendum"
+}

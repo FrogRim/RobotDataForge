@@ -1,0 +1,9 @@
+{
+  "baseline_heldout_success_rate": 0.16,
+  "baseline_heldout_successes": 8,
+  "candidate_heldout_success_rate": 0.96,
+  "candidate_heldout_successes": 48,
+  "heldout_uplift": 0.7999999999999999,
+  "learning_proven_addendum": "present",
+  "learning_result": "positive_uplift"
+}

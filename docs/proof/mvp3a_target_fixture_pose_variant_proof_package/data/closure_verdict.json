@@ -1,0 +1,22 @@
+{
+  "baseline_heldout_success_rate": 0.16,
+  "baseline_heldout_successes": 8,
+  "blockers": [],
+  "candidate_heldout_success_rate": 0.96,
+  "candidate_heldout_successes": 48,
+  "closed": true,
+  "gates": {
+    "actual_train_trace_count_matches": true,
+    "calibration_selection_matches": true,
+    "heldout_leakage_matches": true,
+    "heldout_runtime_matches": true,
+    "learning_matches": true,
+    "post_heldout_guard_matches": true,
+    "rollout_count_matches": true,
+    "train_runtime_matches": true
+  },
+  "heldout_uplift": 0.7999999999999999,
+  "learning_proven_addendum": "present",
+  "learning_result": "positive_uplift",
+  "package_status": "proof_infrastructure_closed"
+}

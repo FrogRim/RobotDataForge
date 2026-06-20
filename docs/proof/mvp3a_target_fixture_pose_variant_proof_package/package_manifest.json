@@ -1,0 +1,110 @@
+{
+  "artifact_index": [
+    {
+      "data_path": "data/artifact_index.json",
+      "file_sha256": "a65c7eb6aa20fc3f795afa15046eaac2d93548d4022648d48ffcc1221591ed50",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/closure_verdict.json",
+      "file_sha256": "df1282a699cec89ba1e845e2f0c5d7ccfbeffc3a26f596e657eb5dd58a328c4d",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/config.json",
+      "file_sha256": "504343039ab80734bb50126607e7b6eb513b1ea557c0b957c3f4ebf121a33456",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/gates/calibration_selection_report.json",
+      "file_sha256": "da5864ee6bad6c82f4a4b8fa3a479216a109bf89a84bfa02bcc878026a51f9fd",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/gates/post_heldout_guard.json",
+      "file_sha256": "5d472359ac10b2248a057737350beafb22c11061c9ce4c4b2cf51cdbc346f52c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/gates/runtime_gate.json",
+      "file_sha256": "3f2e2753173109c92498137dd38600192014bea566205b60694686b8853673c8",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/gates/train_generation_runtime_gate.json",
+      "file_sha256": "98a606a46e4479465572f182670b007aa1efc4778b1a8eed3b70cba8e8073f8a",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/gates/train_trace_summary.json",
+      "file_sha256": "6780330ed47e2717310e59bd17680a20f019522558fcdd26ef32a5b2d7ab0704",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/learning_result_summary.json",
+      "file_sha256": "9d300e80acac2105879601688e3270b9da33745c5b5da50cb0bc5769740d18f9",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/masks/heldout_baseline_success_masks.json",
+      "file_sha256": "c4c3bce44c2ffd17504ebe98037047cb3787caef1f9a4b5ac67a0b9a9143a72f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/masks/heldout_candidate_success_masks.json",
+      "file_sha256": "2213c5d98a1ad5d57c2f9c1e5852278380e45ede6b9eb160dfc7737f5089638b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/non_claims_attestation.json",
+      "file_sha256": "91e7172a2f312e0f84136c2979e92d32d1db6c761459abec3fe0f8bdcb63bac2",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/policies/baseline_policy_artifact.json",
+      "file_sha256": "878cf27e73daa845aa642113ac749276bada7fd3660bbab632e56e160747f005",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/policies/candidate_policy_artifact.json",
+      "file_sha256": "e10ba9304ba4c6c2061c2393ba9ecf1b7c866029a0871a840eca1cc0e323baa7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/rollouts/calibration_baseline_rollouts.json",
+      "file_sha256": "9f80af73f9e8ad7c2349bd57f2e6a0d91d3d0d40e858a39e0430ae2c47e6eb3d",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/rollouts/calibration_candidate_rollouts.json",
+      "file_sha256": "32f228a0c54507d7348648666555e2bd32e252f12d3d137708e510b41214585f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/rollouts/heldout_baseline_rollouts.json",
+      "file_sha256": "f9bc6e01108c61e8da60e22fef5024a0cda50e100455aabd770aacd326eaaea7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/rollouts/heldout_candidate_rollouts.json",
+      "file_sha256": "148dd857b2f22b396a24a9b76efa78df93937113be49d46d111a26d05a68e67f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/seed_discipline_report.json",
+      "file_sha256": "5dfaa98289c768cd439d6a4afc28b83bb4aca026e18840160fa5df5bff94665d",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "data_path": "data/task_variant_attestation.json",
+      "file_sha256": "0f92194e2476662ebdcbbba4c9b1fd23f0d4ba87a8fd6c87aa96c855bd294ac3",
+      "hash_convention": "file_bytes"
+    }
+  ],
+  "claims": {
+    "learning_proven_addendum": "present",
+    "learning_result": "positive_uplift",
+    "package_status": "proof_infrastructure_closed"
+  },
+  "package_name": "mvp3a_target_fixture_pose_variant_proof_package"
+}

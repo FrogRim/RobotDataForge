@@ -1,0 +1,18 @@
+{
+  "copied": [
+    "data/rollouts/calibration_baseline_rollouts.json",
+    "data/rollouts/calibration_candidate_rollouts.json",
+    "data/rollouts/heldout_baseline_rollouts.json",
+    "data/rollouts/heldout_candidate_rollouts.json",
+    "data/gates/runtime_gate.json",
+    "data/gates/train_generation_runtime_gate.json",
+    "data/gates/calibration_selection_report.json",
+    "data/gates/train_trace_summary.json",
+    "data/gates/post_heldout_guard.json",
+    "data/policies/baseline_policy_artifact.json",
+    "data/policies/candidate_policy_artifact.json",
+    "data/masks/heldout_baseline_success_masks.json",
+    "data/masks/heldout_candidate_success_masks.json"
+  ],
+  "generated_by": "run_mvp3a_proof_infrastructure.py"
+}

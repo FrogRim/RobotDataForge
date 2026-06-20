@@ -1,0 +1,68 @@
+{
+  "audit_ci": {
+    "iterations": 10000,
+    "method": "bootstrap_success_rate_difference",
+    "seed": 20260620
+  },
+  "claim_tier": "proof_infrastructure",
+  "evidence_kind": "actual_isaac",
+  "evidence_paths": {
+    "baseline_calibration_rollouts": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/baseline_calibration_rollouts.json",
+    "baseline_heldout_rollouts": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/baseline_heldout_rollouts.json",
+    "baseline_policy_artifact": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/baseline_policy_artifact.json",
+    "calibration_selection_report": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/calibration_selection_report.json",
+    "candidate_calibration_rollouts": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/candidate_calibration_rollouts.json",
+    "candidate_heldout_rollouts": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/candidate_heldout_rollouts.json",
+    "candidate_policy_artifact": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/candidate_policy_artifact.json",
+    "heldout_baseline_success_masks": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/heldout_baseline_success_masks.json",
+    "heldout_candidate_success_masks": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/heldout_candidate_success_masks.json",
+    "post_heldout_guard": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/post_heldout_guard.json",
+    "runtime_gate": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/runtime_gate.json",
+    "train_generation_runtime_gate": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/train_generation_runtime_gate.json",
+    "train_trace_summary": "/home/kangrim/robot-data-forge/storage/proof_evidence/mvp3a_target_fixture_pose_variant/train_trace_summary.json"
+  },
+  "package_policy": {
+    "copy_c_lite_masks_into_package_when_present": true,
+    "copy_rollout_json_into_package": true,
+    "freeze_mvp2_assets": true,
+    "output_dir": "/home/kangrim/robot-data-forge/docs/proof/mvp3a_target_fixture_pose_variant_proof_package"
+  },
+  "proof_slice": "mvp3a_target_fixture_pose_variant",
+  "runtime_expectations": {
+    "backend": "isaac_runtime",
+    "proof_runtime": "dedicated_isaac_connector_insertion_evaluator",
+    "training_source": "isaac_runtime"
+  },
+  "seed_ranges": {
+    "calibration": [
+      41000,
+      41029
+    ],
+    "heldout": [
+      42000,
+      42049
+    ],
+    "spent_no_reuse": [
+      [
+        40000,
+        40049
+      ]
+    ],
+    "train": [
+      43000,
+      43049
+    ]
+  },
+  "task_variant": {
+    "changed_variable": "task_variant",
+    "family": "connector_insertion",
+    "source_variable_opened": false,
+    "variant": "target_fixture_pose_variant"
+  },
+  "thresholds": {
+    "min_calibration_rollouts_per_policy": 30,
+    "min_heldout_rollouts_per_policy": 50,
+    "stable_steps_required": 10,
+    "uplift_min": 0.2
+  }
+}

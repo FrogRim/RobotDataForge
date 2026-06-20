@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "proof_runtime": "dedicated_isaac_connector_insertion_evaluator",
+  "role_gates": [
+    {
+      "device": "cuda:0",
+      "headless": true,
+      "isaac_task_or_scene_id": "Isaac-Factory-PegInsert-Direct-v0",
+      "passed": true,
+      "proof_runtime": "dedicated_isaac_connector_insertion_evaluator",
+      "runtime_backend": "isaac_runtime"
+    },
+    {
+      "device": "cuda:0",
+      "headless": true,
+      "isaac_task_or_scene_id": "Isaac-Factory-PegInsert-Direct-v0",
+      "passed": true,
+      "proof_runtime": "dedicated_isaac_connector_insertion_evaluator",
+      "runtime_backend": "isaac_runtime"
+    },
+    {
+      "device": "cuda:0",
+      "headless": true,
+      "isaac_task_or_scene_id": "Isaac-Factory-PegInsert-Direct-v0",
+      "passed": true,
+      "proof_runtime": "dedicated_isaac_connector_insertion_evaluator",
+      "runtime_backend": "isaac_runtime"
+    },
+    {
+      "device": "cuda:0",
+      "headless": true,
+      "isaac_task_or_scene_id": "Isaac-Factory-PegInsert-Direct-v0",
+      "passed": true,
+      "proof_runtime": "dedicated_isaac_connector_insertion_evaluator",
+      "runtime_backend": "isaac_runtime"
+    }
+  ],
+  "runtime_backend": "isaac_runtime"
+}
