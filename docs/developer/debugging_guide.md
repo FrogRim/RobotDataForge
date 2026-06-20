@@ -4876,3 +4876,56 @@ heldout_40000_40049:
   regression fixture 설계 참고 자료로 보존한다.
 - future closure attempt는 fresh pre-registered held-out range를 별도로 잡고,
   calibration pass 전에는 열지 않는다.
+
+## MVP-3A target fixture pose variant spent held-out rule
+
+`mvp3a_target_fixture_pose_variant`는 actual Isaac held-out `42000-42049`를
+열어서 MVP-3A Proof-Infrastructure Closed와 Learning-Proven Addendum을 달성했다.
+이 range는 이제 audit evidence로 보존해야 하지만 future tuning이나 future
+closure proof에 재사용하면 안 된다.
+
+최종 proof package:
+
+```text
+docs/proof/mvp3a_target_fixture_pose_variant_proof_package/
+  package_manifest.json
+```
+
+검증 명령:
+
+```bash
+python3 scripts/verify_proof_package.py \
+  docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+```
+
+Closure result:
+
+```text
+calibration_41000_41029:
+  baseline=5/30
+  candidate=30/30
+
+heldout_42000_42049:
+  baseline=8/50
+  candidate=48/50
+  uplift=+0.80
+  package_status=proof_infrastructure_closed
+  learning_result=positive_uplift
+  learning_proven_addendum=present
+```
+
+금지:
+
+- `42000-42049` 결과를 보고 policy, comparator, adapter, threshold, metric,
+  trainer, curation rule을 조정하지 않는다.
+- `42000-42049`를 다른 slice의 closure proof로 재사용하지 않는다.
+- `42000-42049`를 “새 held-out”처럼 문서화하지 않는다.
+- MVP-3B 이후 task/source expansion에서 `42000-42049`를 tuning evidence로
+  사용하지 않는다.
+
+허용:
+
+- `42000-42049` artifact를 audit, provenance 확인, buyer-facing limitation 설명,
+  regression fixture 설계 참고 자료로 보존한다.
+- future MVP-3B proof attempt는 fresh pre-registered held-out range를 별도로
+  잡고, `40000-40049`와 `42000-42049` 모두와 disjoint해야 한다.

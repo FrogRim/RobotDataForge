@@ -244,6 +244,36 @@ MVP-2에서 다룰 것:
 
 MVP-2 결과가 음성이어도 MVP-1 실패가 아니다. 음성 결과는 현재 데이터 규모, transition coverage, action contract, trainer, evaluator 중 어디가 병목인지 판단하는 evidence로 남긴다.
 
+### 5.4 Spent Held-Out Discipline
+
+Closed 또는 attempted closure에 사용된 held-out seed range는 이후 tuning,
+threshold 조정, adapter 조정, comparator 조정, policy/trainer 조정, metric 조정,
+curation rule 조정, future closure proof에 재사용하지 않는다.
+
+현재 spent/audit-only/no-reuse range:
+
+- `40000-40049`: MVP-2 v0.14 actual Isaac closure에 사용됨.
+- `42000-42049`: MVP-3A `target_fixture_pose_variant` actual Isaac closure
+  attempt에 사용됨.
+
+허용되는 사용:
+
+- audit
+- provenance 확인
+- buyer-facing limitation 설명
+- regression fixture 설계 참고
+
+금지되는 사용:
+
+- 결과를 보고 policy, comparator, adapter, threshold, metric, trainer, curation
+  rule을 조정하는 것
+- 같은 range를 future closure proof나 fresh held-out으로 재사용하는 것
+- 같은 range를 새 task/source expansion의 tuning evidence로 사용하는 것
+
+MVP-3B 이후 proof attempt는 fresh pre-registered calibration/held-out range를
+새로 잡고, 이전 spent range와 seed disjointness를 verifier 또는 package
+manifest에서 명시해야 한다.
+
 MVP-1에서 추천하는 task:
 
 - Peg-in-hole

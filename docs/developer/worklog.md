@@ -12,6 +12,45 @@
 
 ---
 
+## 2026-06-20: MVP-3A spent held-out rule promoted to project instructions
+
+Context:
+
+- MVP-3A actual Isaac closure used held-out `42000-42049`.
+- The user explicitly confirmed that `42000-42049` must not be used for future
+  tuning, matching the MVP-2 `40000-40049` spent-range discipline.
+
+Implementation:
+
+- Updated `docs/developer/project_instructions.md`.
+  - Added `Spent Held-Out Discipline`.
+  - Marked `40000-40049` and `42000-42049` as spent/audit-only/no-reuse.
+  - Banned reuse for tuning, threshold adjustment, adapter/comparator/policy
+    changes, metric changes, curation rules, and future closure proof.
+- Updated `docs/developer/debugging_guide.md`.
+  - Added an MVP-3A target fixture pose variant spent held-out rule.
+  - Preserved exact result: calibration `5/30 -> 30/30`, held-out
+    `8/50 -> 48/50`, uplift `+0.80`.
+- Updated local `Handoff.md` with `42000-42049` as the newly spent MVP-3A range.
+
+Validation:
+
+```text
+rg -n "42000-42049|Spent Held-Out Discipline|MVP-3A target fixture pose variant spent held-out rule" docs/developer/project_instructions.md docs/developer/debugging_guide.md Handoff.md
+  expected policy anchors present
+
+git diff --check
+  passed
+```
+
+Remaining gap / next work:
+
+- MVP-3A objective is complete.
+- Next valid work is MVP-3B planning with fresh ranges disjoint from
+  `40000-40049` and `42000-42049`.
+
+---
+
 ## 2026-06-20: MVP-3A actual Isaac proof package closed
 
 Context:
