@@ -12,6 +12,233 @@
 
 ---
 
+## 2026-06-20: MVP-3A actual Isaac proof package closed
+
+Context:
+
+- MVP-3A의 목적은 MVP-2에서 만든 proof discipline을 새 task variant에서
+  반복할 수 있는지 확인하는 것이다.
+- 이전 구현/리뷰에서 `actual_isaac` tier가 config 자기선언만으로 closed를
+  mint할 수 있는 self-attestation 위험을 발견했고, verifier hardening으로
+  policy hash binding, per-rollout C-lite mask binding, fixed seed/source
+  contract, spent-range guard를 강제했다.
+- 사용자 지시에 따라 actual Isaac 실행까지 완료한 뒤 커밋하기로 했다.
+
+Implementation:
+
+- Added `scripts/run_mvp3a_actual_isaac_evidence.py`.
+  - IsaacLab `_isaac_sim/python.sh` runtime에서 split별 child process를
+    실행해 한 프로세스 안에서 여러 `SimulationApp`을 열지 않는다.
+  - v0.14 baseline/candidate policy artifact를 복사해 MVP-3A package의
+    `data/policies/`에 hash-bound evidence로 포함한다.
+  - calibration/held-out rollout JSON, C-lite success masks, gate JSON,
+    seed discipline report, non-claims attestation, closure summary, learning
+    summary, learning-proven addendum을 생성한다.
+- Hardened `scripts/verify_proof_package.py`.
+  - actual package status를 gate/provenance/mask/non-claim 검증 이후에만
+    `proof_infrastructure_closed`로 확정한다.
+  - actual gate failure는 `proof_infrastructure_failed`로 재계산한다.
+- Hardened `scripts/run_mvp3a_proof_infrastructure.py`.
+  - actual gate failure package가 closed로 캐시되지 않게 fail-closed 한다.
+- Added `apps/api/tests/test_mvp3a_actual_isaac_evidence.py`.
+  - fake backend collection, success metric key completeness, subprocess split
+    execution path를 검증한다.
+- Updated `docs/proof/mvp3a_target_fixture_pose_variant_proof_package/README.md`
+  with actual results, verification command, and non-claim boundary.
+
+Actual Isaac result:
+
+```text
+package=docs/proof/mvp3a_target_fixture_pose_variant_proof_package/
+evidence_kind=actual_isaac
+package_status=proof_infrastructure_closed
+learning_result=positive_uplift
+learning_proven_addendum=present
+
+calibration: baseline 5/30, candidate 30/30
+held-out: baseline 8/50, candidate 48/50
+held-out uplift: +0.80
+fresh calibration range: 41000-41029
+fresh held-out range: 42000-42049
+spent inherited held-out range: 40000-40049
+```
+
+Validation:
+
+```text
+uv run python scripts/run_mvp3a_actual_isaac_evidence.py --clean
+  generated docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+
+python3 scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+  VERDICT: VERIFIED
+  recomputed baseline=0.16, candidate=0.96, uplift=0.80
+
+uv run pytest apps/api/tests/test_mvp3a_actual_isaac_evidence.py apps/api/tests/test_mvp3a_proof_infrastructure.py apps/api/tests/test_verify_proof_package.py -q
+  29 passed
+
+uv run pytest apps/api/tests/test_mvp3a_actual_isaac_evidence.py apps/api/tests/test_mvp3a_proof_infrastructure.py apps/api/tests/test_verify_proof_package.py apps/api/tests/test_proof_spine_*.py apps/api/tests/test_verify_mvp2_package.py -q
+  121 passed
+
+uv run pytest -q
+  851 passed, 6 skipped
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+  VERDICT: VERIFIED
+
+uvx ruff check scripts apps/api
+  All checks passed
+
+python3 -m compileall -q scripts apps/api
+  passed
+
+git diff --check
+  passed
+
+git diff -- scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_isaac_proof_evaluator.py scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package
+  no output
+```
+
+Remaining gap / next work:
+
+- `42000-42049` is now spent/audit-only/no-reuse for MVP-3A.
+- This result is still an Isaac evaluator-domain result, not a real robot,
+  visual policy, HMD/OpenXR, UR, ROS2-DDS, Franka, marketplace, production, or
+  universal robot support claim.
+- Next valid work is commit/PR for the MVP-3A proof package, then either another
+  fresh task/source expansion or adapter-facing design work.
+
+---
+
+## 2026-06-20: MVP-2 proof layer freeze LinkedIn post10 draft
+
+Context:
+
+- MVP-2 proof package and MVP-3 proof spine are ready enough to transition, but
+  the public narrative needs one short post before starting MVP-3.
+- Existing `post10_mvp2_appendix_v014_comparator_provenance_row_balance_details.md`
+  was not posted and is removed from postwrite. The LinkedIn transition draft is
+  now the post10 file.
+
+Implementation:
+
+- Added `postwrite/post10_mvp2_proof_layer_freeze_before_mvp3_linkedin_draft.md`.
+  - Frames MVP-2 as an externally verifiable proof package, not only a headline
+    metric.
+  - Preserves claim boundaries: n=1, Isaac evaluator-domain, not real robot /
+    visual policy / deployment.
+  - Discloses Codex usage as engineering and review assistance, not as the
+    source of the evaluator result.
+- Removed `postwrite/post10_mvp2_appendix_v014_comparator_provenance_row_balance_details.md`
+  from local postwrite because it was not posted and should not remain as the
+  post10 draft.
+
+Validation:
+
+```text
+rg -n "Post 10 Draft|Codex did not create|spent / audit-only / no-reuse|not a real-robot claim" postwrite/post10_mvp2_proof_layer_freeze_before_mvp3_linkedin_draft.md
+  expected phrases present
+```
+
+Remaining gap:
+
+- No commit, push, or PR has been made.
+
+---
+
+## 2026-06-18: MVP-3 held-out / closure spine extraction
+
+Context:
+
+- MVP-2 v0.14 is frozen and externally auditable. The next MVP-3 enabler is
+  not more MVP-2 proof digging, but extracting the held-out/closure integrity
+  spine so future `(task, source)` proof packages can reuse the same discipline
+  without forking `run_mvp2c`.
+- The approved `$ralplan --deliberate` consensus required producer-side code
+  under `app.services.proof`, while preserving independence from
+  `scripts/verify_mvp2_package.py` and not modifying frozen MVP-2 artifacts.
+
+Implementation:
+
+- Added `apps/api/app/services/proof/`.
+  - `contracts.py`: Pydantic contracts for runtime expectations, thresholds,
+    closure inputs/verdicts, leakage reports, and seed discipline reports.
+    Proof-affecting booleans, numeric evidence, threshold knobs, and seed range
+    endpoints use strict Pydantic types and assignment validation so
+    bool/string counts, truthy strings, or bool-backed seed endpoints cannot be
+    coerced into evidence.
+  - `closure.py`: 8-gate closure derivation with runtime/backend/source values
+    injected by `RuntimeExpectations`.
+    Missing success-trace counts are fail-closed for MVP-3 proof reuse, which is
+    intentionally stricter than the frozen archive behavior.
+    `learning_matches` also fails closed when reported uplift is inconsistent
+    with `candidate_success_rate - baseline_success_rate`.
+  - `leakage_guard.py`: checked-channel burned seed derivation and held-out
+    disjointness check. Malformed proof-affecting labels and empty held-out sets
+    fail closed instead of being silently ignored.
+  - `seed_discipline.py`: recorded train/calibration/held-out range validation
+    plus configured `spent_no_reuse` rejection.
+- Added proof spine tests under `apps/api/tests/test_proof_spine_*.py`.
+  - Covers v0.14 default thresholds, every closure gate, absent/true
+    post-held-out guard behavior, leakage overlap, inclusive seed ranges,
+    spent held-out `40000-40049` rejection, golden v0.14 parity, and
+    verifier/archive independence guards.
+  - Post-review hardening tests cover malformed truthy proof booleans, coerced
+    seed endpoints, invalid thresholds, inconsistent uplift/rates, and empty
+    held-out leakage input.
+- Added v0.14 JSON fixtures under `apps/api/tests/fixtures/proof_spine/`.
+  - Copied from `storage/proof_evidence/...` only after sha256 verification.
+  - Golden parity asserts archived final verdict fields and reconstructed
+    8 gates, not per-gate artifact identity.
+
+Validation completed:
+
+```text
+uv run pytest apps/api/tests/test_proof_spine_*.py -q
+  50 passed
+
+uv run pytest apps/api/tests/test_verify_mvp2_package.py -q
+  42 passed
+
+uv run pytest -q
+  816 passed, 6 skipped
+
+uvx ruff check scripts apps/api
+  All checks passed
+
+uv run mypy apps/api/app/services/proof apps/api/tests/test_proof_spine_*.py
+  Success: no issues found in 11 source files
+
+uv run python -m compileall -q apps/api/app/services/proof apps/api/tests/test_proof_spine_*.py
+  passed
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json | tail -1
+  VERDICT: VERIFIED
+
+git diff --check
+  passed
+
+git diff -- scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_isaac_proof_evaluator.py scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json docs/proof/mvp2_learning_proven_evidence_package/data
+  no diff
+```
+
+Final gate result:
+
+- Final `$ultragoal` quality gate completed.
+  - changed-file cleanup pass: no code edits needed after fallback/dead-code scan
+  - independent code-reviewer: APPROVE, 0 issues
+  - independent architect: CLEAR, 0 blocking concerns
+  - ultragoal G001-G005 all complete and artifactComplete:true
+  - Codex aggregate goal marked complete
+  - known scope boundary: the spine is extraction-only and not yet wired into a
+    live producer path; this is intentional for the approved slice.
+- Post-review findings closed after the gate:
+  - non-strict proof boolean/range/threshold coercion
+  - internally inconsistent uplift evidence
+  - empty held-out leakage guard passing
+- No commit, push, or PR has been made.
+
+---
+
 ## 2026-06-04: HMD-free test execution guide
 
 Context:
@@ -17250,3 +17477,351 @@ git diff --check
 - GitHub Actions 재실행 결과는 push 후 확인해야 한다.
 - `teleop_se3_agent.py` 자체는 여전히 repo 밖 external IsaacLab source이며, 해당 파일의
   내용 검사는 파일이 있는 개발 머신에서만 수행된다.
+
+## 2026-06-18 KST - MVP-3 held-out/closure spine extraction ralplan 승인
+
+### 작업 내용
+
+MVP-3 source/task expansion을 위한 `held-out/closure integrity spine` 추출 계획을
+`$ralplan --deliberate`로 검토했다. 구현은 시작하지 않았고, planning/consensus artifact만
+갱신했다.
+
+변경 파일:
+
+```text
+docs/superpowers/specs/2026-06-18-mvp3-heldout-closure-spine-extraction-design.md
+docs/superpowers/plans/2026-06-18-mvp3-heldout-closure-spine-extraction.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+로컬 OMX planning artifact:
+
+```text
+.omx/context/mvp3-heldout-closure-spine-extraction-20260618T045650Z.md
+.omx/plans/prd-mvp3-heldout-closure-spine-extraction.md
+.omx/plans/test-spec-mvp3-heldout-closure-spine-extraction.md
+.omx/plans/ralplan-architect-review-mvp3-heldout-closure-spine-extraction-iteration1.md
+.omx/plans/ralplan-architect-review-mvp3-heldout-closure-spine-extraction-iteration2.md
+.omx/plans/ralplan-architect-review-mvp3-heldout-closure-spine-extraction-iteration3.md
+.omx/plans/ralplan-critic-review-mvp3-heldout-closure-spine-extraction-iteration1.md
+.omx/plans/ralplan-consensus-mvp3-heldout-closure-spine-extraction.md
+```
+
+### 판단 이유
+
+초기 spec/plan 방향은 맞았지만, Architect review가 세 가지 실행 위험을 잡았다.
+
+- `heldout_closure_gate_v0_14.json`에는 per-gate boolean이 없으므로 golden test가
+  per-gate artifact identity를 주장하면 안 된다.
+- detailed plan에 task-level commit 지시가 남아 있으면 no-commit boundary와 충돌한다.
+- `spent/no-reuse` rejection은 말뿐이 아니라 `spent_no_reuse` 입력과 테스트로 실행 가능해야 한다.
+
+이에 따라 plan을 수정했고, Architect iteration 3과 Critic iteration 1에서 최종 승인됐다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+rg -n "value-identical|값-identical|git add|git commit|expect clean|test_golden_v014_closure_is_value_identical" \
+  docs/superpowers/specs/2026-06-18-mvp3-heldout-closure-spine-extraction-design.md \
+  docs/superpowers/plans/2026-06-18-mvp3-heldout-closure-spine-extraction.md
+# stale executable commit / value-identical overclaim 없음
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+p=Path('docs/proof/mvp2_learning_proven_evidence_package/data/mvp2_learning_proven_report.json')
+d=json.loads(p.read_text())
+print(d.get('learning_proven'), d.get('proof_eligible'))
+PY
+# True True
+
+git status --short --branch
+# branch=codex/mvp3-heldout-closure-spine, planning docs dirty/untracked
+```
+
+코드 구현은 수행하지 않았으므로 pytest/ruff는 실행하지 않았다.
+
+### 남은 gap 또는 다음 작업
+
+- 다음 단계는 `$ultragoal`로 승인된 plan을 실행하는 것이다.
+- 구현 시 archive scripts와 independent verifier는 수정하지 않는다.
+- held-out `40000-40049`는 audit-only/no-reuse validation evidence로만 사용한다.
+- 구현 완료 후 `docs/developer/worklog.md`와 `Handoff.md`를 다시 갱신해야 한다.
+
+## 2026-06-20 KST - MVP-3A proof-infrastructure task variant design
+
+### 작업 내용
+
+MVP-3A 시작 전 claim taxonomy와 실행 경계를 design spec으로 고정했다. MVP-3A는
+adapter/source 확장이 아니라, 같은 Isaac source에서 target / fixture pose task variant를
+열어 proof spine / package / verifier discipline 반복성을 검증하는 control slice로
+정의했다.
+
+사용자 review에서 MVP-2 초기 self-attestation 문제가 반복될 수 있다는 blocker가 확인되어,
+spec에 self-contained recompute bundle을 추가했다. MVP-3A package는
+`data/rollouts/`에 calibration/held-out baseline/candidate rollout JSON 4개를 포함해야 하며,
+generic verifier는 `closure_verdict.json`을 신뢰하지 않고 rollout JSON에서 count, success,
+rate, uplift, confidence interval, addendum/non-closing condition을 직접 재계산한다.
+또한 runtime, calibration selection, train trace, post-heldout guard도 `data/gates/`의
+self-contained JSON에서 읽도록 계획 범위를 보강했다.
+
+변경 파일:
+
+```text
+docs/superpowers/specs/2026-06-20-mvp3a-proof-infrastructure-task-variant-design.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+### 판단 이유
+
+MVP-2에서 어렵게 분리한 `learning-ready` / `learning-proven` 경계가 MVP-3에서 다시
+흐려지면 proof package의 신뢰성이 낮아진다. 그래서 MVP-3A를
+`Proof-Infrastructure Closed`와 `Learning-Proven Addendum`으로 나누고, positive uplift가
+없어도 infrastructure package는 유효한 bounded evidence로 남기는 규칙을 명시했다.
+
+외부 감사자가 local `storage/` artifact를 신뢰해야 하면 Robot Data Forge의 trust layer
+claim과 충돌한다. 따라서 verdict-critical 작은 JSON은 git-tracked proof package 안에
+복사하고, `storage/` 원본은 provenance source로만 둔다.
+
+`sh`는 이 spec과 후속 implementation plan이 승인된 뒤 사용한다. 지금 단계의 산출물은
+`sh` goal seed 역할을 하는 design spec이다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+red-flag scan over MVP-3A spec and plan
+# no unfinished markers, vague repair verbs, deferred work language, or ellipsis characters
+
+rg -n "[ \\t]+$" \
+  docs/superpowers/plans/2026-06-20-mvp3a-proof-infrastructure-task-variant.md \
+  docs/superpowers/specs/2026-06-20-mvp3a-proof-infrastructure-task-variant-design.md \
+  docs/developer/worklog.md \
+  Handoff.md
+# no matches
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3A runner/verifier implementation plan은 작성됨:
+  `docs/superpowers/plans/2026-06-20-mvp3a-proof-infrastructure-task-variant.md`
+- `$sh-goal`로 MVP-3A runner/verifier contract 구현을 진행했다.
+- 실제 Isaac rollout evidence collection은 runner/verifier contract 구현 후 별도 slice로 연다.
+
+## 2026-06-20 KST - MVP-3A runner/verifier contract 구현
+
+### 작업 내용
+
+MVP-3A의 actual Isaac 실행 전 단계로 thin runner와 generic verifier를 구현했다.
+
+변경 파일:
+
+```text
+scripts/verify_proof_package.py
+scripts/run_mvp3a_proof_infrastructure.py
+apps/api/tests/test_verify_proof_package.py
+apps/api/tests/test_mvp3a_proof_infrastructure.py
+docs/developer/worklog.md
+Handoff.md
+```
+
+구현 내용:
+
+```text
+- scripts/verify_proof_package.py:
+  stdlib-only verifier. package_manifest.json을 읽고 data/rollouts/, data/gates/,
+  optional data/masks/에서 verdict-critical evidence를 재계산한다.
+
+- scripts/run_mvp3a_proof_infrastructure.py:
+  pre-existing evidence path를 package data/로 복사하는 thin coordinator.
+  Isaac 실행, trainer tuning, held-out threshold tuning은 하지 않는다.
+
+- apps/api/tests/test_verify_proof_package.py:
+  positive/non-closing package, cached-summary tamper, label tamper, non-claim tamper,
+  gate tamper, spent overlap, addendum mismatch, C-lite mask consistency, unindexed
+  data file hard-fail을 검증한다.
+
+- apps/api/tests/test_mvp3a_proof_infrastructure.py:
+  runner가 self-contained package를 만들고 generic verifier로 검증 가능한지,
+  non-closing package가 learning addendum을 만들지 않는지,
+  source_variable_opened=true를 거부하는지 검증한다.
+```
+
+Completion red-team에서 synthetic fixture가 `proof_infrastructure_closed`를 claim하면
+spec과 충돌한다는 점을 확인했다. 이에 따라 synthetic test package는
+`evidence_kind=synthetic_test_fixture`, `package_status=synthetic_verifier_fixture`,
+`learning_proven_addendum=absent`로만 검증되게 수정했다. Actual Isaac package만
+`evidence_kind=actual_isaac`과 `package_status=proof_infrastructure_closed`를 사용할 수 있다.
+
+### 판단 이유
+
+MVP-3A package가 `storage/` local artifact hash만 들고 있으면 MVP-2 초기
+self-attestation 문제가 반복된다. 따라서 small verdict-critical JSON은
+`data/rollouts/`와 `data/gates/`로 package에 포함하고, verifier는 `closure_verdict.json`을
+source of truth로 쓰지 않게 했다.
+
+Verifier는 producer-side `app.services.proof`를 import하지 않는다. Runner는 producer
+spine을 사용할 수 있지만, verifier는 독립 auditor로 남아야 하기 때문이다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_proof_package.py -q
+# 12 passed
+
+uv run pytest apps/api/tests/test_mvp3a_proof_infrastructure.py -q
+# 3 passed
+
+python3 - <<'PY'
+import ast
+from pathlib import Path
+path = Path('scripts/verify_proof_package.py')
+tree = ast.parse(path.read_text())
+imports = []
+for node in ast.walk(tree):
+    if isinstance(node, ast.Import):
+        imports += [alias.name.split('.')[0] for alias in node.names]
+    if isinstance(node, ast.ImportFrom) and node.module:
+        imports.append(node.module.split('.')[0])
+blocked = sorted(set(imports) & {'numpy', 'scipy', 'pandas', 'pydantic', 'app'})
+assert blocked == [], blocked
+print('stdlib-only import guard passed')
+PY
+# stdlib-only import guard passed
+
+uv run pytest apps/api/tests/test_proof_spine_*.py -q
+# 50 passed
+
+uv run pytest apps/api/tests/test_verify_mvp2_package.py -q
+# 42 passed
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uv run pytest -q
+# 837 passed, 6 skipped
+
+uvx ruff check scripts apps/api
+# All checks passed
+
+python3 -m compileall -q scripts apps/api
+# passed
+
+git diff --check
+# passed
+
+git diff -- \
+  scripts/run_mvp2c_isaac_training_calibration.py \
+  scripts/run_mvp2b_isaac_proof_evaluator.py \
+  scripts/verify_mvp2_package.py \
+  docs/proof/mvp2_learning_proven_evidence_package
+# no output
+```
+
+### 남은 gap 또는 다음 작업
+
+- 아직 actual Isaac evidence collection을 실행하지 않았다.
+- 따라서 아직 `MVP-3A Proof-Infrastructure Closed` claim은 없다.
+- 아직 `MVP-3A Learning-Proven Addendum` claim도 없다.
+- 다음 slice는 actual Isaac evidence 생성 또는 runner/verifier code review/commit 전략이다.
+
+## 2026-06-20 KST - MVP-3A 코드리뷰 hardening 반영
+
+### 작업 내용
+
+독립 검수에서 발견된 MVP-3A verifier self-attestation 구멍을 닫았다.
+
+변경 파일:
+
+```text
+scripts/verify_proof_package.py
+scripts/run_mvp3a_proof_infrastructure.py
+apps/api/tests/test_verify_proof_package.py
+apps/api/tests/test_mvp3a_proof_infrastructure.py
+docs/superpowers/specs/2026-06-20-mvp3a-proof-infrastructure-task-variant-design.md
+docs/superpowers/plans/2026-06-20-mvp3a-proof-infrastructure-task-variant.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+수정 내용:
+
+```text
+- actual_isaac package가 config.evidence_kind 한 줄로 proof_infrastructure_closed를
+  mint하지 못하게 actual_isaac_provenance hard-check를 추가했다.
+- actual_isaac tier는 data/policies/ policy artifact canonical hash binding과
+  data/masks/ per-rollout C-lite mask binding을 모두 요구한다.
+- verifier가 source_variable_opened=false, train=43000-43049,
+  calibration=41000-41029, heldout=42000-42049, spent_no_reuse includes
+  40000-40049, proof_runtime 고정 계약을 독립적으로 강제한다.
+- seed_ranges.train 누락은 traceback이 아니라 seed_contract fail로 처리한다.
+- learning_proven_report.json을 읽어 recomputed rates/uplift와 addendum manifest
+  sha256을 검증한다.
+- C-lite 검증을 success count 수준에서 per-rollout `(seed, scenario_id)` binding으로
+  강화했다.
+- runner도 actual_isaac config에서 policy artifacts와 C-lite masks가 없으면
+  fail-closed 한다.
+```
+
+### 판단 이유
+
+MVP-3A의 핵심은 MVP-2에서 닫은 proof discipline을 새 task variant에서 반복하는 것이다.
+따라서 `actual_isaac` 여부를 producer config 자기선언에 맡기면 MVP-2 초기
+self-attestation 문제가 반복된다. Verifier가 source/spent/seed/provenance 계약을 독립적으로
+다시 강제해야 외부 감사자가 runner를 신뢰하지 않고도 claim boundary를 확인할 수 있다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_proof_package.py -q
+# 19 passed
+
+uv run pytest apps/api/tests/test_mvp3a_proof_infrastructure.py -q
+# 6 passed
+
+uv run pytest apps/api/tests/test_verify_proof_package.py apps/api/tests/test_mvp3a_proof_infrastructure.py -q
+# 25 passed
+
+uvx ruff check scripts/verify_proof_package.py scripts/run_mvp3a_proof_infrastructure.py apps/api/tests/test_verify_proof_package.py apps/api/tests/test_mvp3a_proof_infrastructure.py
+# All checks passed
+
+uv run pytest apps/api/tests/test_proof_spine_*.py -q
+# 50 passed
+
+uv run pytest apps/api/tests/test_verify_mvp2_package.py -q
+# 42 passed
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uv run pytest -q
+# 847 passed, 6 skipped
+
+uvx ruff check scripts apps/api
+# All checks passed
+
+python3 -m compileall -q scripts apps/api
+# passed
+
+git diff --check
+# passed
+
+git diff -- \
+  scripts/run_mvp2c_isaac_training_calibration.py \
+  scripts/run_mvp2b_isaac_proof_evaluator.py \
+  scripts/verify_mvp2_package.py \
+  docs/proof/mvp2_learning_proven_evidence_package
+# no output
+```
+
+### 남은 gap 또는 다음 작업
+
+- 아직 actual Isaac evidence collection은 실행하지 않았다.
+- 아직 `MVP-3A Proof-Infrastructure Closed` claim은 없다.
+- 전체 회귀와 frozen MVP-2 diff-check는 통과했다.
+- 다음 slice는 actual Isaac evidence 생성 전 review/commit 전략 또는 actual evidence
+  pre-registration이다.
