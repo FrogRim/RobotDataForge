@@ -1,5 +1,58 @@
 # ForgeXR / RDF Data Trust Layer Reset - 2026-06-04
 
+## Current MVP-3A Actual Isaac Proof Package - 2026-06-20 KST
+
+Goal: `target_fixture_pose_variant` actual Isaac proof package에서 MVP-2의 proof
+spine / package / verifier discipline을 새 task variant에 반복 적용한다.
+
+Current latest evidence:
+
+```text
+package=docs/proof/mvp3a_target_fixture_pose_variant_proof_package/
+evidence_kind=actual_isaac
+package_status=proof_infrastructure_closed
+learning_result=positive_uplift
+learning_proven_addendum=present
+calibration=baseline 5/30, candidate 30/30
+heldout=baseline 8/50, candidate 48/50
+heldout_uplift=+0.80
+fresh_calibration_range=41000-41029
+fresh_heldout_range=42000-42049
+proof_runtime=dedicated_isaac_connector_insertion_evaluator
+```
+
+Spent held-out registry:
+
+- [x] `40000-40049`는 MVP-2 v0.14 closure에 사용됨.
+- [x] `42000-42049`는 MVP-3A actual Isaac closure attempt에 사용됨.
+- [x] 두 range 모두 future tuning / threshold tuning / comparator tuning /
+  closure proof에 재사용하지 않는다.
+
+Current worktree status:
+
+- [x] Proof spine extraction implemented under `apps/api/app/services/proof/`.
+- [x] Generic verifier implemented in `scripts/verify_proof_package.py`.
+- [x] Thin package runner implemented in `scripts/run_mvp3a_proof_infrastructure.py`.
+- [x] Actual Isaac evidence runner implemented in
+  `scripts/run_mvp3a_actual_isaac_evidence.py`.
+- [x] Actual Isaac package generated under
+  `docs/proof/mvp3a_target_fixture_pose_variant_proof_package/`.
+- [x] Generic verifier recomputes the actual package as `VERDICT: VERIFIED`.
+- [x] Full regression: `851 passed, 6 skipped`.
+- [x] Frozen MVP-2 diff-check: no output.
+- [ ] Commit the verified MVP-3A work in logical units.
+- [ ] Open PR after commit/push if requested.
+
+Non-claims:
+
+- This does not prove real robot success.
+- This does not prove physical robot readiness.
+- This does not prove deployable policy readiness.
+- This does not prove visual policy performance.
+- This does not prove HMD/OpenXR readiness.
+- This does not prove UR, ROS2-DDS, Franka, marketplace, production, or universal
+  robot support.
+
 ## Current MVP-2 Closure Freeze - 2026-06-16 KST
 
 Goal: `v0_14_comparator_provenance_row_balance` actual Isaac proof를

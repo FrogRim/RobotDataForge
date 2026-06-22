@@ -1,0 +1,8 @@
+{
+  "no_reuse": true,
+  "passed": true,
+  "spent_after_closure_attempt": [
+    42000,
+    42049
+  ]
+}

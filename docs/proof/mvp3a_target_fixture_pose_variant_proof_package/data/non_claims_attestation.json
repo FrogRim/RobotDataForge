@@ -1,0 +1,13 @@
+{
+  "deployable_policy_readiness": false,
+  "franka_hardware_support": false,
+  "hmd_openxr_collection_readiness": false,
+  "marketplace_readiness": false,
+  "physical_robot_readiness": false,
+  "production_certification": false,
+  "real_robot_success": false,
+  "ros2_dds_adapter_support": false,
+  "universal_robot_support": false,
+  "ur_adapter_support": false,
+  "visual_policy_performance": false
+}
