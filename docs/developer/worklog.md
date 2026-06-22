@@ -12,6 +12,78 @@
 
 ---
 
+## 2026-06-22: MVP-3B Tasks 3-4 mypy review blocker fix
+
+### 작업 내용
+
+MVP-3B source-adapter runner/verifier/package tests에 대해 reviewer가 지적한
+modified-file typing blocker를 behavior 변경 없이 수정했다.
+
+변경 파일:
+
+```text
+apps/api/app/services/robot_embodiment_adapters.py
+scripts/run_mvp3b_source_adapter_infrastructure.py
+scripts/verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+.superpowers/sdd/task-3-4-report.md
+```
+
+수정 내용:
+
+```text
+- RobotEmbodimentAdapterRegistryProfile.builder_class를 no-arg builder factory
+  Protocol로 표현했다.
+- _profile() helper도 같은 builder factory type을 받게 맞췄다.
+- _write_contract_smoke() return annotation을 emit_contract() contract에 맞게
+  dict[str, Path | str]로 넓혔다.
+- verifier package surface 순회에서 JSON/JSONL payload branch assignment가
+  같은 union type을 쓰도록 명시했다.
+```
+
+### 판단 이유
+
+concrete builder class들은 `RobotEmbodimentContractBuilder`의 키워드 인자를 받는
+생성자가 아니라 no-arg factory다. 기존 annotation은 런타임 동작과 맞지 않아
+`profile.builder_class()` 호출을 type checker가 base constructor 호출로 해석했다.
+나머지 두 오류도 실제 값 shape은 유지하면서 annotation만 API contract와 맞추면 되는
+문제였으므로 proof semantics와 verifier checks는 변경하지 않았다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run mypy scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# Success: no issues found in 4 source files
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 8 passed in 0.13s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 24 passed in 0.62s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# 16 verifier checks passed
+
+uvx ruff check apps/api/app/services/robot_embodiment_adapters.py scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile apps/api/app/services/robot_embodiment_adapters.py scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- proof semantics는 변경하지 않았다.
+- verifier/package tests는 약화하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+
+---
+
 ## 2026-06-22: MVP-3B Tasks 3-4 review blocker fix
 
 ### 작업 내용

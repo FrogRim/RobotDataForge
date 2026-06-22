@@ -293,7 +293,7 @@ def _write_source_logs(profile: RobotEmbodimentAdapterRegistryProfile, source_di
     write_jsonl(source_dir / "rejected_command_state.jsonl", [_source_row(profile, accepted=False)])
 
 
-def _write_contract_smoke(data_dir: Path, adapter_id: str) -> dict[str, Path]:
+def _write_contract_smoke(data_dir: Path, adapter_id: str) -> dict[str, Path | str]:
     smoke_dir = data_dir / "generated_contract_smoke" / adapter_id
     hdf5_path = smoke_dir / f"{adapter_id}.contract_smoke.hdf5"
     trainer_path = smoke_dir / f"{adapter_id}.trainer_smoke.json"

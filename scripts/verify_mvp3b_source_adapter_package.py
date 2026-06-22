@@ -527,6 +527,7 @@ class Auditor:
                 if contract_smoke.get(key) is not False:
                     failures.append(f"contract_smoke.{key} must be false")
             for path in self._package_surface_files():
+                payload: dict[str, Any] | list[dict[str, Any]]
                 if path.suffix.lower() == ".json":
                     payload = _read_json(path)
                 elif path.suffix.lower() == ".jsonl":
@@ -554,6 +555,7 @@ class Auditor:
         try:
             failures: list[str] = []
             for path in self._package_surface_files():
+                payload: dict[str, Any] | list[dict[str, Any]]
                 if path.suffix.lower() == ".json":
                     payload = _read_json(path)
                 elif path.suffix.lower() == ".jsonl":

@@ -157,3 +157,63 @@ Notes:
 - The default generated package remains VERIFIED under the hardened verifier.
 - Frozen MVP-2 assets and MVP-3A proof package artifacts were not modified.
 ```
+
+## Review Blocker Fix - Modified-File Typing Cleanup
+
+Status: DONE
+
+Reviewer blocker fixed:
+
+```text
+The scoped mypy command failed on modified-file-related annotations:
+1. verifier JSON/JSONL payload branch assignment narrowed payload to dict only.
+2. runner contract-smoke artifact map returned dict[str, Path] while emit_contract
+   accepts dict[str, Path | str] | None.
+3. registry profile builder_class was typed as the base builder constructor even
+   though concrete builder classes are no-argument factories.
+```
+
+Fix:
+
+```text
+- Added RobotEmbodimentContractBuilderFactory Protocol for no-argument builder factories.
+- Updated RobotEmbodimentAdapterRegistryProfile.builder_class and _profile() to use
+  that factory Protocol.
+- Widened _write_contract_smoke() return type to dict[str, Path | str].
+- Annotated verifier package-surface payload variables as dict/list union before
+  JSON vs JSONL branch assignment.
+```
+
+Verification:
+
+```bash
+uv run mypy scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# Success: no issues found in 4 source files
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 8 passed in 0.13s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 24 passed in 0.62s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# 16 verifier checks passed
+
+uvx ruff check apps/api/app/services/robot_embodiment_adapters.py scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile apps/api/app/services/robot_embodiment_adapters.py scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+Notes:
+
+```text
+- No proof semantics were changed.
+- Verifier/package tests were not weakened.
+- Frozen MVP-2 assets and MVP-3A proof package artifacts were not modified.
+```
