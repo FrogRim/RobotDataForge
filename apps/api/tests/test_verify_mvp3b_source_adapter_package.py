@@ -294,6 +294,19 @@ def _make_package(tmp_path: Path, *, adapters: tuple[str, ...] = REQUIRED_ADAPTE
                 "learning_proven_value": False,
             },
         )
+        _write_json(
+            data
+            / "generated_contract_smoke"
+            / adapter_id
+            / f"{adapter_id}.trainer_smoke.json",
+            {
+                "passed": True,
+                "contract_smoke_only": True,
+                "learning_results_measured": False,
+                "policy_uplift": False,
+                "learning_proven_value": False,
+            },
+        )
         adapter_counts[adapter_id] = {"accepted_count": 1, "rejected_count": 1}
 
     _write_json(
@@ -306,6 +319,10 @@ def _make_package(tmp_path: Path, *, adapters: tuple[str, ...] = REQUIRED_ADAPTE
             "rejected_count": sum(c["rejected_count"] for c in adapter_counts.values()),
             "adapters": adapter_counts,
             "cached_summary_only": True,
+            "contract_smoke_only": True,
+            "learning_results_measured": False,
+            "policy_uplift": False,
+            "learning_proven_value": False,
         },
     )
     (pkg / "README.md").write_text(
@@ -505,6 +522,90 @@ def test_truthy_producer_claim_keys_fail_recursively(tmp_path: Path):
         report = _load_verifier().verify_package(manifest)
 
         _assert_only_check_failed(report, "forbidden_claims")
+
+
+def test_trainer_smoke_learning_results_measured_true_fails_non_claims_false_only(
+    tmp_path: Path,
+):
+    adapter_id = "franka_research_arm"
+    rel_path = (
+        "data/generated_contract_smoke/"
+        f"{adapter_id}/{adapter_id}.trainer_smoke.json"
+    )
+    manifest = _make_package(tmp_path)
+    _tamper_indexed_json(
+        manifest,
+        rel_path,
+        lambda payload: payload.update({"learning_results_measured": True}),
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "non_claims_false")
+
+
+def test_adapter_result_policy_uplift_or_learning_proven_value_true_fails_non_claims_false_only(
+    tmp_path: Path,
+):
+    cases = ("policy_uplift", "learning_proven_value")
+    for key in cases:
+        adapter_id = "robotis_sh5_ros2_dds"
+        rel_path = f"data/adapter_results/{adapter_id}_adapter_result.json"
+        manifest = _make_package(tmp_path / key)
+        _tamper_indexed_json(
+            manifest,
+            rel_path,
+            lambda payload, key=key: payload.update({key: True}),
+        )
+
+        report = _load_verifier().verify_package(manifest)
+
+        _assert_only_check_failed(report, "non_claims_false")
+
+
+def test_summary_non_learning_contract_fields_fail_non_claims_false_only(
+    tmp_path: Path,
+):
+    cases = (
+        ("learning_results_measured", True),
+        ("contract_smoke_only", False),
+    )
+    for key, value in cases:
+        manifest = _make_package(tmp_path / key)
+        _tamper_indexed_json(
+            manifest,
+            "data/source_adapter_matrix_summary.json",
+            lambda payload, key=key, value=value: payload.update({key: value}),
+        )
+
+        report = _load_verifier().verify_package(manifest)
+
+        _assert_only_check_failed(report, "non_claims_false")
+
+
+def test_contract_learning_eligibility_gates_learning_claims_fail_non_claims_false_only(
+    tmp_path: Path,
+):
+    cases = (
+        ("learning_results_measured", True),
+        ("policy_uplift", True),
+        ("trainer_export_smoke", "full_training_run"),
+    )
+    for key, value in cases:
+        adapter_id = "universal_robots_ur_industrial_arm"
+        rel_path = f"data/contracts/{adapter_id}_normalized_trajectory_contract.json"
+        manifest = _make_package(tmp_path / key)
+        _tamper_indexed_json(
+            manifest,
+            rel_path,
+            lambda payload, key=key, value=value: payload[
+                "learning_eligibility_gates"
+            ].update({key: value}),
+        )
+
+        report = _load_verifier().verify_package(manifest)
+
+        _assert_only_check_failed(report, "non_claims_false")
 
 
 def test_readme_unsupported_positive_support_wording_fails_forbidden_claims_only(

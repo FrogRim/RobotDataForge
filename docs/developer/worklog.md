@@ -12,6 +12,83 @@
 
 ---
 
+## 2026-06-22: MVP-3B Tasks 3-4 review blocker fix
+
+### 작업 내용
+
+MVP-3B source-adapter proof package verifier가 hash-locked package의 다른 JSON
+surface에 숨어 있는 learning-proven claim 필드를 놓치던 review blocker를 수정했다.
+
+변경 파일:
+
+```text
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+scripts/verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+.superpowers/sdd/task-3-4-report.md
+```
+
+수정 내용:
+
+```text
+- hash를 갱신한 semantic tamper 회귀 테스트를 먼저 추가했다.
+- generated_contract_smoke/<adapter>/<adapter>.trainer_smoke.json에서
+  learning_results_measured=true이면 non_claims_false만 실패하도록 검증한다.
+- adapter_results/<adapter>_adapter_result.json에서 policy_uplift=true 또는
+  learning_proven_value=true이면 non_claims_false만 실패하도록 검증한다.
+- source_adapter_matrix_summary.json에서 learning_results_measured=true 또는
+  contract_smoke_only=false이면 non_claims_false만 실패하도록 검증한다.
+- contracts/<adapter>_normalized_trajectory_contract.json의 learning_eligibility_gates에서
+  learning_results_measured=true, policy_uplift=true, trainer_export_smoke가
+  contract_smoke_only가 아니면 non_claims_false만 실패하도록 검증한다.
+- verifier가 package JSON/JSONL surface 전체를 순회해 learning_results_measured,
+  policy_uplift, learning_proven_value는 정확히 false, contract_smoke_only는 정확히
+  true, trainer_export_smoke는 config.contract_smoke 예외를 제외하고
+  contract_smoke_only로 강제한다.
+```
+
+### 판단 이유
+
+기존 verifier는 `config.contract_smoke`만 non-learning-proven boundary로 검사했다.
+따라서 공격자가 `trainer_smoke.json`, `adapter_result`, `summary`, `contract`를 semantic
+tamper한 뒤 package hash를 새로 고정하면 `hash_integrity`가 통과하고 claim boundary가
+뚫릴 수 있었다. Verifier가 package producer를 신뢰하지 않는다는 MVP-3B 원칙에 맞게 모든
+JSON/JSONL surface에서 동일한 non-learning-proven binding을 독립적으로 강제했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# RED before verifier fix: 4 failed, 20 passed in 0.52s
+# GREEN after verifier fix: 24 passed in 0.60s
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 8 passed in 0.12s
+
+uv run python scripts/run_mvp3b_source_adapter_infrastructure.py --clean
+# source_adapter_infrastructure_closed
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# 16 verifier checks passed
+
+uvx ruff check scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- Runner output 구조 변경은 필요하지 않았다.
+- 기본 package는 강화된 verifier로 VERIFIED 상태를 유지한다.
+- Frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+
+---
+
 ## 2026-06-22: MVP-3B Tasks 3-4 source-adapter package runner
 
 ### 작업 내용

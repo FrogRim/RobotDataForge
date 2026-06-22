@@ -91,3 +91,69 @@ git diff --check
 
 - The generated `.hdf5` files in `data/generated_contract_smoke/` are contract-smoke placeholders, not trainer exports. This is intentional for MVP-3B and is called out in config, summary, adapter results, trainer smoke JSON, and README.
 - No external source directories were supplied in this task; the package uses repo-local generated/file-backed fixture source logs as required.
+
+## Review Blocker Fix - Non-Learning-Proven Package Surface Binding
+
+Status: DONE
+
+Reviewer blocker fixed:
+
+```text
+The verifier previously enforced non-learning-proven contract-smoke fields only
+under data/config.json:contract_smoke. A hash-refreshed package could set
+learning_results_measured=true in generated_contract_smoke trainer smoke JSON, or
+set policy_uplift / learning_proven_value on other package JSON surfaces, while
+hash_integrity still passed.
+```
+
+Fix:
+
+```text
+- Added RED tests that semantically tamper indexed JSON files, refresh
+  package_manifest.json and data/artifact_index.json hashes, then assert only
+  non_claims_false fails.
+- Covered generated_contract_smoke trainer smoke, adapter_results,
+  source_adapter_matrix_summary, and normalized trajectory contract
+  learning_eligibility_gates.
+- Hardened scripts/verify_mvp3b_source_adapter_package.py so every package
+  JSON/JSONL surface enforces:
+  learning_results_measured == false
+  policy_uplift == false
+  learning_proven_value == false
+  contract_smoke_only == true
+  trainer_export_smoke == "contract_smoke_only"
+- Preserved the existing data/config.json:contract_smoke.trainer_export_smoke=true
+  exception.
+```
+
+Verification:
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# RED before verifier fix: 4 failed, 20 passed in 0.52s
+# GREEN after verifier fix: 24 passed in 0.60s
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 8 passed in 0.12s
+
+uv run python scripts/run_mvp3b_source_adapter_infrastructure.py --clean
+# source_adapter_infrastructure_closed
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# 16 verifier checks passed
+
+uvx ruff check scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py
+# passed
+```
+
+Notes:
+
+```text
+- Runner output did not require structural changes.
+- The default generated package remains VERIFIED under the hardened verifier.
+- Frozen MVP-2 assets and MVP-3A proof package artifacts were not modified.
+```

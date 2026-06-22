@@ -89,6 +89,12 @@ FORBIDDEN_TEXT_CLAIM_PHRASES = (
     "production robot support",
 )
 
+NON_LEARNING_PROVEN_FALSE_KEYS = (
+    "learning_results_measured",
+    "policy_uplift",
+    "learning_proven_value",
+)
+
 TEXT_CLAIM_POSITIVE_MARKERS = (
     "claim",
     "claims",
@@ -517,9 +523,27 @@ class Auditor:
                 failures.append("config non_claims keys are not canonical")
             if attestation_keys != canonical:
                 failures.append("attestation forbidden_claims keys are not canonical")
-            for key in ("learning_results_measured", "policy_uplift", "learning_proven_value"):
+            for key in NON_LEARNING_PROVEN_FALSE_KEYS:
                 if contract_smoke.get(key) is not False:
                     failures.append(f"contract_smoke.{key} must be false")
+            for path in self._package_surface_files():
+                if path.suffix.lower() == ".json":
+                    payload = _read_json(path)
+                elif path.suffix.lower() == ".jsonl":
+                    payload = _read_jsonl(path)
+                else:
+                    continue
+                rel = path.relative_to(self.package_root).as_posix()
+                failures.extend(
+                    f"{rel}:{violation}"
+                    for violation in _non_learning_proven_field_violations(payload)
+                    if not (
+                        rel == "data/config.json"
+                        and violation
+                        == "contract_smoke.trainer_export_smoke=True must be "
+                        "contract_smoke_only outside config.contract_smoke"
+                    )
+                )
             if failures:
                 return Check("non_claims_false", False, "; ".join(failures))
             return Check("non_claims_false", True)
@@ -734,7 +758,10 @@ def _walk_claim_keys(payload: Any, prefix: str = "") -> list[tuple[str, Any]]:
     if isinstance(payload, dict):
         for key, value in payload.items():
             dotted = f"{prefix}.{key}" if prefix else str(key)
-            if key in CANONICAL_FORBIDDEN_CLAIMS:
+            if (
+                key in CANONICAL_FORBIDDEN_CLAIMS
+                and key not in NON_LEARNING_PROVEN_FALSE_KEYS
+            ):
                 found.append((dotted, value))
             found.extend(_walk_claim_keys(value, dotted))
     elif isinstance(payload, list):
@@ -742,6 +769,34 @@ def _walk_claim_keys(payload: Any, prefix: str = "") -> list[tuple[str, Any]]:
             dotted = f"{prefix}[{index}]"
             found.extend(_walk_claim_keys(item, dotted))
     return found
+
+
+def _non_learning_proven_field_violations(
+    payload: Any,
+    prefix: str = "",
+) -> list[str]:
+    violations: list[str] = []
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            dotted = f"{prefix}.{key}" if prefix else str(key)
+            if key in NON_LEARNING_PROVEN_FALSE_KEYS and value is not False:
+                violations.append(f"{dotted}={value!r} must be false")
+            elif key == "contract_smoke_only" and value is not True:
+                violations.append(f"{dotted}={value!r} must be true")
+            elif key == "trainer_export_smoke":
+                if dotted == "contract_smoke.trainer_export_smoke" and value is True:
+                    pass
+                elif value != "contract_smoke_only":
+                    violations.append(
+                        f"{dotted}={value!r} must be contract_smoke_only outside "
+                        "config.contract_smoke"
+                    )
+            violations.extend(_non_learning_proven_field_violations(value, dotted))
+    elif isinstance(payload, list):
+        for index, item in enumerate(payload):
+            dotted = f"{prefix}[{index}]"
+            violations.extend(_non_learning_proven_field_violations(item, dotted))
+    return violations
 
 
 def _forbidden_text_claims(path: Path) -> list[str]:

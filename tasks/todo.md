@@ -15,7 +15,7 @@ ralplan_consensus=.omx/plans/ralplan-consensus-mvp3b-source-adapter-infrastructu
 architect_iteration_1=REQUEST_CHANGES
 architect_iteration_2=APPROVE
 critic_iteration_1=APPROVE
-implementation_status=tasks_3_4_runner_package_implemented_and_verified
+implementation_status=tasks_3_4_review_blocker_fixed_and_verified
 ```
 
 Claim boundary:
@@ -39,6 +39,9 @@ Current completed step:
 - [x] Verify generated package with
   `python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json`.
 - [x] Commit Tasks 3-4 with Lore protocol.
+- [x] Fix Tasks 3-4 review blocker: verifier now enforces non-learning-proven
+  fields across package JSON/JSONL surfaces after hash-refreshed semantic tamper.
+- [x] Re-verify package remains VERIFIED under hardened verifier.
 
 ## Current MVP-3A Actual Isaac Proof Package - 2026-06-20 KST
 
