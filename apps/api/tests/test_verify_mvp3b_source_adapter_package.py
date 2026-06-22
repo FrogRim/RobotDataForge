@@ -536,6 +536,36 @@ def test_readme_negated_limitation_does_not_mask_later_positive_claim(
     _assert_only_check_failed(report, "forbidden_claims")
 
 
+def test_readme_coordinate_positive_claim_clause_fails_forbidden_claims_only(
+    tmp_path: Path,
+):
+    manifest = _make_package(tmp_path)
+    (manifest.parent / "README.md").write_text(
+        "This package does not claim production certification, "
+        "and it claims real robot success.\n",
+        encoding="utf-8",
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "forbidden_claims")
+
+
+def test_readme_comma_spliced_positive_claim_clause_fails_forbidden_claims_only(
+    tmp_path: Path,
+):
+    manifest = _make_package(tmp_path)
+    (manifest.parent / "README.md").write_text(
+        "This package does not claim production certification, "
+        "it claims real robot success.\n",
+        encoding="utf-8",
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "forbidden_claims")
+
+
 def test_missing_or_altered_exact_spent_no_reuse_fails(tmp_path: Path):
     for value in ([], [[40000, 40049]], [[40000, 40050], [42000, 42049]]):
         manifest = _make_package(tmp_path / str(len(value)))

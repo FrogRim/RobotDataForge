@@ -12,6 +12,80 @@
 
 ---
 
+## 2026-06-22: MVP-3B Task 2 final-review fix
+
+### 작업 내용
+
+MVP-3B source-adapter proof package verifier의 buyer-facing README/text forbidden
+claim scan에서 comma/coordinate positive claim clause가 이전 negated limitation에
+가려지는 final-review blocker를 수정했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+.superpowers/sdd/task-2-report.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+수정 내용:
+
+```text
+- README.md regression을 2개 추가했다:
+  "This package does not claim production certification, and it claims real robot success."
+  "This package does not claim production certification, it claims real robot success."
+- 두 regression은 hash_integrity가 통과하고 forbidden_claims만 실패해야 한다.
+- text claim local prefix window가 comma-bound positive claim introducer
+  `, and it claims`, `, it claims` 등에서 reset되도록 했다.
+- safe limitation list 문장:
+  "It does not claim live robot support, real robot success, marketplace readiness, production certification, or learning-proven value."
+  는 green fixture로 계속 통과한다.
+```
+
+### 판단 이유
+
+Task 2 verifier는 buyer-facing text surface에서 unsupported positive forbidden
+claim을 독립적으로 잡아야 한다. 기존 sentence/semicolon/contrast boundary만으로는
+`does not claim production certification, and it claims real robot success` 같은
+coordinate clause와 comma splice가 이전 negation window에 포함되어 false-pass했다.
+따라서 ordinary limitation list comma는 보존하되 explicit positive claim introducer에서만
+claim window를 분리했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_coordinate_positive_claim_clause_fails_forbidden_claims_only apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_comma_spliced_positive_claim_clause_fails_forbidden_claims_only -q
+# RED before production fix: 2 failed in 0.06s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_coordinate_positive_claim_clause_fails_forbidden_claims_only apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_comma_spliced_positive_claim_clause_fails_forbidden_claims_only apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_green_package_returns_source_adapter_infrastructure_closed -q
+# 3 passed in 0.05s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 18 passed in 0.37s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py --help
+# passed, exit 0
+
+uvx ruff check scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B runner/package builder는 수정하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- Task 2 final-review blocker는 닫혔고, 다음 작업은 Task 3 runner/package builder다.
+
+---
+
 ## 2026-06-22: MVP-3B Task 2 re-review fix
 
 ### 작업 내용

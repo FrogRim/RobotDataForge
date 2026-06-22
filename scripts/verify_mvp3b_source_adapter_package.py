@@ -123,6 +123,17 @@ TEXT_CLAIM_NEGATED_MARKERS = (
     "without ",
 )
 
+TEXT_CLAIM_CLAUSE_BOUNDARY_MARKERS = (
+    ", and it claim",
+    ", it claim",
+    ", and this package claim",
+    ", this package claim",
+    ", and the package claim",
+    ", the package claim",
+    ", and claims ",
+    ", claims ",
+)
+
 EXPECTED_CONTRACT_SOURCE = {
     "input_device": "recorded_command_state_fixture",
     "runtime": "generated_or_file_backed_recorded_log_fixture",
@@ -758,6 +769,8 @@ def _local_claim_prefix(text: str, start: int) -> str:
     prefix = text[max(0, start - 240) : start]
     boundary = max(prefix.rfind(separator) for separator in (".", "!", "?", ";"))
     for marker in (", but ", " but ", ", however ", " however "):
+        boundary = max(boundary, prefix.rfind(marker))
+    for marker in TEXT_CLAIM_CLAUSE_BOUNDARY_MARKERS:
         boundary = max(boundary, prefix.rfind(marker))
     if boundary == -1:
         return prefix
