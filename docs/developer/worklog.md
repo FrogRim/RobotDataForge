@@ -18733,3 +18733,62 @@ git diff --check
 
 - G002 task-scoped re-review를 다시 받아 Tasks 3-4 완료 여부를 확정한다.
 - 다음 story는 Task 5 tamper matrix package verification이다.
+
+## 2026-06-22 KST - MVP-3B Task 5 real package tamper matrix
+
+### 작업 내용
+
+MVP-3B source-adapter verifier 테스트에 실제 생성 package를 `tmp_path`로 복사한 뒤
+실제 bundle file을 변조하는 tamper matrix를 추가했다.
+
+변경 파일:
+
+```text
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+tasks/todo.md
+Handoff.md
+docs/developer/worklog.md
+.superpowers/sdd/task-5-report.md
+```
+
+### 판단 이유
+
+기존 synthetic fixture tamper test는 verifier contract를 폭넓게 잠갔지만, 실제 생성
+package의 file layout과 manifest/index 구조를 대상으로 한 회귀는 없었다. Task 5 요구에
+맞춰 실제 package copy에서 semantic contradiction을 만들 때는 manifest와
+`data/artifact_index.json` hash를 갱신해 byte tamper가 아니라 verifier recomputation
+실패를 검증했다.
+
+현재 verifier는 모든 실제 package tamper case를 이미 거부했다. 따라서
+`scripts/verify_mvp3b_source_adapter_package.py` 변경이나 package regeneration은 하지 않았다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 36 passed
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 9 passed
+
+uv run mypy scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# Success: no issues found in 4 source files
+
+uvx ruff check scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- Task 5 범위에서는 verifier false pass가 발견되지 않았다.
+- frozen MVP-2 assets, MVP-3A proof package artifacts, MVP-3B generated package는
+  변경하지 않았다.

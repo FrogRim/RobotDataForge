@@ -12,12 +12,14 @@ import ast
 import hashlib
 import importlib.util
 import json
+import shutil
 import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
 VERIFIER = ROOT / "scripts" / "verify_mvp3b_source_adapter_package.py"
+REAL_PACKAGE = ROOT / "docs" / "proof" / "mvp3b_source_adapter_matrix_proof_package"
 
 REQUIRED_ADAPTERS = (
     "franka_research_arm",
@@ -89,6 +91,22 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     body = "".join(_stable_json(row) + "\n" for row in rows)
     path.write_text(body, encoding="utf-8")
+
+
+def _read_jsonl_payloads(path: Path) -> list[dict]:
+    rows = []
+    decoder = json.JSONDecoder()
+    body = path.read_text(encoding="utf-8")
+    index = 0
+    while index < len(body):
+        while index < len(body) and body[index].isspace():
+            index += 1
+        if index >= len(body):
+            break
+        payload, index = decoder.raw_decode(body, index)
+        assert isinstance(payload, dict)
+        rows.append(payload)
+    return rows
 
 
 def _sha(path: Path) -> str:
@@ -365,10 +383,24 @@ def _tamper_json(path: Path, edit) -> None:
     _write_json(path, payload)
 
 
-def _replace_index_hash(entry: dict, *, rel_path: str, file_sha256: str) -> bool:
+def _tamper_jsonl(path: Path, edit) -> None:
+    rows = _read_jsonl_payloads(path)
+    edit(rows)
+    _write_jsonl(path, rows)
+
+
+def _replace_index_hash(
+    entry: dict,
+    *,
+    package_root: Path,
+    rel_path: str,
+    file_sha256: str,
+) -> bool:
     if entry.get("data_path") != rel_path:
         return False
     entry["file_sha256"] = file_sha256
+    if "byte_size" in entry:
+        entry["byte_size"] = (package_root / rel_path).stat().st_size
     return True
 
 
@@ -382,6 +414,7 @@ def _refresh_indexed_hashes(manifest: Path, *changed_rel_paths: str) -> None:
         refreshed = any(
             _replace_index_hash(
                 entry,
+                package_root=pkg,
                 rel_path=rel_path,
                 file_sha256=_sha(pkg / rel_path),
             )
@@ -396,6 +429,7 @@ def _refresh_indexed_hashes(manifest: Path, *changed_rel_paths: str) -> None:
         refreshed = any(
             _replace_index_hash(
                 entry,
+                package_root=pkg,
                 rel_path=rel_path,
                 file_sha256=_sha(pkg / rel_path),
             )
@@ -408,6 +442,34 @@ def _refresh_indexed_hashes(manifest: Path, *changed_rel_paths: str) -> None:
 def _tamper_indexed_json(manifest: Path, rel_path: str, edit) -> None:
     _tamper_json(manifest.parent / rel_path, edit)
     _refresh_indexed_hashes(manifest, rel_path)
+
+
+def _tamper_indexed_jsonl(manifest: Path, rel_path: str, edit) -> None:
+    _tamper_jsonl(manifest.parent / rel_path, edit)
+    _refresh_indexed_hashes(manifest, rel_path)
+
+
+def _copy_real_package(tmp_path: Path) -> Path:
+    package_copy = tmp_path / "real_mvp3b_source_adapter_package"
+    shutil.copytree(REAL_PACKAGE, package_copy)
+    return package_copy / "package_manifest.json"
+
+
+def _refresh_projection_source_log_hash(
+    manifest: Path,
+    *,
+    adapter_id: str,
+    filename: str,
+) -> None:
+    projection_rel = f"data/projections/{adapter_id}/projection_manifest.json"
+    source_rel = f"data/source_logs/{adapter_id}/{filename}"
+
+    def edit(payload: dict) -> None:
+        source_entry = payload["source_logs"][filename]
+        source_entry["sha256"] = _sha(manifest.parent / source_rel)
+        source_entry["rows"] = len(_read_jsonl_payloads(manifest.parent / source_rel))
+
+    _tamper_indexed_json(manifest, projection_rel, edit)
 
 
 def _assert_only_check_failed(report, expected_check: str) -> None:
@@ -812,3 +874,224 @@ def test_verifier_remains_stdlib_only_and_independent_from_producer_services():
             modules.add(node.module.split(".")[0])
     modules.discard("__future__")
     assert modules - set(sys.stdlib_module_names) == set()
+
+
+def test_real_generated_package_verifies_from_copied_bundle(tmp_path: Path):
+    manifest = _copy_real_package(tmp_path)
+
+    report = _load_verifier().verify_package(manifest)
+
+    assert report.ok is True, report.failures()
+    assert report.recomputed["status"] == "source_adapter_infrastructure_closed"
+    assert report.recomputed["accepted_count"] == 3
+    assert report.recomputed["rejected_count"] == 3
+    assert report.recomputed["adapters"] == list(REQUIRED_ADAPTERS)
+
+
+def test_real_package_source_row_semantic_tamper_fails_after_hash_refresh(
+    tmp_path: Path,
+):
+    adapter_id = "franka_research_arm"
+    filename = "accepted_command_state.jsonl"
+    rel_path = f"data/source_logs/{adapter_id}/{filename}"
+    manifest = _copy_real_package(tmp_path)
+    _tamper_indexed_jsonl(
+        manifest,
+        rel_path,
+        lambda rows: rows[0].update({"accepted": False}),
+    )
+    _refresh_projection_source_log_hash(
+        manifest,
+        adapter_id=adapter_id,
+        filename=filename,
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "source_log_completeness")
+
+
+def test_real_package_metadata_truthy_support_claim_fails_after_hash_refresh(
+    tmp_path: Path,
+):
+    manifest = _copy_real_package(tmp_path)
+    _tamper_indexed_json(
+        manifest,
+        "data/source_logs/franka_research_arm/metadata.json",
+        lambda payload: payload.update({"universal_robot_support_claimed": True}),
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "forbidden_claims")
+
+
+def test_real_package_generic_producer_claim_key_truthy_fails_after_hash_refresh(
+    tmp_path: Path,
+):
+    manifest = _copy_real_package(tmp_path)
+    _tamper_indexed_json(
+        manifest,
+        "data/adapter_results/robotis_sh5_ros2_dds_adapter_result.json",
+        lambda payload: payload.update({"marketplace_readiness_claimed": True}),
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "forbidden_claims")
+
+
+def test_real_package_specific_forbidden_claim_keys_truthy_fail_after_hash_refresh(
+    tmp_path: Path,
+):
+    cases = (
+        (
+            "physical_robot_readiness_claimed",
+            "data/source_logs/franka_research_arm/metadata.json",
+        ),
+        (
+            "real_robot_success_claimed",
+            "data/adapter_results/robotis_sh5_ros2_dds_adapter_result.json",
+        ),
+        (
+            "public_sample_evidence_claimed",
+            "data/adapter_registry_snapshot.json",
+        ),
+        (
+            "live_runtime_support",
+            "data/source_adapter_matrix_summary.json",
+        ),
+    )
+    for key, rel_path in cases:
+        manifest = _copy_real_package(tmp_path / key)
+        _tamper_indexed_json(
+            manifest,
+            rel_path,
+            lambda payload, key=key: payload.update({key: True}),
+        )
+
+        report = _load_verifier().verify_package(manifest)
+
+        _assert_only_check_failed(report, "forbidden_claims")
+
+
+def test_real_package_spent_no_reuse_missing_or_altered_fails_after_hash_refresh(
+    tmp_path: Path,
+):
+    cases: tuple[list[list[int]] | None, ...] = (
+        None,
+        [],
+        [[40000, 40050], [42000, 42049]],
+    )
+    for index, value in enumerate(cases):
+        manifest = _copy_real_package(tmp_path / str(index))
+        if value is None:
+            _tamper_indexed_json(
+                manifest,
+                "data/config.json",
+                lambda payload: payload.pop("spent_no_reuse"),
+            )
+        else:
+            _tamper_indexed_json(
+                manifest,
+                "data/config.json",
+                lambda payload, value=value: payload.update({"spent_no_reuse": value}),
+            )
+
+        report = _load_verifier().verify_package(manifest)
+
+        _assert_only_check_failed(report, "spent_no_reuse_exact")
+
+
+def test_real_package_non_empty_opened_ranges_fail_after_hash_refresh(
+    tmp_path: Path,
+):
+    for range_name in ("calibration", "heldout", "tuning", "closure"):
+        manifest = _copy_real_package(tmp_path / range_name)
+        _tamper_indexed_json(
+            manifest,
+            "data/config.json",
+            lambda payload, range_name=range_name: payload["opened_ranges"].update(
+                {range_name: [50000, 50009]}
+            ),
+        )
+
+        report = _load_verifier().verify_package(manifest)
+
+        _assert_only_check_failed(report, "opened_ranges_empty")
+
+
+def test_real_package_learning_proven_addendum_fails_without_fresh_range_evidence(
+    tmp_path: Path,
+):
+    manifest = _copy_real_package(tmp_path)
+    _tamper_indexed_json(
+        manifest,
+        "data/config.json",
+        lambda payload: payload.update({"learning_proven_addendum": "present"}),
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "learning_proven_addendum_absent")
+
+
+def test_real_package_contract_role_removed_fails_after_hash_refresh(
+    tmp_path: Path,
+):
+    manifest = _copy_real_package(tmp_path)
+    _tamper_indexed_json(
+        manifest,
+        "data/contracts/franka_research_arm_normalized_trajectory_contract.json",
+        lambda payload: payload["required_action_roles"].remove("learning_action"),
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "contract_action_roles")
+
+
+def test_real_package_adapter_result_count_override_fails_after_hash_refresh(
+    tmp_path: Path,
+):
+    manifest = _copy_real_package(tmp_path)
+    _tamper_indexed_json(
+        manifest,
+        "data/adapter_results/franka_research_arm_adapter_result.json",
+        lambda payload: payload.update({"accepted_count": 99}),
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "accepted_rejected_counts")
+
+
+def test_real_package_summary_override_fails_after_hash_refresh(tmp_path: Path):
+    manifest = _copy_real_package(tmp_path)
+    _tamper_indexed_json(
+        manifest,
+        "data/source_adapter_matrix_summary.json",
+        lambda payload: payload.update({"accepted_count": 99, "adapter_count": 99}),
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "summary_cache_consistency")
+
+
+def test_real_package_data_file_removed_from_manifest_fails_data_coverage(
+    tmp_path: Path,
+):
+    manifest = _copy_real_package(tmp_path)
+    package_manifest = json.loads(manifest.read_text(encoding="utf-8"))
+    removed_rel = "data/config.json"
+    package_manifest["artifact_index"] = [
+        entry
+        for entry in package_manifest["artifact_index"]
+        if entry.get("data_path") != removed_rel
+    ]
+    _write_json(manifest, package_manifest)
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "data_coverage")

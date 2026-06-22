@@ -42,6 +42,9 @@ Current completed step:
 - [x] Fix Tasks 3-4 review blocker: verifier now enforces non-learning-proven
   fields across package JSON/JSONL surfaces after hash-refreshed semantic tamper.
 - [x] Re-verify package remains VERIFIED under hardened verifier.
+- [x] Complete Task 5 real generated package tamper matrix tests against copied
+  `docs/proof/mvp3b_source_adapter_matrix_proof_package/`.
+- [x] Confirm no verifier hardening or package regeneration was required.
 
 ## Current MVP-3A Actual Isaac Proof Package - 2026-06-20 KST
 
