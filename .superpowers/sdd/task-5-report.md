@@ -39,10 +39,12 @@ Task 5 added real generated package tamper coverage for:
 ```text
 apps/api/tests/test_verify_mvp3b_source_adapter_package.py
 tasks/todo.md
-Handoff.md
 docs/developer/worklog.md
 .superpowers/sdd/task-5-report.md
 ```
+
+`Handoff.md` was also updated as a local ignored handoff file, so it is not part
+of the tracked commit diff.
 
 ## Verification
 

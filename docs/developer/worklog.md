@@ -18746,10 +18746,12 @@ MVP-3B source-adapter verifier 테스트에 실제 생성 package를 `tmp_path`�
 ```text
 apps/api/tests/test_verify_mvp3b_source_adapter_package.py
 tasks/todo.md
-Handoff.md
 docs/developer/worklog.md
 .superpowers/sdd/task-5-report.md
 ```
+
+`Handoff.md`도 local ignored handoff 파일로 갱신했으며, tracked commit diff에는
+포함되지 않는다.
 
 ### 판단 이유
 
