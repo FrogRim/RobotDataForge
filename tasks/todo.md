@@ -2964,3 +2964,38 @@ storage/proof_evidence/mvp2c_isaac_training_calibration/
   wording without expanding claims beyond Isaac evaluator-domain learning proof.
 - [x] Mark held-out `40000-40049` as spent for future tuning and future closure
   proof.
+
+## 2026-06-22 - MVP-3B Source-Adapter Infrastructure Closed
+
+- [x] Task 2: stdlib-only MVP-3B source-adapter verifier implemented and reviewed.
+- [x] Tasks 3-4: source-adapter package runner and generated proof package implemented and reviewed.
+- [x] Task 5: real generated package tamper matrix added and reviewed.
+- [x] Task 6: proof package README, worklog, and handoff updated.
+- [x] Task 7: regression and frozen proof checks passed.
+
+Verified state:
+
+```text
+MVP-3B Infrastructure Closed=true
+learning_proven_addendum=absent
+opened_ranges={calibration:[], heldout:[], tuning:[], closure:[]}
+spent_no_reuse=[[40000,40049],[42000,42049]]
+```
+
+Verification:
+
+```text
+MVP-3B verifier=VERDICT: VERIFIED
+MVP-3A verifier=VERDICT: VERIFIED
+MVP-2 verifier=VERDICT: VERIFIED
+targeted_mvp3b_pytest=45 passed
+full_pytest=896 passed, 6 skipped
+ruff=scripts apps/api passed
+compileall=scripts apps/api passed
+git_diff_check=passed
+frozen_mvp2_diff=no output
+```
+
+- [ ] Final ultragoal quality gate:
+  `ai-slop-cleaner` on changed files, focused re-verification, independent
+  code-reviewer + architect review, then G004 checkpoint if clean.

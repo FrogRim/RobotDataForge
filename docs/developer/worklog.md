@@ -18794,3 +18794,67 @@ git diff --check
 - Task 5 범위에서는 verifier false pass가 발견되지 않았다.
 - frozen MVP-2 assets, MVP-3A proof package artifacts, MVP-3B generated package는
   변경하지 않았다.
+
+## 2026-06-22 KST - MVP-3B Tasks 6-7 documentation and regression
+
+### 작업 내용
+
+MVP-3B proof package README를 reviewer-facing 문서로 보강하고, Task 7 전체 회귀와
+frozen proof asset 검증을 완료했다.
+
+변경 파일:
+
+```text
+docs/proof/mvp3b_source_adapter_matrix_proof_package/README.md
+docs/developer/worklog.md
+tasks/todo.md
+```
+
+`Handoff.md`도 local ignored handoff 파일로 갱신했다.
+
+### 판단 이유
+
+MVP-3B는 live robot/support claim이 아니라 generated/file-backed source-profile
+projection이 RDF adapter infrastructure를 반복 통과한다는 infrastructure proof다.
+README에는 claim, source-of-truth, verifier command, non-claim boundary, spent range를
+명시해 LinkedIn/외부 검토용 narrative와 proof package의 claim boundary가 어긋나지 않게
+했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python3 scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 45 passed in 1.05s
+
+uv run pytest -q
+# 896 passed, 6 skipped in 28.55s
+
+uvx ruff check scripts apps/api
+# All checks passed
+
+python3 -m compileall -q scripts apps/api
+# passed
+
+git diff --check
+# passed
+
+git diff -- scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_isaac_proof_evaluator.py scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package
+# no output
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B Infrastructure Closed는 verified 상태다.
+- `learning_proven_addendum=absent`이며 held-out/calibration/tuning/closure range는 열지 않았다.
+- `40000-40049`와 `42000-42049`는 spent/audit-only/no-reuse로 유지된다.
+- 최종 ultragoal quality gate(`ai-slop-cleaner`, focused verification, independent
+  code-reviewer + architect review)가 남았다.
