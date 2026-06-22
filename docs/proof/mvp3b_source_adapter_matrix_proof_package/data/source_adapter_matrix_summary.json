@@ -1,0 +1,56 @@
+{
+  "accepted_count": 3,
+  "adapter_count": 3,
+  "adapters": {
+    "franka_research_arm": {
+      "accepted_count": 1,
+      "rejected_count": 1
+    },
+    "robotis_sh5_ros2_dds": {
+      "accepted_count": 1,
+      "rejected_count": 1
+    },
+    "universal_robots_ur_industrial_arm": {
+      "accepted_count": 1,
+      "rejected_count": 1
+    }
+  },
+  "cached_summary_only": true,
+  "contract_smoke_only": true,
+  "db_migration": false,
+  "db_migration_claimed": false,
+  "deployable_policy_readiness": false,
+  "franka_hardware_support": false,
+  "hmd_openxr_collection_readiness": false,
+  "hmd_readiness": false,
+  "hmd_readiness_claimed": false,
+  "learning_proven_value": false,
+  "learning_results_measured": false,
+  "live_ros2_dds_runtime_support": false,
+  "live_runtime_support": false,
+  "live_runtime_support_claimed": false,
+  "live_ur_runtime_support": false,
+  "marketplace_readiness": false,
+  "marketplace_readiness_claimed": false,
+  "physical_robot_readiness": false,
+  "physical_robot_readiness_claimed": false,
+  "policy_uplift": false,
+  "policy_uplift_claimed": false,
+  "production_auth": false,
+  "production_auth_claimed": false,
+  "production_certification": false,
+  "production_robot_support_claimed": false,
+  "public_sample_evidence_claimed": false,
+  "public_sample_import": false,
+  "public_sample_import_claimed": false,
+  "real_robot_readiness_claimed": false,
+  "real_robot_success": false,
+  "real_robot_success_claimed": false,
+  "rejected_count": 3,
+  "required_adapter_count": 3,
+  "schema_version": "rdf_mvp3b_source_adapter_matrix_summary_v0.1.0",
+  "status": "source_adapter_infrastructure_closed",
+  "universal_robot_support": false,
+  "universal_robot_support_claimed": false,
+  "visual_policy_performance": false
+}

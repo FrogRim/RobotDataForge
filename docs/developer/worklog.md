@@ -12,6 +12,91 @@
 
 ---
 
+## 2026-06-22: MVP-3B Tasks 3-4 source-adapter package runner
+
+### 작업 내용
+
+MVP-3B source-adapter matrix proof package runner와 RED/GREEN 테스트를 추가하고,
+기본 proof package를 생성했다.
+
+변경 파일:
+
+```text
+apps/api/tests/test_mvp3b_source_adapter_infrastructure.py
+scripts/run_mvp3b_source_adapter_infrastructure.py
+docs/proof/mvp3b_source_adapter_matrix_proof_package/
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+.superpowers/sdd/task-3-4-report.md
+```
+
+수정 내용:
+
+```text
+- Task 3 RED tests를 먼저 추가했다.
+- Runner가 RobotEmbodimentAdapterRegistry.create(...)를 통해 각 adapter를 생성하고
+  project_source_evidence(...) / emit_contract(...) 경로를 호출하도록 구현했다.
+- 기본 source log fixture를 repo-local generated/file-backed recorded-log evidence로
+  생성한다.
+- franka_research_arm, robotis_sh5_ros2_dds,
+  universal_robots_ur_industrial_arm adapter를 projection한다.
+- data/source_logs, projections, contracts, adapter_results, config,
+  non_claims_attestation, adapter_registry_snapshot, artifact_index,
+  source_adapter_matrix_summary를 포함하는 self-contained package를 생성한다.
+- package_manifest.json과 data/artifact_index.json은 file-byte sha256/byte_size를
+  기록한다.
+- trainer/export smoke는 contract smoke로만 표기하며 learning_results_measured,
+  policy_uplift, learning_proven_value는 false로 유지한다.
+- spent_no_reuse는 [[40000, 40049], [42000, 42049]]로 고정하고 opened range는
+  모두 empty로 둔다.
+- --clean은 기본 managed package output 또는 safe tmp output만 허용한다.
+```
+
+### 판단 이유
+
+MVP-3B의 변경 변수는 `source_adapter_matrix`다. 따라서 package producer가 새로운
+adapter path를 handwave하지 않고 기존 registry/adapter projection API를 실제로 호출해야
+한다. 동시에 verifier는 producer를 신뢰하지 않고 source log, projection, contract, hash
+index, non-claim surface를 독립적으로 재계산하므로, runner는 verdict-critical artifact를
+모두 package 내부에 복사하고 indexed hash로 고정해야 한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# RED before runner implementation: 8 failed in 0.09s
+# Failure reason: scripts/run_mvp3b_source_adapter_infrastructure.py FileNotFoundError
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 8 passed in 0.12s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 20 passed in 0.40s
+
+uv run python scripts/run_mvp3b_source_adapter_infrastructure.py --clean
+# source_adapter_infrastructure_closed
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# 16 verifier checks passed
+
+uvx ruff check scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- 아직 최종 `git diff --check`와 commit 전 전체 diff review가 남아 있다.
+- Frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- 이 작업은 live UR/ROS2-DDS/Franka support, real robot readiness, learning-proven
+  uplift를 claim하지 않는다.
+
+---
+
 ## 2026-06-22: MVP-3B Task 2 final re-review fix
 
 ### 작업 내용

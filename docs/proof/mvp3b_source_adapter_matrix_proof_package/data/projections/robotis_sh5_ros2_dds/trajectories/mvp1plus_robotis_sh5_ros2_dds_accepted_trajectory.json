@@ -1,0 +1,331 @@
+{
+  "episode_id": "mvp1plus_robotis_sh5_ros2_dds_accepted_episode",
+  "frames": [
+    {
+      "action": {
+        "action_contract_version": "rdf_action_contract_v0.1.0",
+        "executed_control": {
+          "command": [
+            0.014,
+            -0.003,
+            -0.041,
+            0.0,
+            0.001,
+            -0.002,
+            0.42
+          ],
+          "coordinate_frame": "task_frame",
+          "dataset_semantics": "candidate_learning_action_after_projection_and_curation",
+          "representation": "robot_delta_ee_pose",
+          "role": "robot_control_command",
+          "source": "projected_command_state"
+        },
+        "learning_action": {
+          "command": [
+            0.014,
+            -0.003,
+            -0.041,
+            0.0,
+            0.001,
+            -0.002,
+            0.42
+          ],
+          "coordinate_frame": "task_frame",
+          "dataset_semantics": "candidate_learning_action_after_projection_and_curation",
+          "representation": "robot_delta_ee_pose",
+          "role": "candidate_robot_action_for_learning",
+          "source": "projected_command_state"
+        },
+        "raw": [
+          0.014,
+          -0.003,
+          -0.041,
+          0.0,
+          0.001,
+          -0.002,
+          0.42
+        ],
+        "replay_contract_version": "rdf_replay_contract_v0.1.0",
+        "retargeted_robot_action": {
+          "command": [
+            0.014,
+            -0.003,
+            -0.041,
+            0.0,
+            0.001,
+            -0.002,
+            0.42
+          ],
+          "coordinate_frame": "task_frame",
+          "dataset_semantics": "candidate_learning_action_after_projection_and_curation",
+          "representation": "robot_delta_ee_pose",
+          "role": "robot_action_for_replay_comparison",
+          "source": "projected_command_state"
+        },
+        "teleop_intent": {
+          "command": [
+            0.014,
+            -0.003,
+            -0.041,
+            0.0,
+            0.001,
+            -0.002,
+            0.42
+          ],
+          "coordinate_frame": "task_frame",
+          "dataset_semantics": "candidate_learning_action_after_projection_and_curation",
+          "representation": "robot_delta_ee_pose",
+          "role": "operator_intent",
+          "source": "recorded_command_state_log"
+        }
+      },
+      "end_effector_position": [
+        0.436,
+        -0.018,
+        0.035
+      ],
+      "end_effector_quaternion": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "metadata": {
+        "action_phase": "SEAT",
+        "aligned_xr": {
+          "right_wrist_pose": [
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "command_state_row": {
+          "accepted": true,
+          "action_semantics": {
+            "coordinate_frame": "task_frame",
+            "normalized_contract_roles": [
+              "teleop_intent",
+              "executed_control",
+              "learning_action",
+              "retargeted_robot_action"
+            ],
+            "representation": "robot_delta_ee_pose"
+          },
+          "adapter_id": "robotis_sh5_ros2_dds",
+          "command": {
+            "interface": "ros2_joint_trajectory_command_fixture",
+            "unit": "meters_radians_normalized_gripper",
+            "vector": [
+              0.014,
+              -0.003,
+              -0.041,
+              0.0,
+              0.001,
+              -0.002,
+              0.42
+            ]
+          },
+          "command_state": {
+            "actions_by_role": {
+              "executed_control": {
+                "coordinate_frame": "task_frame",
+                "representation": "robot_delta_ee_pose",
+                "role": "executed_control",
+                "source": "recorded_command_state_fixture",
+                "vector": [
+                  0.014,
+                  -0.003,
+                  -0.041,
+                  0.0,
+                  0.001,
+                  -0.002,
+                  0.42
+                ]
+              },
+              "learning_action": {
+                "coordinate_frame": "task_frame",
+                "representation": "robot_delta_ee_pose",
+                "role": "learning_action",
+                "source": "recorded_command_state_fixture",
+                "vector": [
+                  0.014,
+                  -0.003,
+                  -0.041,
+                  0.0,
+                  0.001,
+                  -0.002,
+                  0.42
+                ]
+              },
+              "retargeted_robot_action": {
+                "coordinate_frame": "task_frame",
+                "representation": "robot_delta_ee_pose",
+                "role": "retargeted_robot_action",
+                "source": "recorded_command_state_fixture",
+                "vector": [
+                  0.014,
+                  -0.003,
+                  -0.041,
+                  0.0,
+                  0.001,
+                  -0.002,
+                  0.42
+                ]
+              },
+              "teleop_intent": {
+                "coordinate_frame": "task_frame",
+                "representation": "robot_delta_ee_pose",
+                "role": "teleop_intent",
+                "source": "recorded_command_state_fixture",
+                "vector": [
+                  0.014,
+                  -0.003,
+                  -0.041,
+                  0.0,
+                  0.001,
+                  -0.002,
+                  0.42
+                ]
+              }
+            },
+            "eef_pose": [
+              0.436,
+              -0.018,
+              0.035,
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "gripper_width": 0.42
+          },
+          "quality": {
+            "action_contract_valid": true,
+            "control_quality": "pass",
+            "rejection_reason": null,
+            "replay_verified": true,
+            "timestamp_gap_detected": false
+          },
+          "row_id": "robotis_sh5_ros2_dds_accepted_0",
+          "sequence_id": 1,
+          "state": {
+            "end_effector_position": [
+              0.436,
+              -0.018,
+              0.035
+            ],
+            "end_effector_quaternion": [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "interface": "ros2_joint_state_stream_fixture",
+            "joint_positions": [
+              0.0,
+              -0.41,
+              0.18,
+              -1.88,
+              0.0,
+              1.57,
+              0.78
+            ],
+            "object_position": [
+              0.44,
+              -0.02,
+              0.0
+            ],
+            "object_quaternion": [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "task_phase": "seat",
+          "timestamp": 0.04,
+          "timestamp_ns": 40000000
+        },
+        "cube_states": {
+          "object_position": [
+            0.44,
+            -0.02,
+            0.0
+          ]
+        },
+        "embodiment_class": "ros2_dds_manipulator",
+        "exporter_compatibility_placeholders": {
+          "aligned_xr_right_wrist_pose": "zero_pose_exporter_compatibility_only",
+          "hmd_readiness_evidence": false,
+          "raw_xr_right_wrist_pose": "zero_pose_exporter_compatibility_only"
+        },
+        "raw_xr": {
+          "right_wrist_pose": [
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "retargeted": {
+          "robot_action": [
+            0.014,
+            -0.003,
+            -0.041,
+            0.0,
+            0.001,
+            -0.002,
+            0.42
+          ]
+        },
+        "robot_family": "robotis_sh5"
+      },
+      "object_position": [
+        0.44,
+        -0.02,
+        0.0
+      ],
+      "object_quaternion": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "step": 1,
+      "t": 0.04
+    }
+  ],
+  "id": "mvp1plus_robotis_sh5_ros2_dds_accepted_trajectory",
+  "schema_version": "rdf_trajectory_v0.1.0",
+  "source": {
+    "adapter_id": "robotis_sh5_ros2_dds",
+    "evidence_level": "generated_ros2_dds_style_recorded_log",
+    "input_device": "recorded_command_state_log",
+    "robot": "robotis_sh5",
+    "runtime": "ros2_joint_trajectory_command_fixture",
+    "simulator": "recorded_log_projection",
+    "task_name": "peg_in_hole_mvp1plus_cross_embodiment"
+  },
+  "summary": {
+    "action_replay_gate": {
+      "checked": true,
+      "passed": true,
+      "source": "projected_command_state_consistency"
+    },
+    "episode_status": "success",
+    "learning_eligibility_candidate": true,
+    "projected_action_phases": [
+      "SEAT"
+    ],
+    "projected_command_state_row_count": 1,
+    "projection_boundary": "jsonl_metadata_projected_to_rdf_trajectory"
+  },
+  "task_id": "task_mvp1plus_cross_embodiment"
+}

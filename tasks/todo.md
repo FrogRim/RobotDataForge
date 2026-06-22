@@ -15,7 +15,7 @@ ralplan_consensus=.omx/plans/ralplan-consensus-mvp3b-source-adapter-infrastructu
 architect_iteration_1=REQUEST_CHANGES
 architect_iteration_2=APPROVE
 critic_iteration_1=APPROVE
-implementation_status=task_1_red_tests_added
+implementation_status=tasks_3_4_runner_package_implemented_and_verified
 ```
 
 Claim boundary:
@@ -27,13 +27,18 @@ Claim boundary:
 - [x] `40000-40049` and `42000-42049` remain spent/audit-only/no-reuse.
 - [x] MVP-3B opens no calibration, held-out, tuning, or closure range.
 
-Next valid step:
+Current completed step:
 
 - [x] Start implementation from Task 1 in the plan using TDD.
 - [x] Add RED tests for `scripts/verify_mvp3b_source_adapter_package.py`.
-- [ ] Build `scripts/verify_mvp3b_source_adapter_package.py` before trusting any package.
-- [ ] Build `scripts/run_mvp3b_source_adapter_infrastructure.py` only after verifier RED
+- [x] Build `scripts/verify_mvp3b_source_adapter_package.py` before trusting any package.
+- [x] Add RED tests for `scripts/run_mvp3b_source_adapter_infrastructure.py`.
+- [x] Build `scripts/run_mvp3b_source_adapter_infrastructure.py` only after verifier RED
   tests exist.
+- [x] Generate `docs/proof/mvp3b_source_adapter_matrix_proof_package/`.
+- [x] Verify generated package with
+  `python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json`.
+- [ ] Commit Tasks 3-4 with Lore protocol.
 
 ## Current MVP-3A Actual Isaac Proof Package - 2026-06-20 KST
 

@@ -1,0 +1,57 @@
+{
+  "accepted_count": 1,
+  "adapter_id": "universal_robots_ur_industrial_arm",
+  "contract_smoke_only": true,
+  "db_migration": false,
+  "db_migration_claimed": false,
+  "deployable_policy_readiness": false,
+  "franka_hardware_support": false,
+  "hmd_openxr_collection_readiness": false,
+  "hmd_readiness": false,
+  "hmd_readiness_claimed": false,
+  "learning_proven_value": false,
+  "live_ros2_dds_runtime_support": false,
+  "live_runtime_support": false,
+  "live_runtime_support_claimed": false,
+  "live_ur_runtime_support": false,
+  "marketplace_readiness": false,
+  "marketplace_readiness_claimed": false,
+  "physical_robot_readiness": false,
+  "physical_robot_readiness_claimed": false,
+  "policy_uplift": false,
+  "policy_uplift_claimed": false,
+  "production_auth": false,
+  "production_auth_claimed": false,
+  "production_certification": false,
+  "production_robot_support_claimed": false,
+  "projected_artifacts": {
+    "curation_manifest.json": "b1811e055967a6491ee6bc967c55c70b4186f695821f037a5c6772ffc769a10b",
+    "evaluations/mvp1plus_universal_robots_ur_industrial_arm_accepted_trajectory_evaluation.json": "374f026a828d13e56a0db9c1cc02801e7f3c2ddc363a9b1d474a7a674ba92330",
+    "evaluations/mvp1plus_universal_robots_ur_industrial_arm_rejected_trajectory_evaluation.json": "dc310300b821fd6e3606a3939b61a31357d90aea93cfa42e6113c5c11f2e67bf",
+    "split_manifest.json": "2593f8c0fac76a4b17b993f9fc11ddd4948e954a5009c892838cf0f8f4edbb7e",
+    "trajectories/mvp1plus_universal_robots_ur_industrial_arm_accepted_trajectory.json": "f3ac313b81110a5407704657ce1e1660ada6d7414d418b07be8a8a37eab8026d",
+    "trajectories/mvp1plus_universal_robots_ur_industrial_arm_rejected_trajectory.json": "0233c213c7c24810e50e4662a74a810f56950beafaa41cfe7c8c76898160aa93"
+  },
+  "public_sample_evidence_claimed": false,
+  "public_sample_import": false,
+  "public_sample_import_claimed": false,
+  "raw_jsonl_is_direct_trainer_input": false,
+  "real_robot_readiness_claimed": false,
+  "real_robot_success": false,
+  "real_robot_success_claimed": false,
+  "rejected_count": 1,
+  "schema_version": "rdf_mvp3b_source_adapter_projection_manifest_v0.1.0",
+  "source_logs": {
+    "accepted_command_state.jsonl": {
+      "rows": 1,
+      "sha256": "bfcadb86b306eef6828d3d5ecea88b18314f62325f6c993b74662a46fbf00701"
+    },
+    "rejected_command_state.jsonl": {
+      "rows": 1,
+      "sha256": "e4aef2fce39d58440775772654a6d9bef65e22d865d17a3e74b46f67b79ce611"
+    }
+  },
+  "universal_robot_support": false,
+  "universal_robot_support_claimed": false,
+  "visual_policy_performance": false
+}
