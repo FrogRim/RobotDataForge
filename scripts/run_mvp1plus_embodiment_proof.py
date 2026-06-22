@@ -308,6 +308,26 @@ def _source_override_for_profile(
     return ur_recorded_log_dir or DEFAULT_UR_RECORDED_LOG_DIR
 
 
+def _align_false_claim_boundary_with_profile(
+    metadata: dict[str, Any],
+    profile: RobotEmbodimentAdapterRegistryProfile,
+) -> None:
+    claim_boundary = metadata.get("claim_boundary")
+    if not isinstance(claim_boundary, dict):
+        return
+    if any(value is not False for value in claim_boundary.values()):
+        return
+    if claim_boundary == profile.claim_boundary:
+        return
+
+    source_provenance = dict(metadata.get("source_provenance") or {})
+    source_provenance["claim_boundary_normalized_to_adapter_profile"] = True
+    source_provenance["claim_boundary_source_key_count"] = len(claim_boundary)
+    source_provenance["claim_boundary_profile_key_count"] = len(profile.claim_boundary)
+    metadata["source_provenance"] = source_provenance
+    metadata["claim_boundary"] = dict(profile.claim_boundary)
+
+
 def _copy_source_logs(
     *,
     profile: RobotEmbodimentAdapterRegistryProfile,
@@ -326,6 +346,7 @@ def _copy_source_logs(
     else:
         source_provenance["source_directory"] = str(source_dir)
     metadata["source_provenance"] = source_provenance
+    _align_false_claim_boundary_with_profile(metadata, profile)
     write_json(target_dir / "metadata.json", metadata)
     shutil.copy2(source_dir / "accepted_command_state.jsonl", target_dir / "accepted_command_state.jsonl")
     shutil.copy2(source_dir / "rejected_command_state.jsonl", target_dir / "rejected_command_state.jsonl")

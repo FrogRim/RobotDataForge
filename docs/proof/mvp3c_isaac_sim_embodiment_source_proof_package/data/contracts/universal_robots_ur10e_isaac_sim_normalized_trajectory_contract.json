@@ -1,0 +1,42 @@
+{
+  "embodiment_id": "universal_robots_ur10e_isaac_sim",
+  "frame_action_role_coverage": {
+    "executed_control": {
+      "frames": 2,
+      "present": true
+    },
+    "learning_action": {
+      "frames": 2,
+      "present": true
+    },
+    "retargeted_robot_action": {
+      "frames": 2,
+      "present": true
+    },
+    "teleop_intent": {
+      "frames": 2,
+      "present": true
+    }
+  },
+  "learning_eligibility_gates": {
+    "learning_proven_value": false,
+    "learning_results_measured": false,
+    "policy_uplift": false,
+    "replay_action_contract": true,
+    "trainer_export_smoke": "contract_smoke_only"
+  },
+  "required_action_roles": [
+    "teleop_intent",
+    "executed_control",
+    "learning_action",
+    "retargeted_robot_action"
+  ],
+  "schema_version": "mvp3c.normalized_trajectory_contract.v1",
+  "source": {
+    "input_device": "isaac_sim_command_state_log",
+    "robot": "universal_robots_ur10e_isaac_sim",
+    "runtime": "isaac_sim",
+    "simulator": "isaac_sim",
+    "task_name": "mvp3c_isaac_sim_embodiment_source"
+  }
+}

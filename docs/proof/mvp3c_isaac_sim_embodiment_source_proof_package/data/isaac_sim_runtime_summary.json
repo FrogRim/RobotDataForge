@@ -1,0 +1,8 @@
+{
+  "embodiment_count": 2,
+  "platform": "linux",
+  "runtime": "isaac_sim",
+  "simulator": "isaac_sim",
+  "status": "isaac_sim_embodiment_source_closed",
+  "synthetic_verifier_fixture": false
+}

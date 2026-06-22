@@ -12,6 +12,60 @@
 
 ---
 
+## 2026-06-22: MVP-3C Isaac Sim embodiment source spec 초안
+
+### 작업 내용
+
+MVP-3C의 정확한 범위를 `UR + Franka Isaac Sim runtime-backed embodiment source`
+slice로 정의하는 spec 초안을 작성했다. 이번 작업은 구현이 아니라 claim boundary,
+fallback, package/verifier contract, implementation workflow 선택을 문서로 고정하는
+단계다.
+
+변경 파일:
+
+```text
+docs/superpowers/specs/2026-06-22-mvp3c-isaac-sim-embodiment-source-design.md
+docs/developer/worklog.md
+tasks/todo.md
+Handoff.md
+```
+
+핵심 결정:
+
+```text
+- MVP-3C target은 Franka + Universal Robots UR Isaac Sim runtime-backed source pair다.
+- ROS2-DDS live bridge는 이번 slice에서 제외하고 후속 bridge-readiness/addendum 후보로 남긴다.
+- MVP-3C는 real robot, live hardware, deployment, policy uplift, learning-proven claim을 열지 않는다.
+- UR preflight가 실패하면 silent downgrade가 아니라 scope rename 또는 fail-closed artifact가 필요하다.
+- 구현 top-level workflow는 ultragoal을 권장하고, sh-goal은 bounded diagnostic/recovery loop로만 쓴다.
+```
+
+### 판단 이유
+
+MVP-3B는 generated/file-backed recorded-log fixture matrix를 이미 닫았다. MVP-3C가
+의미 있으려면 같은 adapter story를 반복하기보다 Isaac Sim runtime-backed source evidence로
+한 단계 올라가야 한다. 실제 UR/Franka 기기가 없는 상황에서 Isaac Sim은 real hardware claim
+없이 source/embodiment expansion을 검증할 수 있는 가장 정직한 중간 단계다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+git diff --check
+# passed
+
+rg -n "MVP-3C|Isaac Sim|Franka|Universal Robots|ultragoal|sh-goal|Non-Claims|Stop Rules|Expected Final Tag" \
+  docs/superpowers/specs/2026-06-22-mvp3c-isaac-sim-embodiment-source-design.md
+# 핵심 scope / non-claim / workflow / stop-rule 키워드 확인
+```
+
+### 남은 gap 또는 다음 작업
+
+- spec review 후 `ralplan --deliberate`로 implementation plan을 작성한다.
+- 승인된 plan을 기준으로 `ultragoal`을 top-level execution loop로 사용한다.
+- 구현 전 Isaac Sim preflight command와 local Isaac environment assumptions를 plan에서 더 좁혀야 한다.
+
+---
+
 ## 2026-06-22: MVP-3B Tasks 3-4 mypy review blocker fix
 
 ### 작업 내용
@@ -18939,3 +18993,692 @@ git diff -- scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_is
 - Verifier는 stdlib-only 독립성을 유지한다.
 - MVP-2 frozen asset과 MVP-3A proof package는 변경하지 않는다.
 - Live robot/runtime/support/production/learning-proven claim은 추가하지 않는다.
+
+## 2026-06-22 KST - MVP-3C Isaac Sim Embodiment Source ralplan 승인
+
+### 작업 내용
+
+MVP-3C를 `Isaac Sim Embodiment Source Closed` slice로 닫기 위한 spec,
+ralplan PRD, test spec, repo-tracked plan을 작성하고 `$ralplan --deliberate`
+절차를 완료했다. Architect/Critic loop에서 self-attestation 재유입 가능성을
+두 차례 수정했다.
+
+변경 파일:
+
+```text
+docs/superpowers/specs/2026-06-22-mvp3c-isaac-sim-embodiment-source-design.md
+docs/superpowers/plans/2026-06-22-mvp3c-isaac-sim-embodiment-source.md
+.omx/context/mvp3c-isaac-sim-embodiment-source-20260622T010000Z.md
+.omx/plans/prd-mvp3c-isaac-sim-embodiment-source.md
+.omx/plans/test-spec-mvp3c-isaac-sim-embodiment-source.md
+.omx/plans/ralplan-mvp3c-isaac-sim-embodiment-source.md
+tasks/todo.md
+Handoff.md
+```
+
+### 판단 이유
+
+MVP-3C는 MVP-3B generated/file-backed fixture를 넘어 Linux Isaac Sim
+runtime-backed Franka + UR command/state source evidence를 다룬다. 다만 이
+claim은 source/embodiment infrastructure claim으로 제한하며 real robot,
+hardware readiness, ROS2-DDS live bridge, policy uplift, learning-proven value,
+HMD/OpenXR, production/marketplace claim은 열지 않는다.
+
+Architect review에서 runtime-backed evidence가 package-builder metadata 모양만으로
+닫힐 수 있다는 self-attestation risk를 지적했다. 이에 따라 G002 verifier가
+preflight required fields와 per-row `runtime_capture_id` -> hash-bound runtime
+metadata binding을 소유하도록 계획을 수정했다. 또한 synthetic fixture가
+`isaac_sim_embodiment_source_closed`를 통과할 수 없도록 negative closure test를
+계획에 추가했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+git diff --check
+# passed
+```
+
+Ralplan review 결과:
+
+```text
+Architect iteration 1: ITERATE
+Architect iteration 2: ITERATE
+Architect iteration 3: APPROVE
+Critic iteration 1: ITERATE
+Critic iteration 2: APPROVE
+```
+
+### 남은 gap 또는 다음 작업
+
+- Ultragoal로 G001-G008을 실행한다.
+- G002는 verifier-first TDD로 시작한다.
+- G005는 `runtime_evidence_captured`까지만 checkpoint할 수 있고 closure claim은
+  G006 real package tamper matrix와 G008 final regression/review 이후에만 허용한다.
+
+## 2026-06-22 KST - MVP-3C ultragoal 시작
+
+### 작업 내용
+
+승인된 ralplan을 기준으로 MVP-3C ultragoal ledger를 생성했다. 자동 brief parsing이
+처음에는 hard constraint를 goal로 잘못 분해했기 때문에, `--goal` 명시 형식으로
+G001-G008을 재생성했다.
+
+현재 ultragoal story:
+
+```text
+G001 Planning baseline and branch hygiene
+G002 Independent verifier first
+G003 Isaac Sim source-ingress profiles
+G004 Package builder with controlled evidence
+G005 Isaac Sim preflight and runtime capture
+G006 Real package tamper matrix
+G007 Documentation and handoff
+G008 Final regression independent review PR tag candidate
+```
+
+### 판단 이유
+
+MVP-3C는 sequential dependency가 강하므로 top-level은 ultragoal이 맞다. G001은
+planning baseline과 branch hygiene만 검증하고, implementation은 G002 verifier-first
+TDD부터 시작한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+omx ultragoal status
+# 0/8 complete, 8 pending, G001-G008 generated as approved story order
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G001 checkpoint 후 G002 verifier-first TDD를 시작한다.
+
+## 2026-06-22 KST - MVP-3C G002 verifier-first TDD 완료
+
+### 작업 내용
+
+MVP-3C package verifier를 producer보다 먼저 작성했다. Synthetic fixture는
+verifier mechanics만 검증하며 `isaac_sim_embodiment_source_closed`를 생성할 수
+없도록 `synthetic_non_closure` hard-check를 추가했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py
+apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py
+tasks/todo.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+### 판단 이유
+
+MVP-3C는 runtime-backed evidence로 가는 slice라 verifier가 `evidence_kind`
+문자열을 그대로 믿으면 MVP-3A에서 발견했던 self-attestation 문제가 재발한다.
+따라서 G002 verifier는 package data만 보고 다음을 재계산한다.
+
+```text
+- data/ artifact hash와 coverage
+- required embodiment exactness
+- synthetic non-closure
+- runtime metadata Isaac Sim fields
+- verifier-owned preflight required fields
+- per-row runtime_capture_id -> hash-bound runtime metadata binding
+- source/projection hash binding
+- accepted/rejected count recomputation
+- contract source/action-role checks
+- forbidden claim JSON/README scan
+- spent range exactness and opened range emptiness
+- cached summary consistency
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py -q
+# 18 passed in 0.41s
+
+uvx ruff check scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py
+# passed
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G002 ultragoal checkpoint를 기록한다.
+- G003에서 Franka/UR Isaac Sim source-ingress profiles를 추가한다.
+- G005 actual runtime capture 전까지는 original MVP-3C closure를 주장하지 않는다.
+
+## 2026-06-22 KST - MVP-3C G003 Isaac Sim source-ingress profiles 완료
+
+### 작업 내용
+
+기존 MVP-3B adapter registry ID를 변경하지 않고 MVP-3C 전용 Isaac Sim
+source-ingress profile set을 별도 API로 추가했다.
+
+변경 파일:
+
+```text
+apps/api/app/services/robot_embodiment_adapters.py
+apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py
+tasks/todo.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+### 판단 이유
+
+MVP-3C는 UR/Franka source 이름을 사용하지만 live hardware support를 주장하지
+않는다. 따라서 기존 `RobotEmbodimentAdapterRegistry.list_profiles()`에 새 ID를
+섞으면 MVP-3B source-adapter matrix의 의미가 변한다. 새 profile은
+`list_mvp3c_source_ingress_profiles()`와
+`create_mvp3c_source_ingress_adapter()`로만 접근하게 분리했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py -q
+# 4 passed in 0.02s
+
+uv run pytest apps/api/tests/test_mvp1plus_embodiment_proof_script.py::test_robot_embodiment_adapter_registry_profiles_are_static_and_structured apps/api/tests/test_mvp3b_source_adapter_infrastructure.py::test_runner_builds_verifier_accepted_source_adapter_package -q
+# 2 passed in 0.05s
+
+uv run pytest apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py -q
+# 22 passed in 0.41s
+
+uvx ruff check apps/api/app/services/robot_embodiment_adapters.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py
+# All checks passed
+
+python3 -m py_compile apps/api/app/services/robot_embodiment_adapters.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G003 ultragoal checkpoint를 기록한다.
+- G004에서 controlled/synthetic package builder를 작성하되 original
+  `isaac_sim_embodiment_source_closed`를 주장하지 않도록 유지한다.
+
+## 2026-06-22 KST - MVP-3C G004 controlled package builder 완료
+
+### 작업 내용
+
+MVP-3C controlled evidence package builder를 추가하고 기본 proof package를 생성했다.
+이 package는 self-contained JSON/JSONL evidence만 포함하며 `storage/` 원본이나 local-only
+artifact에 의존하지 않는다.
+
+변경/생성 파일:
+
+```text
+scripts/run_mvp3c_isaac_sim_embodiment_source.py
+apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py
+docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/
+tasks/todo.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+### 판단 이유
+
+G004의 목적은 actual Isaac runtime capture 전에도 verifier와 package builder 계약을
+검증 가능한 형태로 고정하는 것이다. 따라서 runner는 controlled package를
+`synthetic_verifier_fixture`로만 생성하며, original
+`isaac_sim_embodiment_source_closed` claim은 만들지 않는다. Verifier와 producer는
+서로 import하지 않게 유지했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run python scripts/run_mvp3c_isaac_sim_embodiment_source.py --clean --pretty
+# status=synthetic_verifier_fixture, accepted_count=2, rejected_count=2
+
+python3 scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# status=synthetic_verifier_fixture
+
+uv run pytest apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py -q
+# 29 passed in 0.47s
+
+uvx ruff check scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py scripts/run_mvp3c_isaac_sim_embodiment_source.py apps/api/app/services/robot_embodiment_adapters.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py scripts/run_mvp3c_isaac_sim_embodiment_source.py apps/api/app/services/robot_embodiment_adapters.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G004 ultragoal checkpoint를 기록한다.
+- G005에서 Isaac Sim preflight/runtime capture를 시도한다.
+- Isaac Sim 실행이 불가능하면 `preflight_failed_closed` 또는 대응 실패 evidence로
+  닫고 original MVP-3C closure claim을 만들지 않는다.
+
+## 2026-06-22 KST - MVP-3C G005 Isaac Sim runtime evidence captured
+
+### 작업 내용
+
+MVP-3C Isaac Sim runtime capture script를 추가하고 Franka Panda + Universal
+Robots UR10e source evidence를 실제 Isaac Sim Python에서 생성했다. 생성된
+runtime capture artifact를 package builder에 주입해 proof package를
+`runtime_evidence_captured` 상태로 재생성했다.
+
+변경/생성 파일:
+
+```text
+scripts/capture_mvp3c_isaac_sim_embodiment_source.py
+scripts/run_mvp3c_isaac_sim_embodiment_source.py
+apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py
+docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/
+tasks/todo.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+### 판단 이유
+
+G005는 runtime-backed evidence를 확보하는 단계이지 MVP-3C closure 단계가 아니다.
+따라서 runner/verifier는 `runtime_evidence_captured`와
+`isaac_sim_embodiment_source_closed`를 분리했다. `closure_assertion=false`인
+runtime package는 verifier를 통과할 수 있지만 closure claim을 만들 수 없다.
+
+실행 중 UR10e asset의 실제 end-effector prim이
+`/World/UR10e/ee_link`임을 Isaac stage inspection으로 확인했다.
+기존 후보 `/World/UR10e/ee_link/robotiq_base_link`는 현재 USD에 존재하지 않아
+`SingleManipulator` wrapping이 실패했다. 이 경로를 테스트로 고정한 뒤 capture
+spec을 실제 asset prim에 맞췄다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+/home/kangrim/IsaacLab/_isaac_sim/python.sh scripts/capture_mvp3c_isaac_sim_embodiment_source.py --output storage/proof_evidence/mvp3c_isaac_sim_embodiment_source/runtime_capture.json --pretty
+# capture_exit=0
+# status=runtime_evidence_captured
+# evidence_kind=isaac_sim_runtime_backed_source_log
+# embodiments=franka_panda_isaac_sim, universal_robots_ur10e_isaac_sim
+# both preflight records: asset_loaded/articulation_detected/joint_state_readable/action_command_writable/runtime_metadata_recorded=true
+
+uv run python scripts/run_mvp3c_isaac_sim_embodiment_source.py --runtime-capture-report storage/proof_evidence/mvp3c_isaac_sim_embodiment_source/runtime_capture.json --clean --pretty
+# status=runtime_evidence_captured, runtime_evidence_captured=true, closure_asserted=false
+
+python3 scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# status=runtime_evidence_captured
+# 18 checks passed
+
+uv run pytest apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py -q
+# 32 passed in 0.48s
+
+uvx ruff check scripts/capture_mvp3c_isaac_sim_embodiment_source.py scripts/run_mvp3c_isaac_sim_embodiment_source.py scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py
+# All checks passed
+
+python3 -m py_compile scripts/capture_mvp3c_isaac_sim_embodiment_source.py scripts/run_mvp3c_isaac_sim_embodiment_source.py scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G005 ultragoal checkpoint를 기록한다.
+- G006에서 runtime-backed package에 `closure_assertion=true`를 부여하고, hash-refreshed
+  real-package tamper matrix가 verifier fail을 내는지 확인한다.
+- MVP-3C는 아직 Closed가 아니다. G006 closure assertion, G007 documentation,
+  G008 final regression/independent review가 남아 있다.
+
+## 2026-06-22 KST - MVP-3C G006 closure assertion and tamper matrix 완료
+
+### 작업 내용
+
+G005에서 생성한 Isaac Sim runtime capture artifact를 사용해 MVP-3C proof package를
+`isaac_sim_embodiment_source_closed` 상태로 재생성했다. 이후 실제 generated package를
+복사한 뒤 hash를 갱신하면서 semantic tamper를 주입하는 real-package tamper matrix를
+추가했다.
+
+변경/생성 파일:
+
+```text
+apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py
+docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/
+tasks/todo.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+### 판단 이유
+
+G006은 MVP-3C에서 처음으로 closure assertion을 허용하는 gate다. 따라서 verifier가
+단순 byte hash mismatch만 잡는지, 또는 attacker가 package hash를 다시 맞춘 뒤에도
+semantic contradiction을 잡는지 확인해야 한다. Tamper matrix는 실제 generated package
+복사본을 대상으로 다음 변조를 수행하고, 각 경우 `hash_integrity`는 통과한 상태에서
+해당 hard-check가 fail하는지 검증한다.
+
+```text
+- preflight boolean false
+- runtime_capture_id drift in source row
+- source-row embodiment drift
+- runtime metadata removal
+- source-row/runtime-metadata mismatch
+- forbidden claim injection
+- opened closure range injection
+- spent range weakening
+- cached count drift
+- projection hash binding drift
+- required action role removal
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run python scripts/run_mvp3c_isaac_sim_embodiment_source.py --runtime-capture-report storage/proof_evidence/mvp3c_isaac_sim_embodiment_source/runtime_capture.json --closure-assertion --clean --pretty
+# status=isaac_sim_embodiment_source_closed
+# runtime_evidence_captured=true
+# closure_asserted=true
+
+python3 scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# status=isaac_sim_embodiment_source_closed
+# 18 checks passed
+
+uv run pytest apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py::test_real_runtime_backed_package_verifies_as_mvp3c_closed apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py::test_real_package_hash_refreshed_tamper_matrix_fails -q
+# 2 passed in 0.16s
+
+uv run pytest apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py -q
+# 34 passed in 0.62s
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uvx ruff check scripts/capture_mvp3c_isaac_sim_embodiment_source.py scripts/run_mvp3c_isaac_sim_embodiment_source.py scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py
+# All checks passed
+
+python3 -m py_compile scripts/capture_mvp3c_isaac_sim_embodiment_source.py scripts/run_mvp3c_isaac_sim_embodiment_source.py scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G006 ultragoal checkpoint를 기록한다.
+- G007에서 package README, todo, Handoff, worklog의 최종 claim/non-claim 문구를 정리한다.
+- G008에서 full regression, ai-slop-cleaner, independent code-reviewer + architect gate를 통과해야
+  MVP-3C를 최종 Closed로 간주할 수 있다.
+
+## 2026-06-22 KST - MVP-3C G007 documentation and handoff 완료
+
+### 작업 내용
+
+MVP-3C package README와 handoff/todo/worklog를 closure package 상태에 맞게 정리했다.
+README는 verifier command, expected verdict, evidence boundary, spent/no-reuse ranges,
+non-claims, tamper discipline을 포함하도록 runner의 `_write_readme()`에서 생성되게 했다.
+
+변경/생성 파일:
+
+```text
+scripts/run_mvp3c_isaac_sim_embodiment_source.py
+docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/README.md
+tasks/todo.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+### 판단 이유
+
+MVP-3C package가 `isaac_sim_embodiment_source_closed` 상태가 되었지만, 이 closure는
+source/embodiment infrastructure claim에만 적용된다. README가 짧으면 UR/Franka 이름이
+hardware support 또는 live runtime support로 오독될 수 있다. 따라서 package-local README에
+검증 가능한 claim과 non-claim을 같은 위치에 고정했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run python scripts/run_mvp3c_isaac_sim_embodiment_source.py --runtime-capture-report storage/proof_evidence/mvp3c_isaac_sim_embodiment_source/runtime_capture.json --closure-assertion --clean --pretty
+# status=isaac_sim_embodiment_source_closed
+
+python3 scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# status=isaac_sim_embodiment_source_closed
+# forbidden_claims PASS
+```
+
+### 남은 gap 또는 다음 작업
+
+- G007 ultragoal checkpoint를 기록한다.
+- G008 final regression, ai-slop-cleaner, independent code-reviewer + architect gate가 남아 있다.
+- G008이 통과하기 전까지 Codex aggregate goal은 complete 처리하지 않는다.
+
+## 2026-06-22 KST - MVP-3C G009 final review blocker resolution 구현
+
+### 작업 내용
+
+G008 independent review에서 발견된 blocker를 닫았다. 기존 runner는 runtime-backed
+package에서 `runtime_capture_report`의 embodiment entry가 비어 있어도 synthetic source row와
+metadata generator로 fallback해 `isaac_sim_embodiment_source_closed`를 만들 수 있었다. 또한
+projection/contract artifact를 runner가 직접 작성해 "RDF adapter infrastructure through path" claim이
+약했다.
+
+수정 사항:
+
+```text
+- `RobotEmbodimentAdapter.project_mvp3c_source_evidence()` 추가
+  - MVP-3C source rows를 adapter service 경계에서 검증
+  - projection artifacts와 normalized contract를 adapter method가 생성
+  - adapter_result에 `project_mvp3c_source_evidence_called=true` 기록
+- runtime-backed package hardening
+  - incomplete/forged runtime_capture_report fail-closed
+  - raw runtime capture를 `data/runtime_capture.json`으로 package에 복사
+  - manifest/artifact_index로 raw capture file-bytes hash-lock
+  - verifier가 `runtime_capture_source` hard-check로 raw capture와 package rows/docs equality 검증
+  - runtime metadata의 `capture_origin`, `asset_path`, `prim_path`를 closed package hard gate로 검증
+- legacy MVP1+/MVP2 UR recorded-log regression repair
+  - old all-false fixture claim_boundary는 current adapter profile false boundary로 정규화
+  - truthy overclaim은 정규화하지 않고 기존 validator가 fail-closed
+```
+
+변경/생성 파일:
+
+```text
+apps/api/app/services/robot_embodiment_adapters.py
+scripts/run_mvp3c_isaac_sim_embodiment_source.py
+scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py
+scripts/run_mvp1plus_embodiment_proof.py
+apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py
+apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py
+apps/api/tests/test_mvp1plus_embodiment_proof_script.py
+docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/
+```
+
+### 판단 이유
+
+MVP-3C claim은 learning-proven claim이 아니라 source/embodiment infrastructure closure지만,
+그래도 self-attestation을 허용하면 MVP-2에서 세운 감사 기준보다 약해진다. 따라서 closed 상태는
+단순 config flag가 아니라 hash-bound raw runtime capture와 adapter service projection 결과로
+재계산되어야 한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run python scripts/run_mvp3c_isaac_sim_embodiment_source.py --clean --runtime-capture-report storage/proof_evidence/mvp3c_isaac_sim_embodiment_source/runtime_capture.json --closure-assertion --pretty
+# status=isaac_sim_embodiment_source_closed
+
+python3 scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# status=isaac_sim_embodiment_source_closed
+# runtime_capture_source PASS
+
+uv run pytest apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py -q
+# 36 passed
+
+uv run pytest -q
+# 934 passed, 6 skipped
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python3 scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uvx ruff check scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py scripts/run_mvp3c_isaac_sim_embodiment_source.py scripts/capture_mvp3c_isaac_sim_embodiment_source.py scripts/run_mvp1plus_embodiment_proof.py apps/api/app/services/robot_embodiment_adapters.py apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py apps/api/tests/test_mvp1plus_embodiment_proof_script.py
+# All checks passed
+
+python -m compileall -q scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py scripts/run_mvp3c_isaac_sim_embodiment_source.py scripts/capture_mvp3c_isaac_sim_embodiment_source.py scripts/run_mvp1plus_embodiment_proof.py apps/api/app/services/robot_embodiment_adapters.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G009 final quality gate를 다시 실행해야 한다.
+- ai-slop-cleaner 재확인, post-cleaner verification, independent code-reviewer + architect review가 clean일 때만
+  aggregate Codex goal을 complete 처리한다.
+
+## 2026-06-22 KST - MVP-3C G010 source-row semantic / EEF pose blocker 해결
+
+### 작업 내용
+
+G009 final independent code-review에서 남은 두 HIGH blocker를 닫았다.
+
+수정 사항:
+
+```text
+- `scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py`
+  - source/runtime rows의 numeric vector semantics를 verifier가 독립 검증
+  - `joint_positions`, `joint_velocities`, `eef_pose`, `actions_by_role` 값이 non-numeric이면 fail
+  - projection trajectory `frames`가 source JSONL rows와 의미적으로 동일한지 hard-check
+  - hash-refreshed source/projection tamper가 `hash_integrity`를 통과해도 semantic check에서 fail
+- `scripts/capture_mvp3c_isaac_sim_embodiment_source.py`
+  - `_eef_pose()`가 pose read failure를 default pose로 숨기지 않고 RuntimeError로 fail-closed
+- tests
+  - hash-refreshed source/runtime non-numeric tamper RED/GREEN
+  - hash-refreshed projection frame drift RED/GREEN
+  - unreadable EEF pose fail-closed RED/GREEN
+```
+
+### 판단 이유
+
+MVP-3C는 source/embodiment infrastructure closure지만, hash만 갱신한 조작 package가 verifier를
+통과하면 MVP-2 이후 유지한 "self-contained recompute, not self-attestation" 원칙이 약해진다. 따라서
+verifier가 producer adapter를 import하지 않는 범위에서 source row의 최소 numeric/action semantics와
+projection/source equality를 재강제하도록 했다. EEF pose는 source row의 핵심 runtime observation이므로
+읽을 수 없으면 synthetic default로 대체하지 않고 runtime capture 단계에서 닫는 것이 맞다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py::test_hash_refreshed_source_row_semantic_tamper_fails_source_log_completeness apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py::test_hash_refreshed_projection_frame_drift_fails_source_projection_binding apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py::test_capture_script_fails_closed_when_eef_pose_is_unreadable -q
+# 3 passed
+
+uv run pytest apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py -q
+# 39 passed
+
+python3 scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# status=isaac_sim_embodiment_source_closed
+# 19 checks passed
+
+uvx ruff check scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py scripts/capture_mvp3c_isaac_sim_embodiment_source.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py
+# All checks passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G010 final quality gate를 실행해야 한다.
+- post-cleaner verification, full regression, independent code-reviewer + architect review가 clean일 때만
+  aggregate Codex goal을 complete 처리한다.
+
+## 2026-06-22 KST - MVP-3C G010 final quality gate clean
+
+### 작업 내용
+
+G010 수정 후 mandatory final quality gate를 완료했다.
+
+검증된 상태:
+
+```text
+package_status=isaac_sim_embodiment_source_closed
+code_reviewer=APPROVE
+architect=CLEAR
+ai_slop_cleaner=no code changes; masking fallback fixed
+```
+
+### 판단 이유
+
+MVP-3C는 `learning-proven` claim이 아니라 source/embodiment infrastructure closure다. 최종
+review는 이 좁은 claim boundary에서 package provenance, verifier independence, non-claim guard,
+spent range guard, source/projection binding이 충분한지 확인했다. code-reviewer는 G010이 이전
+hash-refreshed semantic tamper와 EEF pose masking fallback blocker를 닫았다고 승인했고, architect는
+MVP-3C를 stated narrow claim 안에서 Closed 처리 가능하다고 판단했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest -q
+# 937 passed, 6 skipped
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python3 scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python3 scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# status=isaac_sim_embodiment_source_closed
+# 19 checks passed
+
+uvx ruff check scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py scripts/run_mvp3c_isaac_sim_embodiment_source.py scripts/capture_mvp3c_isaac_sim_embodiment_source.py scripts/run_mvp1plus_embodiment_proof.py apps/api/app/services/robot_embodiment_adapters.py apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py apps/api/tests/test_mvp1plus_embodiment_proof_script.py
+# All checks passed
+
+python -m compileall -q scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py scripts/run_mvp3c_isaac_sim_embodiment_source.py scripts/capture_mvp3c_isaac_sim_embodiment_source.py scripts/run_mvp1plus_embodiment_proof.py apps/api/app/services/robot_embodiment_adapters.py
+# passed
+
+git diff --check
+# passed
+```
+
+Independent review evidence:
+
+```text
+code_reviewer_agent=019eef1d-5739-79b1-aac7-e714848fc038
+code_reviewer_result=APPROVE
+architect_agent=019eef1d-c951-7ae0-a40d-c7c353ac29da
+architect_result=CLEAR
+```
+
+### 남은 gap 또는 다음 작업
+
+- 로컬 변경을 Lore protocol에 맞춰 커밋한다.
+- push, PR, tag는 사용자 명시 지시 후 진행한다.

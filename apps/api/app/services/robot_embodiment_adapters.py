@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import copy
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Iterable, Protocol
@@ -31,6 +32,12 @@ REQUIRED_CONTRACT_ROLES = {
     "learning_action",
     "retargeted_robot_action",
 }
+MVP3C_REQUIRED_ACTION_ROLES = (
+    "teleop_intent",
+    "executed_control",
+    "learning_action",
+    "retargeted_robot_action",
+)
 DISALLOWED_TRUTHY_CLAIM_KEYS = {
     "real_robot_success",
     "real_robot_success_claimed",
@@ -83,6 +90,10 @@ class RobotEmbodimentAdapterRegistryProfile:
     adapter_version: str
     rejection_reason: str
     generated_external_style_sample: bool = False
+    source_runtime: str = "recorded_log_fixture"
+    source_simulator: str = "recorded_log_projection"
+    source_kind: str = "recorded_command_state_log"
+    source_ingress_role: str = "mvp1plus_recorded_log_projection"
 
     def to_artifact(self) -> dict[str, Any]:
         return {
@@ -100,6 +111,10 @@ class RobotEmbodimentAdapterRegistryProfile:
             "adapter_version": self.adapter_version,
             "rejection_reason": self.rejection_reason,
             "generated_external_style_sample": self.generated_external_style_sample,
+            "source_runtime": self.source_runtime,
+            "source_simulator": self.source_simulator,
+            "source_kind": self.source_kind,
+            "source_ingress_role": self.source_ingress_role,
         }
 
 
@@ -147,6 +162,7 @@ class UniversalRobotsUrExternalStyleContractBuilder(RobotEmbodimentContractBuild
 
 class RobotEmbodimentAdapterRegistry:
     _profiles: dict[str, RobotEmbodimentAdapterRegistryProfile] = {}
+    _mvp3c_source_ingress_profiles: dict[str, RobotEmbodimentAdapterRegistryProfile] = {}
 
     @classmethod
     def build_registry(
@@ -183,6 +199,34 @@ class RobotEmbodimentAdapterRegistry:
         validator: NormalizedTrajectoryContractValidator | None = None,
     ) -> RobotEmbodimentAdapter:
         profile = cls.get(adapter_id)
+        return profile.adapter_class(profile=profile, validator=validator)
+
+    @classmethod
+    def list_mvp3c_source_ingress_profiles(
+        cls,
+    ) -> list[RobotEmbodimentAdapterRegistryProfile]:
+        return list(cls._mvp3c_source_ingress_profiles.values())
+
+    @classmethod
+    def get_mvp3c_source_ingress_profile(
+        cls,
+        embodiment_id: str,
+    ) -> RobotEmbodimentAdapterRegistryProfile:
+        try:
+            return cls._mvp3c_source_ingress_profiles[embodiment_id]
+        except KeyError as exc:
+            raise RobotEmbodimentAdapterRegistryError(
+                f"unknown MVP-3C Isaac Sim source-ingress profile {embodiment_id!r}"
+            ) from exc
+
+    @classmethod
+    def create_mvp3c_source_ingress_adapter(
+        cls,
+        embodiment_id: str,
+        *,
+        validator: NormalizedTrajectoryContractValidator | None = None,
+    ) -> RobotEmbodimentAdapter:
+        profile = cls.get_mvp3c_source_ingress_profile(embodiment_id)
         return profile.adapter_class(profile=profile, validator=validator)
 
 
@@ -315,6 +359,126 @@ class RobotEmbodimentAdapter:
             passed=True,
             adapter_id=self.profile.adapter_id,
             projected_inputs=projected_inputs,
+            issues=[],
+        )
+
+    def project_mvp3c_source_evidence(
+        self,
+        *,
+        source_dir: Path,
+        output_dir: Path,
+        runtime_metadata_path: Path,
+        contract_path: Path,
+    ) -> RobotEmbodimentProjectionResult:
+        read_result = self._read_mvp3c_source_evidence(source_dir)
+        if read_result["issues"]:
+            return RobotEmbodimentProjectionResult(
+                passed=False,
+                adapter_id=self.profile.adapter_id,
+                projected_inputs={},
+                issues=read_result["issues"],
+            )
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        trajectories_dir = output_dir / "trajectories"
+        evaluations_dir = output_dir / "evaluations"
+        trajectories_dir.mkdir(parents=True, exist_ok=True)
+        evaluations_dir.mkdir(parents=True, exist_ok=True)
+
+        metadata = read_result["metadata"]
+        accepted_rows = read_result["accepted_rows"]
+        rejected_rows = read_result["rejected_rows"]
+        accepted_trajectory_path = trajectories_dir / "accepted.json"
+        rejected_trajectory_path = trajectories_dir / "rejected.json"
+        accepted_evaluation_path = evaluations_dir / "accepted.json"
+        rejected_evaluation_path = evaluations_dir / "rejected.json"
+        curation_manifest_path = output_dir / "curation_manifest.json"
+        projection_manifest_path = output_dir / "projection_manifest.json"
+
+        _write_json(
+            accepted_trajectory_path,
+            {"embodiment_id": self.profile.adapter_id, "frames": accepted_rows},
+        )
+        _write_json(
+            rejected_trajectory_path,
+            {"embodiment_id": self.profile.adapter_id, "frames": rejected_rows},
+        )
+        _write_json(
+            accepted_evaluation_path,
+            {
+                "embodiment_id": self.profile.adapter_id,
+                "accepted": True,
+                "count": len(accepted_rows),
+            },
+        )
+        _write_json(
+            rejected_evaluation_path,
+            {
+                "embodiment_id": self.profile.adapter_id,
+                "accepted": False,
+                "count": len(rejected_rows),
+            },
+        )
+        _write_json(
+            curation_manifest_path,
+            {
+                "embodiment_id": self.profile.adapter_id,
+                "accepted_count": len(accepted_rows),
+                "rejected_count": len(rejected_rows),
+                "accepted_reasons": ["contract_roles_present"],
+                "rejected_reasons": ["controlled_negative_row"],
+            },
+        )
+        _write_json(
+            contract_path,
+            _build_mvp3c_normalized_contract(
+                profile=self.profile,
+                rows=[*accepted_rows, *rejected_rows],
+            ),
+        )
+        projection_manifest = {
+            "schema_version": "rdf_mvp3c_source_ingress_projection_v0.1.0",
+            "embodiment_id": self.profile.adapter_id,
+            "adapter_id": self.profile.adapter_id,
+            "projection_method": "RobotEmbodimentAdapter.project_mvp3c_source_evidence",
+            "runtime_capture_id": metadata["runtime_capture_id"],
+            "runtime_metadata": {
+                "data_path": runtime_metadata_path.relative_to(source_dir.parents[2]).as_posix(),
+                "sha256": _file_sha256(runtime_metadata_path),
+            },
+            "source_logs": {
+                "accepted_command_state.jsonl": {
+                    "sha256": _file_sha256(source_dir / "accepted_command_state.jsonl"),
+                    "rows": len(accepted_rows),
+                },
+                "rejected_command_state.jsonl": {
+                    "sha256": _file_sha256(source_dir / "rejected_command_state.jsonl"),
+                    "rows": len(rejected_rows),
+                },
+            },
+            "projected_artifacts": {
+                "trajectories/accepted.json": _file_sha256(accepted_trajectory_path),
+                "trajectories/rejected.json": _file_sha256(rejected_trajectory_path),
+                "evaluations/accepted.json": _file_sha256(accepted_evaluation_path),
+                "evaluations/rejected.json": _file_sha256(rejected_evaluation_path),
+                "curation_manifest.json": _file_sha256(curation_manifest_path),
+            },
+            "accepted_count": len(accepted_rows),
+            "rejected_count": len(rejected_rows),
+        }
+        _write_json(projection_manifest_path, projection_manifest)
+        return RobotEmbodimentProjectionResult(
+            passed=True,
+            adapter_id=self.profile.adapter_id,
+            projected_inputs={
+                "metadata": metadata,
+                "projection_manifest": str(projection_manifest_path),
+                "contract": str(contract_path),
+                "accepted_count": len(accepted_rows),
+                "rejected_count": len(rejected_rows),
+                "required_action_roles_present": list(MVP3C_REQUIRED_ACTION_ROLES),
+                "projection_method": projection_manifest["projection_method"],
+            },
             issues=[],
         )
 
@@ -484,14 +648,175 @@ class RobotEmbodimentAdapter:
             "issues": issues,
         }
 
+    def _read_mvp3c_source_evidence(self, source_dir: Path) -> dict[str, Any]:
+        required = {
+            "metadata": source_dir / "metadata.json",
+            "accepted": source_dir / "accepted_command_state.jsonl",
+            "rejected": source_dir / "rejected_command_state.jsonl",
+        }
+        missing = [str(path.name) for path in required.values() if not path.exists()]
+        if missing:
+            return {
+                "metadata": {},
+                "accepted_rows": [],
+                "rejected_rows": [],
+                "issues": [f"missing MVP-3C source evidence: {', '.join(missing)}"],
+            }
+        try:
+            metadata = _read_json(required["metadata"])
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            return {
+                "metadata": {},
+                "accepted_rows": [],
+                "rejected_rows": [],
+                "issues": [f"invalid MVP-3C metadata json: {exc}"],
+            }
+        accepted_rows, accepted_issues = _read_jsonl(required["accepted"], label="accepted jsonl")
+        rejected_rows, rejected_issues = _read_jsonl(required["rejected"], label="rejected jsonl")
+        issues = [*accepted_issues, *rejected_issues]
+        if metadata.get("adapter_id") != self.profile.adapter_id:
+            issues.append(f"metadata adapter_id mismatch: expected {self.profile.adapter_id}")
+        if metadata.get("embodiment_id") != self.profile.adapter_id:
+            issues.append(f"metadata embodiment_id mismatch: expected {self.profile.adapter_id}")
+        if metadata.get("runtime") != self.profile.source_runtime:
+            issues.append("metadata.runtime mismatch")
+        if metadata.get("simulator") != self.profile.source_simulator:
+            issues.append("metadata.simulator mismatch")
+        if metadata.get("source_kind") != self.profile.source_kind:
+            issues.append("metadata.source_kind mismatch")
+        if metadata.get("claim_boundary") != self.profile.claim_boundary:
+            issues.append("metadata.claim_boundary mismatch")
+        if not accepted_rows:
+            issues.append("accepted MVP-3C source evidence empty")
+        if not rejected_rows:
+            issues.append("rejected MVP-3C source evidence empty")
+        for index, row in enumerate(accepted_rows, start=1):
+            issues.extend(
+                _validate_mvp3c_source_row(
+                    row,
+                    self.profile,
+                    label=f"accepted jsonl row {index}",
+                    accepted=True,
+                )
+            )
+        for index, row in enumerate(rejected_rows, start=1):
+            issues.extend(
+                _validate_mvp3c_source_row(
+                    row,
+                    self.profile,
+                    label=f"rejected jsonl row {index}",
+                    accepted=False,
+                )
+            )
+        return {
+            "metadata": metadata,
+            "accepted_rows": accepted_rows,
+            "rejected_rows": rejected_rows,
+            "issues": issues,
+        }
+
+
+def _file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _validate_mvp3c_source_row(
+    row: dict[str, Any],
+    profile: RobotEmbodimentAdapterRegistryProfile,
+    *,
+    label: str,
+    accepted: bool,
+) -> list[str]:
+    issues: list[str] = []
+    if row.get("embodiment_id") != profile.adapter_id:
+        issues.append(f"{label} embodiment_id mismatch")
+    if row.get("runtime_capture_id") != f"{profile.adapter_id}_runtime_capture_20260622T010000Z":
+        issues.append(f"{label} runtime_capture_id mismatch")
+    if row.get("runtime") != profile.source_runtime:
+        issues.append(f"{label} runtime mismatch")
+    if row.get("simulator") != profile.source_simulator:
+        issues.append(f"{label} simulator mismatch")
+    if row.get("source_kind") != profile.source_kind:
+        issues.append(f"{label} source_kind mismatch")
+    if row.get("accepted") is not accepted:
+        issues.append(f"{label} accepted flag mismatch")
+    if not _is_numeric(row.get("timestamp_ns")):
+        issues.append(f"{label} timestamp_ns missing")
+    command_state = row.get("command_state")
+    if not isinstance(command_state, dict):
+        return [*issues, f"{label} command_state missing"]
+    if not _numeric_vector(command_state.get("joint_positions"), min_len=1, max_len=16):
+        issues.append(f"{label} command_state.joint_positions missing")
+    if not _numeric_vector(command_state.get("joint_velocities"), min_len=1, max_len=16):
+        issues.append(f"{label} command_state.joint_velocities missing")
+    if not _numeric_vector(command_state.get("eef_pose"), min_len=7, max_len=7):
+        issues.append(f"{label} command_state.eef_pose missing")
+    actions_by_role = command_state.get("actions_by_role")
+    if not isinstance(actions_by_role, dict):
+        return [*issues, f"{label} command_state.actions_by_role missing"]
+    missing_roles = [role for role in MVP3C_REQUIRED_ACTION_ROLES if role not in actions_by_role]
+    if missing_roles:
+        issues.append(f"{label} command_state.actions_by_role missing {missing_roles}")
+    for role in MVP3C_REQUIRED_ACTION_ROLES:
+        if role in actions_by_role and not _numeric_vector(actions_by_role[role], min_len=1, max_len=16):
+            issues.append(f"{label} command_state.actions_by_role.{role} invalid")
+    return issues
+
+
+def _build_mvp3c_normalized_contract(
+    *,
+    profile: RobotEmbodimentAdapterRegistryProfile,
+    rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    role_counts = {role: 0 for role in MVP3C_REQUIRED_ACTION_ROLES}
+    for row in rows:
+        actions = row.get("command_state", {}).get("actions_by_role", {})
+        if not isinstance(actions, dict):
+            continue
+        for role in MVP3C_REQUIRED_ACTION_ROLES:
+            if role in actions:
+                role_counts[role] += 1
+    return {
+        "schema_version": "mvp3c.normalized_trajectory_contract.v1",
+        "embodiment_id": profile.adapter_id,
+        "source": {
+            "input_device": "isaac_sim_command_state_log",
+            "runtime": profile.source_runtime,
+            "simulator": profile.source_simulator,
+            "robot": profile.adapter_id,
+            "task_name": "mvp3c_isaac_sim_embodiment_source",
+        },
+        "required_action_roles": list(MVP3C_REQUIRED_ACTION_ROLES),
+        "frame_action_role_coverage": {
+            role: {"present": role_counts[role] > 0, "frames": role_counts[role]}
+            for role in MVP3C_REQUIRED_ACTION_ROLES
+        },
+        "learning_eligibility_gates": {
+            "replay_action_contract": True,
+            "trainer_export_smoke": "contract_smoke_only",
+            "learning_results_measured": False,
+            "policy_uplift": False,
+            "learning_proven_value": False,
+        },
+    }
+
 
 def _claim_boundary() -> dict[str, bool]:
     return {
         "real_robot_success_claimed": False,
         "physical_robot_readiness_claimed": False,
         "live_runtime_support_claimed": False,
+        "live_ur_hardware_support_claimed": False,
+        "live_franka_hardware_support_claimed": False,
+        "live_ros2_dds_runtime_support_claimed": False,
+        "hmd_openxr_collection_readiness_claimed": False,
         "hmd_readiness_claimed": False,
         "policy_uplift_claimed": False,
+        "learning_proven_value_claimed": False,
+        "deployable_policy_readiness_claimed": False,
+        "visual_policy_performance_claimed": False,
+        "marketplace_readiness_claimed": False,
+        "production_certification_claimed": False,
         "universal_robot_support_claimed": False,
         "public_sample_evidence_claimed": False,
     }
@@ -509,6 +834,10 @@ def _profile(
     evidence_level: str,
     rejection_reason: str,
     generated_external_style_sample: bool = False,
+    source_runtime: str = "recorded_log_fixture",
+    source_simulator: str = "recorded_log_projection",
+    source_kind: str = "recorded_command_state_log",
+    source_ingress_role: str = "mvp1plus_recorded_log_projection",
 ) -> RobotEmbodimentAdapterRegistryProfile:
     return RobotEmbodimentAdapterRegistryProfile(
         schema_version=ROBOT_EMBODIMENT_ADAPTER_REGISTRY_SCHEMA_VERSION,
@@ -525,6 +854,10 @@ def _profile(
         adapter_version=ROBOT_EMBODIMENT_ADAPTER_VERSION,
         rejection_reason=rejection_reason,
         generated_external_style_sample=generated_external_style_sample,
+        source_runtime=source_runtime,
+        source_simulator=source_simulator,
+        source_kind=source_kind,
+        source_ingress_role=source_ingress_role,
     )
 
 
@@ -548,19 +881,25 @@ def _read_jsonl(path: Path, *, label: str) -> tuple[list[dict[str, Any]], list[s
     rows: list[dict[str, Any]] = []
     issues: list[str] = []
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        body = path.read_text(encoding="utf-8")
     except OSError as exc:
         return [], [f"{label} unreadable: {exc}"]
-    for index, line in enumerate(lines, start=1):
-        if not line.strip():
-            continue
+    decoder = json.JSONDecoder()
+    index = 0
+    row_index = 0
+    while index < len(body):
+        while index < len(body) and body[index].isspace():
+            index += 1
+        if index >= len(body):
+            break
+        row_index += 1
         try:
-            row = json.loads(line)
+            row, index = decoder.raw_decode(body, index)
         except json.JSONDecodeError as exc:
-            issues.append(f"{label} line {index} invalid json: {exc}")
-            continue
+            issues.append(f"{label} row {row_index} invalid json: {exc}")
+            break
         if not isinstance(row, dict):
-            issues.append(f"{label} line {index} not object")
+            issues.append(f"{label} row {row_index} not object")
             continue
         rows.append(row)
     return rows, issues
@@ -1326,4 +1665,56 @@ RobotEmbodimentAdapterRegistry._profiles = RobotEmbodimentAdapterRegistry.build_
             generated_external_style_sample=True,
         ),
     ]
+)
+
+RobotEmbodimentAdapterRegistry._mvp3c_source_ingress_profiles = (
+    RobotEmbodimentAdapterRegistry.build_registry(
+        [
+            _profile(
+                adapter_id="franka_panda_isaac_sim",
+                adapter_name="Franka Panda Isaac Sim Source-Ingress Profile",
+                robot_family="franka_panda",
+                embodiment_class="isaac_sim_manipulator",
+                builder_class=FrankaContractBuilder,
+                capabilities=(
+                    "isaac_sim_runtime_command_state_ingress",
+                    "normalized_contract_emission",
+                ),
+                limitations=(
+                    "Isaac Sim runtime-backed source evidence only.",
+                    "No physical Franka hardware readiness claimed.",
+                    "No HMD/OpenXR collection readiness claimed.",
+                ),
+                evidence_level="isaac_sim_runtime_backed_command_state_log",
+                rejection_reason="ACTION_SATURATION_OR_CONTROL_QUALITY_FAILURE",
+                source_runtime="isaac_sim",
+                source_simulator="isaac_sim",
+                source_kind="isaac_sim_runtime_backed_command_state_log",
+                source_ingress_role="mvp3c_isaac_sim_embodiment_source",
+            ),
+            _profile(
+                adapter_id="universal_robots_ur10e_isaac_sim",
+                adapter_name="Universal Robots UR10e Isaac Sim Source-Ingress Profile",
+                robot_family="universal_robots_ur10e",
+                embodiment_class="isaac_sim_manipulator",
+                builder_class=UniversalRobotsUrContractBuilder,
+                capabilities=(
+                    "isaac_sim_runtime_command_state_ingress",
+                    "normalized_contract_emission",
+                ),
+                limitations=(
+                    "Isaac Sim runtime-backed source evidence only.",
+                    "No physical UR hardware readiness claimed.",
+                    "No live ROS2-DDS runtime support claimed.",
+                    "No HMD/OpenXR collection readiness claimed.",
+                ),
+                evidence_level="isaac_sim_runtime_backed_command_state_log",
+                rejection_reason="INDUSTRIAL_ACTION_CONTRACT_MISMATCH",
+                source_runtime="isaac_sim",
+                source_simulator="isaac_sim",
+                source_kind="isaac_sim_runtime_backed_command_state_log",
+                source_ingress_role="mvp3c_isaac_sim_embodiment_source",
+            ),
+        ]
+    )
 )

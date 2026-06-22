@@ -1,0 +1,251 @@
+{
+  "artifact_index": [
+    {
+      "byte_size": 2581,
+      "data_path": "data/adapter_results/franka_panda_isaac_sim_adapter_result.json",
+      "file_sha256": "c82e1fec1fcc8ea31beff90e027d41f96bd67c4efbfbc84b3d7503d5ae74d423",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2670,
+      "data_path": "data/adapter_results/universal_robots_ur10e_isaac_sim_adapter_result.json",
+      "file_sha256": "8dc3d50ae8d6f996310d8d4c9640887758afcf631131224709fae99679932edd",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3095,
+      "data_path": "data/config.json",
+      "file_sha256": "2524943802e9b0cb380b7e6d8567e45054d4cd46a644b61651140d099bfe6b54",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1029,
+      "data_path": "data/contracts/franka_panda_isaac_sim_normalized_trajectory_contract.json",
+      "file_sha256": "7d7c3f66ea07c0775ac35c3352e5a057c67b9ff2768aac7a87eaf26e80375b15",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1049,
+      "data_path": "data/contracts/universal_robots_ur10e_isaac_sim_normalized_trajectory_contract.json",
+      "file_sha256": "fabfe5a0e992de4be775bf7011e368bb624eb43eacc061272cf3d4aca52f34f7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 688,
+      "data_path": "data/embodiment_source_summary.json",
+      "file_sha256": "a54af75fdfae839090f4432afb634d15ffd813fd0183c0e0c3edf18d38b27609",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 194,
+      "data_path": "data/isaac_sim_runtime_summary.json",
+      "file_sha256": "aa2af21e09492bf74a2be10a64cf199e7d17c1a335735fc607ff942fa522de42",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1994,
+      "data_path": "data/non_claims_attestation.json",
+      "file_sha256": "fdc23f50c404aa0d60b4a79745826b676e7ba74bcdf6fec86704e1a51dfedb8e",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 374,
+      "data_path": "data/preflight/franka_panda_isaac_sim_preflight.json",
+      "file_sha256": "26e69f08e2d6edd85886d20b0bb0abfc944bab46f7df07d7b1bb8a5a3222542c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 394,
+      "data_path": "data/preflight/universal_robots_ur10e_isaac_sim_preflight.json",
+      "file_sha256": "1359ed3dfee64220b7b5c9bf93d95eb7fc575979340d0ae143158f2aff1a1ddd",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 211,
+      "data_path": "data/projections/franka_panda_isaac_sim/curation_manifest.json",
+      "file_sha256": "f065cc72b3b9a7885825fe7bc09ba51d57aea263e4770543a84159c66cd409c8",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 82,
+      "data_path": "data/projections/franka_panda_isaac_sim/evaluations/accepted.json",
+      "file_sha256": "711c22f081aed2a499f165314235252331fcc037ce873187f6938bb714f8fed2",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 83,
+      "data_path": "data/projections/franka_panda_isaac_sim/evaluations/rejected.json",
+      "file_sha256": "4c41c4c57f296c0524a5779892c3d85ac33a40ab32f8acf608cf49e210590657",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1409,
+      "data_path": "data/projections/franka_panda_isaac_sim/projection_manifest.json",
+      "file_sha256": "5417f4564772fa42d91bef461bacdbaa0bdd32a432c1021d57b5dc2867e5c19b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2642,
+      "data_path": "data/projections/franka_panda_isaac_sim/trajectories/accepted.json",
+      "file_sha256": "b8f08c1dc63a046d2cbe269dc2c16b9b82307619b7d2f3143c272297de50c958",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2763,
+      "data_path": "data/projections/franka_panda_isaac_sim/trajectories/rejected.json",
+      "file_sha256": "49bf3c61c2be0e4e21f9c6b59a2fb93615d19e5422535890b5d512b63945678a",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 221,
+      "data_path": "data/projections/universal_robots_ur10e_isaac_sim/curation_manifest.json",
+      "file_sha256": "5b9a75200668f4a673e8e5c7ecb283b3797a5c22d0c80ebed02b7d4c05f8234b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 92,
+      "data_path": "data/projections/universal_robots_ur10e_isaac_sim/evaluations/accepted.json",
+      "file_sha256": "4800f2b213e021430c6ef8dd5f8f49eeb97d91aef757984f7a2d126e6c7628d3",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 93,
+      "data_path": "data/projections/universal_robots_ur10e_isaac_sim/evaluations/rejected.json",
+      "file_sha256": "762f76d31419a0c77fd2bf235211d2699332fc89a4a71805aeed064886162155",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1449,
+      "data_path": "data/projections/universal_robots_ur10e_isaac_sim/projection_manifest.json",
+      "file_sha256": "9edb819cfb9a085e9164cde4c9a319291571091cd8738531e11bcc19773abc83",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2150,
+      "data_path": "data/projections/universal_robots_ur10e_isaac_sim/trajectories/accepted.json",
+      "file_sha256": "1da0a0970a726977586e765452a076281695f7329dcbe0d72a189d0bcbd673ae",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2246,
+      "data_path": "data/projections/universal_robots_ur10e_isaac_sim/trajectories/rejected.json",
+      "file_sha256": "d51706973807e0b281dfbf7f1fcf854d0a7588f69fc75f4367e586d004d7bd32",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 14548,
+      "data_path": "data/runtime_capture.json",
+      "file_sha256": "e393d75aa5ed7b234f7e2a9393b523eef3d304bfdb00d4dcbe545a0ef43b7ac1",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 653,
+      "data_path": "data/runtime_metadata/franka_panda_isaac_sim_runtime_metadata.json",
+      "file_sha256": "87794a77c09f36f6c3143eb70c3a618ee5425154fbd90d4e10f1940c17c5f318",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 666,
+      "data_path": "data/runtime_metadata/universal_robots_ur10e_isaac_sim_runtime_metadata.json",
+      "file_sha256": "45511e4450793d53a3f0d4e36caec677618eb514844fcacc70576e12d01c1e8b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2219,
+      "data_path": "data/source_logs/franka_panda_isaac_sim/accepted_command_state.jsonl",
+      "file_sha256": "e592b4cd1ad622efb6448400001289aa278662a9f1b3c593d8794819486cdd99",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1562,
+      "data_path": "data/source_logs/franka_panda_isaac_sim/metadata.json",
+      "file_sha256": "dc051e14c25f088fd3524068c5f5ffb999286256b9c0c6176bdb7e210590a928",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2340,
+      "data_path": "data/source_logs/franka_panda_isaac_sim/rejected_command_state.jsonl",
+      "file_sha256": "25d79af3b3afc7a221abc8175577a216cb2155f8faf20eebfb11d8eced31e659",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1789,
+      "data_path": "data/source_logs/universal_robots_ur10e_isaac_sim/accepted_command_state.jsonl",
+      "file_sha256": "564f9be3815057540e1f69f393ea6a15adaf41c047f9f6a4b1d32f26ee4a71d1",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1637,
+      "data_path": "data/source_logs/universal_robots_ur10e_isaac_sim/metadata.json",
+      "file_sha256": "22b18d47639f9afb31afa9663b2f0220fc75e30681ef1927fc6691c852946019",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1885,
+      "data_path": "data/source_logs/universal_robots_ur10e_isaac_sim/rejected_command_state.jsonl",
+      "file_sha256": "67fa80e6b4783bda2fcb2879adee5f41ac448bf88091bd3d3d2085097c4b33c7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 7777,
+      "data_path": "data/artifact_index.json",
+      "file_sha256": "a5694e5499c67423376eb85113f95ab485ec8e02406e1a3bc0a048432d4c069c",
+      "hash_convention": "file_bytes"
+    }
+  ],
+  "claims": {
+    "status": "isaac_sim_embodiment_source_closed"
+  },
+  "created_at": "2026-06-22T01:00:00Z",
+  "non_claims": {
+    "db_migration": false,
+    "db_migration_claimed": false,
+    "deployable_policy_readiness": false,
+    "deployable_policy_readiness_claimed": false,
+    "franka_hardware_support": false,
+    "franka_hardware_support_claimed": false,
+    "hmd_openxr_collection_readiness": false,
+    "hmd_openxr_collection_readiness_claimed": false,
+    "hmd_readiness": false,
+    "hmd_readiness_claimed": false,
+    "learning_proven_value": false,
+    "learning_proven_value_claimed": false,
+    "live_franka_hardware_support": false,
+    "live_franka_hardware_support_claimed": false,
+    "live_ros2_dds_runtime_support": false,
+    "live_ros2_dds_runtime_support_claimed": false,
+    "live_runtime_support": false,
+    "live_runtime_support_claimed": false,
+    "live_ur_hardware_support": false,
+    "live_ur_hardware_support_claimed": false,
+    "live_ur_runtime_support": false,
+    "live_ur_runtime_support_claimed": false,
+    "marketplace_readiness": false,
+    "marketplace_readiness_claimed": false,
+    "physical_robot_readiness": false,
+    "physical_robot_readiness_claimed": false,
+    "policy_uplift": false,
+    "policy_uplift_claimed": false,
+    "production_auth": false,
+    "production_auth_claimed": false,
+    "production_certification": false,
+    "production_certification_claimed": false,
+    "production_robot_support_claimed": false,
+    "public_sample_evidence_claimed": false,
+    "public_sample_import": false,
+    "public_sample_import_claimed": false,
+    "real_robot_readiness_claimed": false,
+    "real_robot_success": false,
+    "real_robot_success_claimed": false,
+    "ros2_bridge_support": false,
+    "ros2_bridge_support_claimed": false,
+    "universal_robot_support": false,
+    "universal_robot_support_claimed": false,
+    "ur_hardware_support": false,
+    "ur_hardware_support_claimed": false,
+    "visual_policy_performance": false,
+    "visual_policy_performance_claimed": false
+  },
+  "package_name": "mvp3c_isaac_sim_embodiment_source_proof_package",
+  "schema_version": "rdf_mvp3c_isaac_sim_embodiment_source_package_manifest_v0.1.0"
+}

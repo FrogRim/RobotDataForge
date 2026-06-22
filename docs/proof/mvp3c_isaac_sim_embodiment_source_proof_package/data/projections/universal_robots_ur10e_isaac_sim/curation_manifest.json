@@ -1,0 +1,11 @@
+{
+  "accepted_count": 1,
+  "accepted_reasons": [
+    "contract_roles_present"
+  ],
+  "embodiment_id": "universal_robots_ur10e_isaac_sim",
+  "rejected_count": 1,
+  "rejected_reasons": [
+    "controlled_negative_row"
+  ]
+}
