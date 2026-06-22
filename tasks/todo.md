@@ -1,5 +1,39 @@
 # ForgeXR / RDF Data Trust Layer Reset - 2026-06-04
 
+## Current MVP-3B Source-Adapter Infrastructure Plan - 2026-06-20 KST
+
+Goal: MVP-3B를 `source_adapter_matrix` slice로 진행해 Franka / ROS2-DDS-style /
+UR-style generated/file-backed recorded-log source profiles가 RDF normalized trajectory
+contract와 self-contained proof package로 projection되는지 검증한다.
+
+Current status:
+
+```text
+spec=docs/superpowers/specs/2026-06-20-mvp3b-source-adapter-infrastructure-design.md
+plan=docs/superpowers/plans/2026-06-20-mvp3b-source-adapter-infrastructure.md
+ralplan_consensus=.omx/plans/ralplan-consensus-mvp3b-source-adapter-infrastructure.md
+architect_iteration_1=REQUEST_CHANGES
+architect_iteration_2=APPROVE
+critic_iteration_1=APPROVE
+implementation_status=not_started
+```
+
+Claim boundary:
+
+- [x] MVP-3B proves source-profile projection through RDF infrastructure.
+- [x] MVP-3B does not prove live UR/ROS2-DDS/Franka support.
+- [x] MVP-3B does not prove real robot success or physical robot readiness.
+- [x] MVP-3B does not prove policy uplift or learning-proven value.
+- [x] `40000-40049` and `42000-42049` remain spent/audit-only/no-reuse.
+- [x] MVP-3B opens no calibration, held-out, tuning, or closure range.
+
+Next valid step:
+
+- [ ] Start implementation from Task 1 in the plan using TDD.
+- [ ] Build `scripts/verify_mvp3b_source_adapter_package.py` before trusting any package.
+- [ ] Build `scripts/run_mvp3b_source_adapter_infrastructure.py` only after verifier RED
+  tests exist.
+
 ## Current MVP-3A Actual Isaac Proof Package - 2026-06-20 KST
 
 Goal: `target_fixture_pose_variant` actual Isaac proof package에서 MVP-2의 proof

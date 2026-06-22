@@ -12,6 +12,88 @@
 
 ---
 
+## 2026-06-20: MVP-3B source-adapter infrastructure spec and ralplan approved
+
+Context:
+
+- MVP-3A actual Isaac proof infrastructure is closed, and held-out `42000-42049`
+  is spent/audit-only/no-reuse.
+- The user wanted MVP-3B planning to go through brainstorming, spec writing, and
+  ralplan review before implementation.
+- MVP-3B must be distinct from MVP-3A without weakening MVP-2/MVP-3A claim boundaries.
+
+Decision:
+
+- Chose **Option B: Source-Adapter Matrix Slice**.
+- MVP-3B changes `source_adapter_matrix`, not task variant and not policy evaluation.
+- The claim is source-profile projection through RDF infrastructure for:
+  `franka_research_arm`, `robotis_sh5_ros2_dds`, and
+  `universal_robots_ur_industrial_arm`.
+- The slice does not claim live robot support, independent robot integrations, policy
+  uplift, or learning-proven value.
+
+Changed files:
+
+```text
+docs/superpowers/specs/2026-06-20-mvp3b-source-adapter-infrastructure-design.md
+docs/superpowers/plans/2026-06-20-mvp3b-source-adapter-infrastructure.md
+tasks/todo.md
+Handoff.md
+.omx/context/mvp3b-source-adapter-infrastructure-20260620T131635Z.md
+.omx/plans/prd-mvp3b-source-adapter-infrastructure.md
+.omx/plans/test-spec-mvp3b-source-adapter-infrastructure.md
+.omx/plans/ralplan-architect-review-mvp3b-source-adapter-infrastructure-iteration1.md
+.omx/plans/ralplan-architect-review-mvp3b-source-adapter-infrastructure-iteration2.md
+.omx/plans/ralplan-critic-review-mvp3b-source-adapter-infrastructure-iteration1.md
+.omx/plans/ralplan-consensus-mvp3b-source-adapter-infrastructure.md
+```
+
+Ralplan result:
+
+```text
+architect_iteration_1=REQUEST_CHANGES
+architect_iteration_2=APPROVE
+critic_iteration_1=APPROVE
+implementation_status=not_started
+```
+
+Key guardrails:
+
+```text
+- verifier first, TDD first
+- MVP-3B package must be self-contained
+- verifier is stdlib-only and independent from producer services
+- exact spent_no_reuse must be [[40000, 40049], [42000, 42049]]
+- MVP-3B opens no calibration, held-out, tuning, or closure range
+- canonical forbidden claim keys include both MVP-3B-specific keys and all existing
+  producer DISALLOWED_TRUTHY_CLAIM_KEYS
+- any trainer/export smoke is contract smoke only, not learning-proven evidence
+```
+
+Validation:
+
+```text
+git diff --check
+  passed
+
+rg -n "RALPLAN APPROVED|Source-Adapter Matrix|source-profile projection|spent_no_reuse|opened_ranges|learning_proven_addendum|physical_robot_readiness_claimed|public_sample_evidence_claimed|live_runtime_support" ...
+  expected planning and claim-boundary anchors present
+
+python3 scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+  VERDICT: VERIFIED
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+  VERDICT: VERIFIED
+```
+
+Remaining gap / next work:
+
+- MVP-3B implementation has not started.
+- Next valid step is Task 1 from the MVP-3B plan: RED tests for
+  `scripts/verify_mvp3b_source_adapter_package.py`.
+
+---
+
 ## 2026-06-20: MVP-3A spent held-out rule promoted to project instructions
 
 Context:
