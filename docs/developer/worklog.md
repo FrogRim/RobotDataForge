@@ -12,6 +12,71 @@
 
 ---
 
+## 2026-06-22: MVP-3B Task 2 re-review fix
+
+### 작업 내용
+
+Task 2 re-review의 HIGH finding 1개를 수정했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+.superpowers/sdd/task-2-report.md
+```
+
+수정 내용:
+
+```text
+- README.md에 "This package does not claim production certification. It claims real robot success."
+  문장을 넣으면 hash_integrity는 통과하고 forbidden_claims만 실패해야 하는 regression test를 추가했다.
+- text forbidden claim scan의 negation marker 적용 범위를 전체 240자 prefix가 아니라
+  현재 sentence 또는 contrast clause prefix로 좁혔다.
+- 기존 green fixture의 safe limitation 문장, 즉 "It does not claim live robot support,
+  real robot success, marketplace readiness, production certification, or learning-proven value."
+  는 계속 통과하도록 유지했다.
+```
+
+### 판단 이유
+
+MVP-3B package README는 buyer-facing surface라서 limitation 문장과 positive claim 문장을
+구분해야 한다. 파일 전체 또는 넓은 prefix에 negation이 있다는 이유로 이후 문장의 positive
+claim을 허용하면 `real robot success`, `production certification` 같은 금지 claim boundary가
+무력화된다. 따라서 negation은 같은 sentence/local clause에만 적용하도록 좁혔다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_negated_limitation_does_not_mask_later_positive_claim -q
+# RED: 1 failed in 0.04s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 16 passed in 0.36s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py --help
+# passed, exit 0
+
+uvx ruff check scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B runner/package builder는 수정하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- Task 3에서 실제 MVP-3B generated package에 verifier를 적용해야 한다.
+
+---
+
 ## 2026-06-22: MVP-3B Task 2 review fix
 
 ### 작업 내용

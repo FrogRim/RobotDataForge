@@ -747,11 +747,21 @@ def _normalize_claim_text(text: str) -> str:
 
 
 def _is_positive_claim_context(text: str, phrase: str, start: int) -> bool:
-    prefix = text[max(0, start - 240) : start]
+    prefix = _local_claim_prefix(text, start)
     context = prefix + phrase
     if any(marker in prefix for marker in TEXT_CLAIM_NEGATED_MARKERS):
         return False
     return any(marker in context for marker in TEXT_CLAIM_POSITIVE_MARKERS)
+
+
+def _local_claim_prefix(text: str, start: int) -> str:
+    prefix = text[max(0, start - 240) : start]
+    boundary = max(prefix.rfind(separator) for separator in (".", "!", "?", ";"))
+    for marker in (", but ", " but ", ", however ", " however "):
+        boundary = max(boundary, prefix.rfind(marker))
+    if boundary == -1:
+        return prefix
+    return prefix[boundary + 1 :]
 
 
 def _format_report(report: Report) -> str:
