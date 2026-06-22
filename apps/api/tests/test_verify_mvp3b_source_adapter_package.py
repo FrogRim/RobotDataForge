@@ -345,6 +345,60 @@ def _tamper_json(path: Path, edit) -> None:
     _write_json(path, payload)
 
 
+def _replace_index_hash(entry: dict, *, rel_path: str, file_sha256: str) -> bool:
+    if entry.get("data_path") != rel_path:
+        return False
+    entry["file_sha256"] = file_sha256
+    return True
+
+
+def _refresh_indexed_hashes(manifest: Path, *changed_rel_paths: str) -> None:
+    """Refresh package indexes after semantic tampering in hash-indexed files."""
+
+    pkg = manifest.parent
+    artifact_index_path = pkg / "data" / "artifact_index.json"
+    artifact_index = json.loads(artifact_index_path.read_text(encoding="utf-8"))
+    for rel_path in changed_rel_paths:
+        refreshed = any(
+            _replace_index_hash(
+                entry,
+                rel_path=rel_path,
+                file_sha256=_sha(pkg / rel_path),
+            )
+            for entry in artifact_index["artifact_index"]
+        )
+        assert refreshed, f"{rel_path} is not indexed in data/artifact_index.json"
+    _write_json(artifact_index_path, artifact_index)
+
+    package_manifest = json.loads(manifest.read_text(encoding="utf-8"))
+    manifest_rel_paths = set(changed_rel_paths) | {"data/artifact_index.json"}
+    for rel_path in manifest_rel_paths:
+        refreshed = any(
+            _replace_index_hash(
+                entry,
+                rel_path=rel_path,
+                file_sha256=_sha(pkg / rel_path),
+            )
+            for entry in package_manifest["artifact_index"]
+        )
+        assert refreshed, f"{rel_path} is not indexed in package_manifest.json"
+    _write_json(manifest, package_manifest)
+
+
+def _tamper_indexed_json(manifest: Path, rel_path: str, edit) -> None:
+    _tamper_json(manifest.parent / rel_path, edit)
+    _refresh_indexed_hashes(manifest, rel_path)
+
+
+def _assert_only_check_failed(report, expected_check: str) -> None:
+    checks = _checks(report)
+    assert report.ok is False
+    assert checks["hash_integrity"].passed is True
+    assert checks[expected_check].passed is False
+    failed_checks = {name for name, check in checks.items() if check.passed is False}
+    assert failed_checks == {expected_check}
+
+
 def _checks(report) -> dict:
     return {check.name: check for check in report.checks}
 
@@ -407,15 +461,15 @@ def test_unindexed_data_file_fails(tmp_path: Path):
 def test_truthy_top_level_forbidden_runtime_claims_fail(tmp_path: Path):
     for key in ("real_robot_success", "live_ur_runtime_support", "live_runtime_support_claimed"):
         manifest = _make_package(tmp_path / key)
-        _tamper_json(
-            manifest.parent / "data" / "config.json",
+        _tamper_indexed_json(
+            manifest,
+            "data/config.json",
             lambda payload, key=key: payload["non_claims"].update({key: True}),
         )
 
         report = _load_verifier().verify_package(manifest)
 
-        assert report.ok is False, key
-        assert _checks(report)["forbidden_claims"].passed is False
+        _assert_only_check_failed(report, "forbidden_claims")
 
 
 def test_truthy_producer_claim_keys_fail_recursively(tmp_path: Path):
@@ -439,29 +493,29 @@ def test_truthy_producer_claim_keys_fail_recursively(tmp_path: Path):
     )
     for key, rel in claim_surfaces:
         manifest = _make_package(tmp_path / key)
-        _tamper_json(
-            manifest.parent / rel,
+        _tamper_indexed_json(
+            manifest,
+            rel,
             lambda payload, key=key: payload.update({key: True}),
         )
 
         report = _load_verifier().verify_package(manifest)
 
-        assert report.ok is False, key
-        assert _checks(report)["forbidden_claims"].passed is False
+        _assert_only_check_failed(report, "forbidden_claims")
 
 
 def test_missing_or_altered_exact_spent_no_reuse_fails(tmp_path: Path):
     for value in ([], [[40000, 40049]], [[40000, 40050], [42000, 42049]]):
         manifest = _make_package(tmp_path / str(len(value)))
-        _tamper_json(
-            manifest.parent / "data" / "config.json",
+        _tamper_indexed_json(
+            manifest,
+            "data/config.json",
             lambda payload, value=value: payload.update({"spent_no_reuse": value}),
         )
 
         report = _load_verifier().verify_package(manifest)
 
-        assert report.ok is False
-        assert _checks(report)["spent_no_reuse_exact"].passed is False
+        _assert_only_check_failed(report, "spent_no_reuse_exact")
 
 
 def test_any_non_empty_opened_calibration_heldout_tuning_or_closure_range_fails(
@@ -469,8 +523,9 @@ def test_any_non_empty_opened_calibration_heldout_tuning_or_closure_range_fails(
 ):
     for range_name in ("calibration", "heldout", "tuning", "closure"):
         manifest = _make_package(tmp_path / range_name)
-        _tamper_json(
-            manifest.parent / "data" / "config.json",
+        _tamper_indexed_json(
+            manifest,
+            "data/config.json",
             lambda payload, range_name=range_name: payload["opened_ranges"].update(
                 {range_name: [50000, 50009]}
             ),
@@ -478,21 +533,20 @@ def test_any_non_empty_opened_calibration_heldout_tuning_or_closure_range_fails(
 
         report = _load_verifier().verify_package(manifest)
 
-        assert report.ok is False, range_name
-        assert _checks(report)["opened_ranges_empty"].passed is False
+        _assert_only_check_failed(report, "opened_ranges_empty")
 
 
 def test_learning_proven_addendum_without_fresh_range_evidence_fails(tmp_path: Path):
     manifest = _make_package(tmp_path)
-    _tamper_json(
-        manifest.parent / "data" / "config.json",
+    _tamper_indexed_json(
+        manifest,
+        "data/config.json",
         lambda payload: payload.update({"learning_proven_addendum": "present"}),
     )
 
     report = _load_verifier().verify_package(manifest)
 
-    assert report.ok is False
-    assert _checks(report)["learning_proven_addendum_absent"].passed is False
+    _assert_only_check_failed(report, "learning_proven_addendum_absent")
 
 
 def test_missing_contract_action_role_fails(tmp_path: Path):
@@ -503,8 +557,9 @@ def test_missing_contract_action_role_fails(tmp_path: Path):
         / "contracts"
         / "franka_research_arm_normalized_trajectory_contract.json"
     )
-    _tamper_json(
-        contract_path,
+    _tamper_indexed_json(
+        manifest,
+        contract_path.relative_to(manifest.parent).as_posix(),
         lambda payload: (
             payload["required_action_roles"].remove("learning_action"),
             payload["frame_action_role_coverage"].pop("learning_action"),
@@ -513,21 +568,20 @@ def test_missing_contract_action_role_fails(tmp_path: Path):
 
     report = _load_verifier().verify_package(manifest)
 
-    assert report.ok is False
-    assert _checks(report)["contract_action_roles"].passed is False
+    _assert_only_check_failed(report, "contract_action_roles")
 
 
 def test_summary_count_override_fails(tmp_path: Path):
     manifest = _make_package(tmp_path)
-    _tamper_json(
-        manifest.parent / "data" / "source_adapter_matrix_summary.json",
+    _tamper_indexed_json(
+        manifest,
+        "data/source_adapter_matrix_summary.json",
         lambda payload: payload.update({"adapter_count": 999, "accepted_count": 999}),
     )
 
     report = _load_verifier().verify_package(manifest)
 
-    assert report.ok is False
-    assert _checks(report)["summary_cache_consistency"].passed is False
+    _assert_only_check_failed(report, "summary_cache_consistency")
 
 
 def test_verifier_remains_stdlib_only_and_independent_from_producer_services():

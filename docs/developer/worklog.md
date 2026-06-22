@@ -12,6 +12,53 @@
 
 ---
 
+## 2026-06-22: MVP-3B RED verifier test review fix
+
+### 작업 내용
+
+Task 1 review finding을 반영해 semantic negative tests가 hash tamper failure와 섞이지
+않도록 테스트 fixture helper를 보강했다. Verifier 구현은 의도적으로 생성하지 않았다.
+
+커밋된 변경 파일:
+
+```text
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+```
+
+로컬/ignored 인계 산출물:
+
+```text
+.superpowers/sdd/task-1-report.md
+Handoff.md
+```
+
+### 판단 이유
+
+`_tamper_json()`은 indexed file을 수정한 뒤 `data/artifact_index.json`과
+`package_manifest.json`의 hash를 갱신하지 않아, future verifier 구현 후 forbidden
+claims, `spent_no_reuse`, opened ranges, addendum, contract roles, summary consistency
+negative tests가 의도한 check와 `hash_integrity`를 동시에 실패시킬 수 있었다.
+Hash/data coverage 전용 테스트만 dirty package를 유지하고, 나머지 semantic negative
+tests는 rehash 후 intended check 하나만 실패하도록 계약을 고정했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 13 failed in 0.18s
+# expected RED: FileNotFoundError for scripts/verify_mvp3b_source_adapter_package.py
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- Task 2에서 `scripts/verify_mvp3b_source_adapter_package.py`를 stdlib-only로 구현한다.
+- Semantic negative tests는 Task 2 verifier 추가 후 `hash_integrity.passed is True`와
+  intended check 단독 실패를 검증해야 한다.
+
 ## 2026-06-22: MVP-3B source-adapter verifier RED tests
 
 ### 작업 내용
@@ -19,14 +66,19 @@
 MVP-3B Source-Adapter Matrix의 Task 1 RED 테스트를 추가했다. Verifier 구현은 의도적으로
 생성하지 않았다.
 
-변경 파일:
+커밋된 변경 파일:
 
 ```text
 apps/api/tests/test_verify_mvp3b_source_adapter_package.py
-.superpowers/sdd/task-1-report.md
 docs/developer/worklog.md
-Handoff.md
 tasks/todo.md
+```
+
+로컬/ignored 인계 산출물:
+
+```text
+.superpowers/sdd/task-1-report.md
+Handoff.md
 ```
 
 ### 판단 이유
