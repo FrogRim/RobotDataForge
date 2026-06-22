@@ -63,6 +63,66 @@ CANONICAL_FORBIDDEN_CLAIMS = (
     "production_robot_support_claimed",
 )
 
+TEXT_CLAIM_SUFFIXES = (".md", ".txt")
+
+FORBIDDEN_TEXT_CLAIM_PHRASES = (
+    "real robot success",
+    "physical robot readiness",
+    "deployable policy readiness",
+    "visual policy performance",
+    "hmd openxr collection readiness",
+    "hmd readiness",
+    "marketplace readiness",
+    "production certification",
+    "universal robot support",
+    "policy uplift",
+    "learning proven value",
+    "live runtime support",
+    "live ur runtime support",
+    "live ros2 dds runtime support",
+    "franka hardware support",
+    "public sample import",
+    "public sample evidence",
+    "db migration",
+    "production auth",
+    "real robot readiness",
+    "production robot support",
+)
+
+TEXT_CLAIM_POSITIVE_MARKERS = (
+    "claim",
+    "claims",
+    "claimed",
+    "claiming",
+    "prove",
+    "proves",
+    "proved",
+    "support",
+    "supports",
+    "supported",
+    "ready",
+    "readiness",
+    "success",
+)
+
+TEXT_CLAIM_NEGATED_MARKERS = (
+    "does not claim",
+    "do not claim",
+    "doesn't claim",
+    "don't claim",
+    "not claim",
+    "no claim",
+    "not supported",
+    "unsupported",
+    "does not support",
+    "do not support",
+    "doesn't support",
+    "don't support",
+    "not ready",
+    "no ",
+    "without ",
+)
+
 EXPECTED_CONTRACT_SOURCE = {
     "input_device": "recorded_command_state_fixture",
     "runtime": "generated_or_file_backed_recorded_log_fixture",
@@ -403,6 +463,25 @@ class Auditor:
                     missing = [role for role in REQUIRED_ACTION_ROLES if role not in actions]
                     if missing:
                         failures.append(f"{adapter_id}: row {index} missing {missing}")
+                expected_counts = _frame_action_role_counts(rows)
+                contract_coverage = self._contract(adapter_id).get(
+                    "frame_action_role_coverage", {}
+                )
+                for role in REQUIRED_ACTION_ROLES:
+                    count = expected_counts[role]
+                    role_coverage = contract_coverage.get(role, {})
+                    if role not in contract_coverage:
+                        continue
+                    if role_coverage.get("present") is not (count > 0):
+                        failures.append(
+                            f"{adapter_id}: {role} present="
+                            f"{role_coverage.get('present')!r}, expected={count > 0!r}"
+                        )
+                    if role_coverage.get("frames") != count:
+                        failures.append(
+                            f"{adapter_id}: {role} frames="
+                            f"{role_coverage.get('frames')!r}, expected={count}"
+                        )
             if failures:
                 return Check("frame_action_role_coverage", False, "; ".join(failures[:8]))
             return Check("frame_action_role_coverage", True)
@@ -440,10 +519,15 @@ class Auditor:
                 elif path.suffix.lower() == ".jsonl":
                     payload = _read_jsonl(path)
                 else:
+                    if path.suffix.lower() in TEXT_CLAIM_SUFFIXES:
+                        rel = path.relative_to(self.package_root).as_posix()
+                        failures.extend(
+                            f"{rel}:{phrase}" for phrase in _forbidden_text_claims(path)
+                        )
                     continue
+                rel = path.relative_to(self.package_root).as_posix()
                 for dotted_path, value in _walk_claim_keys(payload):
                     if value is not False:
-                        rel = path.relative_to(self.package_root).as_posix()
                         failures.append(f"{rel}:{dotted_path}={value!r}")
             if failures:
                 return Check("forbidden_claims", False, "; ".join(failures[:8]))
@@ -579,9 +663,10 @@ class Auditor:
 
     def _package_surface_files(self) -> list[Path]:
         paths = [self.manifest_path]
+        paths.extend(path for path in self.package_root.iterdir() if path.is_file())
         if self.data_root.exists():
             paths.extend(path for path in self.data_root.rglob("*") if path.is_file())
-        return paths
+        return sorted(set(paths))
 
 
 def verify_package(manifest_path: Path) -> Report:
@@ -618,6 +703,16 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _frame_action_role_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
+    counts = {role: 0 for role in REQUIRED_ACTION_ROLES}
+    for row in rows:
+        actions = row.get("command_state", {}).get("actions_by_role", {})
+        for role in REQUIRED_ACTION_ROLES:
+            if role in actions:
+                counts[role] += 1
+    return counts
+
+
 def _walk_claim_keys(payload: Any, prefix: str = "") -> list[tuple[str, Any]]:
     found: list[tuple[str, Any]] = []
     if isinstance(payload, dict):
@@ -631,6 +726,32 @@ def _walk_claim_keys(payload: Any, prefix: str = "") -> list[tuple[str, Any]]:
             dotted = f"{prefix}[{index}]"
             found.extend(_walk_claim_keys(item, dotted))
     return found
+
+
+def _forbidden_text_claims(path: Path) -> list[str]:
+    text = _normalize_claim_text(path.read_text(encoding="utf-8"))
+    failures: list[str] = []
+    for phrase in FORBIDDEN_TEXT_CLAIM_PHRASES:
+        start = text.find(phrase)
+        while start != -1:
+            if _is_positive_claim_context(text, phrase, start):
+                failures.append(phrase)
+                break
+            start = text.find(phrase, start + len(phrase))
+    return failures
+
+
+def _normalize_claim_text(text: str) -> str:
+    normalized = text.lower().replace("-", " ").replace("_", " ")
+    return " ".join(normalized.split())
+
+
+def _is_positive_claim_context(text: str, phrase: str, start: int) -> bool:
+    prefix = text[max(0, start - 240) : start]
+    context = prefix + phrase
+    if any(marker in prefix for marker in TEXT_CLAIM_NEGATED_MARKERS):
+        return False
+    return any(marker in context for marker in TEXT_CLAIM_POSITIVE_MARKERS)
 
 
 def _format_report(report: Report) -> str:

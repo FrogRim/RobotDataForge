@@ -115,6 +115,7 @@ def _source_rows(adapter_id: str, *, accepted: bool) -> list[dict]:
 
 
 def _contract(adapter_id: str, *, roles: tuple[str, ...] = REQUIRED_ACTION_ROLES) -> dict:
+    frame_count = 2
     return {
         "schema_version": "mvp3b.normalized_trajectory_contract.v1",
         "adapter_id": adapter_id,
@@ -126,7 +127,9 @@ def _contract(adapter_id: str, *, roles: tuple[str, ...] = REQUIRED_ACTION_ROLES
             "task_name": "mvp3b_source_adapter_matrix",
         },
         "required_action_roles": list(roles),
-        "frame_action_role_coverage": {role: {"present": True, "frames": 1} for role in roles},
+        "frame_action_role_coverage": {
+            role: {"present": True, "frames": frame_count} for role in roles
+        },
         "learning_eligibility_gates": {
             "replay_action_contract": True,
             "trainer_export_smoke": "contract_smoke_only",
@@ -504,6 +507,20 @@ def test_truthy_producer_claim_keys_fail_recursively(tmp_path: Path):
         _assert_only_check_failed(report, "forbidden_claims")
 
 
+def test_readme_unsupported_positive_support_wording_fails_forbidden_claims_only(
+    tmp_path: Path,
+):
+    manifest = _make_package(tmp_path)
+    (manifest.parent / "README.md").write_text(
+        "MVP-3B claims real robot success and live UR runtime support.\n",
+        encoding="utf-8",
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "forbidden_claims")
+
+
 def test_missing_or_altered_exact_spent_no_reuse_fails(tmp_path: Path):
     for value in ([], [[40000, 40049]], [[40000, 40050], [42000, 42049]]):
         manifest = _make_package(tmp_path / str(len(value)))
@@ -569,6 +586,27 @@ def test_missing_contract_action_role_fails(tmp_path: Path):
     report = _load_verifier().verify_package(manifest)
 
     _assert_only_check_failed(report, "contract_action_roles")
+
+
+def test_inflated_contract_frame_action_role_coverage_fails_coverage_only(
+    tmp_path: Path,
+):
+    manifest = _make_package(tmp_path)
+    rel_path = (
+        "data/contracts/"
+        "franka_research_arm_normalized_trajectory_contract.json"
+    )
+    _tamper_indexed_json(
+        manifest,
+        rel_path,
+        lambda payload: payload["frame_action_role_coverage"]["learning_action"].update(
+            {"frames": 999}
+        ),
+    )
+
+    report = _load_verifier().verify_package(manifest)
+
+    _assert_only_check_failed(report, "frame_action_role_coverage")
 
 
 def test_summary_count_override_fails(tmp_path: Path):

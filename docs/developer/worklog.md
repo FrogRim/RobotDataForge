@@ -12,6 +12,133 @@
 
 ---
 
+## 2026-06-22: MVP-3B Task 2 review fix
+
+### 작업 내용
+
+Task 2 review의 HIGH finding 2개를 수정했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+.superpowers/sdd/task-2-report.md
+```
+
+수정 내용:
+
+```text
+- README.md 같은 package text surface의 unsupported positive support wording을
+  forbidden_claims check에서 실패시키도록 verifier를 확장했다.
+- JSON/JSONL package surface의 canonical forbidden claim key recursion은 유지했다.
+- frame_action_role_coverage.<role>.frames를 source log row의 actions_by_role
+  coverage count와 재계산 비교하도록 추가했다.
+- source_adapter_matrix_summary.json은 cached summary only로 유지했다.
+```
+
+### 판단 이유
+
+기존 verifier는 JSON/JSONL claim key만 검사해 buyer-facing README claim을 놓쳤고,
+contract의 frame coverage count는 int 여부만 확인해 inflated count를 놓쳤다.
+두 항목 모두 proof package가 self-contained audit에서 실제보다 강한 support/coverage를
+주장할 수 있는 false-pass라서 verifier에서 독립 재계산해야 한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# RED before production fix: 2 failed, 13 passed in 0.34s
+# failing tests:
+# - test_readme_unsupported_positive_support_wording_fails_forbidden_claims_only
+# - test_inflated_contract_frame_action_role_coverage_fails_coverage_only
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# GREEN after fix: 15 passed in 0.34s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py --help
+# passed, exit 0
+
+uvx ruff check scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B runner/package builder는 구현하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- Task 3에서 실제 MVP-3B generated package에 verifier를 적용해야 한다.
+
+## 2026-06-22: MVP-3B source-adapter verifier implemented
+
+### 작업 내용
+
+Task 2에서 stdlib-only source-adapter proof package verifier를 구현했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+.superpowers/sdd/task-2-report.md
+```
+
+수정 내용:
+
+```text
+- verify_package(manifest_path: Path) -> Report 공개 API를 추가했다.
+- Report는 ok, exit_code, checks, failures(), recomputed를 제공한다.
+- verifier는 Python stdlib만 import한다.
+- producer service, scripts/verify_mvp2_package.py, scripts/verify_proof_package.py를
+  import하지 않는다.
+- package_manifest.json과 data/artifact_index.json hash를 독립 검증한다.
+- data/ 파일 coverage, adapter set exactness, source logs, metadata/profile,
+  source/projection hash binding, accepted/rejected counts, contract source fields,
+  required action roles, frame action role coverage, non-claims false,
+  forbidden claim keys, spent_no_reuse exactness, opened range discipline,
+  learning-proven addendum absence, cached summary consistency를 재계산한다.
+```
+
+### 판단 이유
+
+MVP-3B Task 2는 runner/package builder가 아니라 self-contained package verifier를
+구축하는 단계다. 따라서 producer-side service를 신뢰하지 않고 package 내부 파일만으로
+claim boundary와 evidence binding을 재계산해야 한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 13 passed in 0.29s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py --help
+# passed, exit 0
+
+uvx ruff check scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B runner/package builder는 아직 구현하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- 다음 작업은 Task 3에서 source-adapter proof package 생성 경로를 구현하는 것이다.
+
 ## 2026-06-22: MVP-3B RED verifier test review fix
 
 ### 작업 내용
