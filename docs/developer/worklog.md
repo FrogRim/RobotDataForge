@@ -12,6 +12,46 @@
 
 ---
 
+## 2026-06-22: MVP-3B source-adapter verifier RED tests
+
+### 작업 내용
+
+MVP-3B Source-Adapter Matrix의 Task 1 RED 테스트를 추가했다. Verifier 구현은 의도적으로
+생성하지 않았다.
+
+변경 파일:
+
+```text
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+.superpowers/sdd/task-1-report.md
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+```
+
+### 판단 이유
+
+Task 1은 TDD RED 단계이므로 `scripts/verify_mvp3b_source_adapter_package.py`가
+없어서 실패해야 한다. 새 테스트는 future verifier가 source logs, projections,
+contracts, adapter results, manifest hash lock, non-claims, no-reuse seed discipline,
+opened range 없음, summary cache consistency를 독립 재계산하도록 계약을 고정한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 13 failed in 0.17s
+# expected RED: FileNotFoundError for scripts/verify_mvp3b_source_adapter_package.py
+```
+
+### 남은 gap 또는 다음 작업
+
+- Task 2에서 `scripts/verify_mvp3b_source_adapter_package.py`를 stdlib-only로 구현한다.
+- Task 2 verifier는 `app.services.robot_embodiment_adapters` 또는
+  `app.services.normalized_trajectory_contract`를 import하지 않아야 한다.
+- Task 2 이후 같은 테스트 파일이 green이 되도록 각 tamper check를 개별 hard-fail로
+  구현해야 한다.
+
 ## 2026-06-20: MVP-3B source-adapter infrastructure spec and ralplan approved
 
 Context:

@@ -15,7 +15,7 @@ ralplan_consensus=.omx/plans/ralplan-consensus-mvp3b-source-adapter-infrastructu
 architect_iteration_1=REQUEST_CHANGES
 architect_iteration_2=APPROVE
 critic_iteration_1=APPROVE
-implementation_status=not_started
+implementation_status=task_1_red_tests_added
 ```
 
 Claim boundary:
@@ -29,7 +29,8 @@ Claim boundary:
 
 Next valid step:
 
-- [ ] Start implementation from Task 1 in the plan using TDD.
+- [x] Start implementation from Task 1 in the plan using TDD.
+- [x] Add RED tests for `scripts/verify_mvp3b_source_adapter_package.py`.
 - [ ] Build `scripts/verify_mvp3b_source_adapter_package.py` before trusting any package.
 - [ ] Build `scripts/run_mvp3b_source_adapter_infrastructure.py` only after verifier RED
   tests exist.
