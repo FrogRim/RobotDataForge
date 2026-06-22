@@ -227,6 +227,25 @@ def test_runner_writes_manifest_and_artifact_index_with_file_byte_hashes(
         assert entry["byte_size"] == (package_dir / rel_path).stat().st_size
 
 
+def test_runner_rebuild_is_byte_stable_for_committed_package_manifest(
+    tmp_path: Path,
+) -> None:
+    runner = _load_runner()
+    output_dir = tmp_path / "mvp3b_package"
+
+    first = runner.build_mvp3b_source_adapter_infrastructure(
+        output_dir=output_dir,
+        clean=True,
+    )
+    first_manifest = Path(first["package_manifest"]).read_bytes()
+    second = runner.build_mvp3b_source_adapter_infrastructure(
+        output_dir=output_dir,
+        clean=True,
+    )
+
+    assert Path(second["package_manifest"]).read_bytes() == first_manifest
+
+
 def test_runner_writes_non_claims_no_reuse_and_contract_smoke_only(
     tmp_path: Path,
 ) -> None:

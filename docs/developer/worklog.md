@@ -18678,3 +18678,58 @@ git diff -- \
 - 전체 회귀와 frozen MVP-2 diff-check는 통과했다.
 - 다음 slice는 actual Isaac evidence 생성 전 review/commit 전략 또는 actual evidence
   pre-registration이다.
+## 2026-06-22 KST - MVP-3B package manifest deterministic rebuild fix
+
+### 작업 내용
+
+MVP-3B source-adapter proof package runner의 `package_manifest.json` 재생성이 매번
+`created_at`만 바꿔 worktree를 dirty로 만드는 문제를 닫았다.
+
+변경 파일:
+
+```text
+scripts/run_mvp3b_source_adapter_infrastructure.py
+apps/api/tests/test_mvp3b_source_adapter_infrastructure.py
+docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+docs/developer/worklog.md
+```
+
+### 판단 이유
+
+MVP-3B proof package는 반복 검증 가능한 외부 감사 자산이어야 한다. `--clean` 재실행이
+timestamp drift만으로 package manifest를 바꾸면 이후 review/CI에서 artifact 변경 여부를
+불필요하게 혼동시킨다. 따라서 package slice 기준 고정 timestamp를 사용하고,
+`package_manifest.json` byte stability regression을 추가했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py::test_runner_rebuild_is_byte_stable_for_committed_package_manifest -q
+# RED 확인 후 GREEN: 1 passed
+
+uv run mypy scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# Success: no issues found in 4 source files
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 9 passed
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 24 passed
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uvx ruff check apps/api/app/services/robot_embodiment_adapters.py scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile apps/api/app/services/robot_embodiment_adapters.py scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G002 task-scoped re-review를 다시 받아 Tasks 3-4 완료 여부를 확정한다.
+- 다음 story는 Task 5 tamper matrix package verification이다.

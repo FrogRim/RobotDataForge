@@ -288,7 +288,7 @@
     "source_adapter_matrix": true,
     "status": "source_adapter_infrastructure_closed"
   },
-  "created_at": "2026-06-22T05:32:19.607384+00:00",
+  "created_at": "2026-06-22T00:00:00+00:00",
   "non_claims": {
     "db_migration": false,
     "db_migration_claimed": false,

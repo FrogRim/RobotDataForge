@@ -9,7 +9,6 @@ or claim hardware/runtime support or learning-proven value.
 from __future__ import annotations
 
 import argparse
-from datetime import UTC, datetime
 import hashlib
 import json
 from pathlib import Path
@@ -37,6 +36,7 @@ DEFAULT_OUTPUT_DIR = ROOT / "docs" / "proof" / "mvp3b_source_adapter_matrix_proo
 PACKAGE_NAME = "mvp3b_source_adapter_matrix_proof_package"
 PROOF_ID = "rdf_mvp3b_source_adapter_matrix_infrastructure_v0"
 CONTRACT_NAME = "mvp3b_source_adapter_matrix_normalized_contract"
+PACKAGE_CREATED_AT = "2026-06-22T00:00:00+00:00"
 SOURCE_METADATA_SCHEMA_VERSION = "rdf_mvp3b_command_state_source_metadata_v0.1.0"
 REQUIRED_ADAPTERS = (
     "franka_research_arm",
@@ -630,7 +630,7 @@ def _write_indexes(output_dir: Path) -> None:
         {
             "schema_version": "rdf_mvp3b_source_adapter_package_manifest_v0.1.0",
             "package_name": PACKAGE_NAME,
-            "created_at": datetime.now(UTC).isoformat(),
+            "created_at": PACKAGE_CREATED_AT,
             "claims": {
                 "status": "source_adapter_infrastructure_closed",
                 "source_adapter_matrix": True,
