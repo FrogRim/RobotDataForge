@@ -132,6 +132,11 @@ TEXT_CLAIM_CLAUSE_BOUNDARY_MARKERS = (
     ", the package claim",
     ", and claims ",
     ", claims ",
+    " and it claim",
+    " and this package claim",
+    " and the package claim",
+    " and package claim",
+    " and claims ",
 )
 
 EXPECTED_CONTRACT_SOURCE = {
