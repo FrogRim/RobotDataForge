@@ -38,7 +38,7 @@ Current completed step:
 - [x] Generate `docs/proof/mvp3b_source_adapter_matrix_proof_package/`.
 - [x] Verify generated package with
   `python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json`.
-- [ ] Commit Tasks 3-4 with Lore protocol.
+- [x] Commit Tasks 3-4 with Lore protocol.
 
 ## Current MVP-3A Actual Isaac Proof Package - 2026-06-20 KST
 

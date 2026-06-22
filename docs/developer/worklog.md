@@ -90,7 +90,7 @@ python3 -m py_compile scripts/run_mvp3b_source_adapter_infrastructure.py apps/ap
 
 ### 남은 gap 또는 다음 작업
 
-- 아직 최종 `git diff --check`와 commit 전 전체 diff review가 남아 있다.
+- 최종 `git diff --check`와 commit 전 전체 diff review를 통과했다.
 - Frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
 - 이 작업은 live UR/ROS2-DDS/Franka support, real robot readiness, learning-proven
   uplift를 claim하지 않는다.

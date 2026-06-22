@@ -1,0 +1,93 @@
+# MVP-3B Tasks 3-4 Report
+
+## Status
+
+DONE
+
+## Scope
+
+Implemented Task 3 RED tests and Task 4 runner/package builder for the MVP-3B source-adapter matrix proof package.
+
+## Commits
+
+- Implementation commit: 90193f1
+- Report commit: created after this report file is written; final response records the id.
+
+## Changed Files
+
+```text
+apps/api/tests/test_mvp3b_source_adapter_infrastructure.py
+scripts/run_mvp3b_source_adapter_infrastructure.py
+docs/proof/mvp3b_source_adapter_matrix_proof_package/
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+.superpowers/sdd/task-3-4-report.md
+```
+
+## RED Evidence
+
+```bash
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# RED before runner implementation: 8 failed in 0.09s
+# Expected failure: FileNotFoundError for scripts/run_mvp3b_source_adapter_infrastructure.py
+```
+
+## GREEN Evidence
+
+```bash
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 8 passed in 0.13s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 20 passed in 0.42s
+
+uv run python scripts/run_mvp3b_source_adapter_infrastructure.py --clean
+# source_adapter_infrastructure_closed
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# PASS: hash_integrity
+# PASS: data_coverage
+# PASS: adapter_set_exactness
+# PASS: source_log_completeness
+# PASS: metadata_profile_consistency
+# PASS: source_projection_hash_binding
+# PASS: accepted_rejected_counts
+# PASS: contract_source_fields
+# PASS: contract_action_roles
+# PASS: frame_action_role_coverage
+# PASS: non_claims_false
+# PASS: forbidden_claims
+# PASS: spent_no_reuse_exact
+# PASS: opened_ranges_empty
+# PASS: learning_proven_addendum_absent
+# PASS: summary_cache_consistency
+
+uvx ruff check scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py
+# passed
+
+git diff --check
+# passed before report commit preparation
+```
+
+## Self-Review
+
+- Runner uses `RobotEmbodimentAdapterRegistry.create(...)` for all three required adapters and calls `project_source_evidence(...)` plus `emit_contract(...)`.
+- Package contains source logs, projections, contracts, adapter_results, config, non_claims_attestation, adapter_registry_snapshot, artifact_index, source_adapter_matrix_summary, README, and package_manifest.
+- `package_manifest.json` includes all `data/` files with file-byte sha256 and byte_size entries.
+- `data/artifact_index.json` indexes verdict-critical `data/` files excluding itself, matching the independent verifier contract.
+- Contract smoke stays explicitly non-learning-proven: `learning_results_measured=false`, `policy_uplift=false`, `learning_proven_value=false`.
+- `spent_no_reuse` remains exactly `[[40000, 40049], [42000, 42049]]` and no calibration/heldout/tuning/closure range is opened.
+- Runner does not import or call `scripts/verify_mvp3b_source_adapter_package.py`.
+- Runner does not open Isaac or any live robot runtime.
+- `--clean` refuses unsafe repo/docs/proof paths and allows only the managed default package path or safe tmp outputs.
+- Frozen MVP-2 assets and MVP-3A package artifacts were not modified.
+
+## Concerns
+
+- The generated `.hdf5` files in `data/generated_contract_smoke/` are contract-smoke placeholders, not trainer exports. This is intentional for MVP-3B and is called out in config, summary, adapter results, trainer smoke JSON, and README.
+- No external source directories were supplied in this task; the package uses repo-local generated/file-backed fixture source logs as required.
