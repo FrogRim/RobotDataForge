@@ -17942,6 +17942,75 @@ git diff -- \
 - 아직 `MVP-3A Learning-Proven Addendum` claim도 없다.
 - 다음 slice는 actual Isaac evidence 생성 또는 runner/verifier code review/commit 전략이다.
 
+## 2026-06-22 KST - MVP-3B source-adapter verifier 구현
+
+### 작업 내용
+
+MVP-3B source-adapter matrix proof package를 producer 코드와 독립적으로 감사하는
+stdlib-only verifier를 구현했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+.superpowers/sdd/task-2-report.md
+```
+
+수정 내용:
+
+```text
+- verify_package(manifest_path: Path) -> Report 공개 API를 추가했다.
+- Report.ok, Report.exit_code, Report.checks, Report.failures(), Report.recomputed
+  계약을 구현했다.
+- package_manifest.json과 data/artifact_index.json의 file_bytes sha256을 검증한다.
+- data/ 하위 파일 coverage를 검증하되 data/artifact_index.json은 자기 자신을 내부
+  index에 포함하지 않는 패키지 형식을 허용한다.
+- adapter set, source log completeness, metadata/profile consistency,
+  source/projection hash binding, accepted/rejected counts를 self-contained package
+  파일에서 재계산한다.
+- normalized trajectory contract의 source fields, required_action_roles, source frame의
+  actions_by_role coverage를 검증한다.
+- canonical forbidden claim keys를 package JSON/JSONL surface에서 재귀적으로 검사한다.
+- spent_no_reuse == [[40000, 40049], [42000, 42049]]와 calibration/heldout/tuning/closure
+  미개방, learning_proven_addendum 부재를 hard-check로 강제한다.
+- source_adapter_matrix_summary.json은 cache consistency만 검증하며 verdict source of
+  truth로 사용하지 않는다.
+```
+
+### 판단 이유
+
+Task 2의 핵심은 MVP-3B runner/package builder가 아니라 독립 auditor다. 따라서 verifier는
+`app.services.*`나 기존 MVP-2/MVP-3A verifier를 import하지 않고, package에 포함된 파일만
+읽어서 closure를 재계산하도록 구현했다. RED tests가 의도한 semantic failure가 hash failure에
+가려지지 않도록 check boundary를 분리했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 13 passed in 0.29s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py --help
+# passed, exit 0
+
+uvx ruff check scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B runner/package builder는 아직 구현하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- 다음 작업은 Task 3에서 source-adapter proof package 생성 경로를 구현하는 것이다.
+
 ## 2026-06-20 KST - MVP-3A 코드리뷰 hardening 반영
 
 ### 작업 내용
