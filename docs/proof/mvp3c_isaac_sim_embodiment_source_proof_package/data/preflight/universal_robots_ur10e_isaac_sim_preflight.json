@@ -1,0 +1,11 @@
+{
+  "action_command_writable": true,
+  "articulation_detected": true,
+  "asset_loaded": true,
+  "embodiment_id": "universal_robots_ur10e_isaac_sim",
+  "joint_state_readable": true,
+  "runtime_capture_id": "universal_robots_ur10e_isaac_sim_runtime_capture_20260622T010000Z",
+  "runtime_metadata_recorded": true,
+  "schema_version": "rdf_mvp3c_preflight_v0.1.0",
+  "source_log_rows_emitted": 2
+}

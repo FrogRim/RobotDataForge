@@ -1,0 +1,23 @@
+{
+  "accepted_count": 2,
+  "cached_summary_only": true,
+  "embodiment_count": 2,
+  "embodiments": {
+    "franka_panda_isaac_sim": {
+      "accepted_count": 1,
+      "rejected_count": 1,
+      "runtime_capture_id": "franka_panda_isaac_sim_runtime_capture_20260622T010000Z"
+    },
+    "universal_robots_ur10e_isaac_sim": {
+      "accepted_count": 1,
+      "rejected_count": 1,
+      "runtime_capture_id": "universal_robots_ur10e_isaac_sim_runtime_capture_20260622T010000Z"
+    }
+  },
+  "learning_proven_value": false,
+  "learning_results_measured": false,
+  "policy_uplift": false,
+  "rejected_count": 2,
+  "required_embodiment_count": 2,
+  "status": "isaac_sim_embodiment_source_closed"
+}

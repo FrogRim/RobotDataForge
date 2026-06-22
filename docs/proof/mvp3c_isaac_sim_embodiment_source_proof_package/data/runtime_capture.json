@@ -1,0 +1,400 @@
+{
+  "captured_at": "2026-06-22T10:46:05+00:00",
+  "embodiments": {
+    "franka_panda_isaac_sim": {
+      "preflight": {
+        "action_command_writable": true,
+        "articulation_detected": true,
+        "asset_loaded": true,
+        "embodiment_id": "franka_panda_isaac_sim",
+        "joint_state_readable": true,
+        "runtime_capture_id": "franka_panda_isaac_sim_runtime_capture_20260622T010000Z",
+        "runtime_metadata_recorded": true,
+        "schema_version": "rdf_mvp3c_preflight_v0.1.0",
+        "source_log_rows_emitted": 2
+      },
+      "runtime_metadata": {
+        "asset_path": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Robots/FrankaRobotics/FrankaPanda/franka.usd",
+        "capture_origin": "isaac_sim_process",
+        "embodiment_id": "franka_panda_isaac_sim",
+        "live_runtime_support": false,
+        "physical_robot_readiness": false,
+        "platform": "linux",
+        "prim_path": "/World/Franka",
+        "real_robot_success": false,
+        "runtime": "isaac_sim",
+        "runtime_capture_id": "franka_panda_isaac_sim_runtime_capture_20260622T010000Z",
+        "schema_version": "rdf_mvp3c_runtime_metadata_v0.1.0",
+        "simulator": "isaac_sim",
+        "source_kind": "isaac_sim_runtime_backed_command_state_log"
+      },
+      "source_rows": {
+        "accepted": [
+          {
+            "accepted": true,
+            "command_state": {
+              "actions_by_role": {
+                "executed_control": [
+                  0.04797898030281067,
+                  -0.5635344982147217,
+                  -0.024007877334952354,
+                  -2.807223081588745,
+                  -0.3294866681098938,
+                  3.2960333824157715,
+                  1.3445637226104736,
+                  0.018932458013296127,
+                  0.03999999910593033
+                ],
+                "learning_action": [
+                  0.04797898030281067,
+                  -0.5635344982147217,
+                  -0.024007877334952354,
+                  -2.807223081588745,
+                  -0.3294866681098938,
+                  3.2960333824157715,
+                  1.3445637226104736,
+                  0.018932458013296127,
+                  0.03999999910593033
+                ],
+                "retargeted_robot_action": [
+                  0.04797898030281067,
+                  -0.5635344982147217,
+                  -0.024007877334952354,
+                  -2.807223081588745,
+                  -0.3294866681098938,
+                  3.2960333824157715,
+                  1.3445637226104736,
+                  0.018932458013296127,
+                  0.03999999910593033
+                ],
+                "teleop_intent": [
+                  0.0010000000000000009,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "eef_pose": [
+                0.43703579902648926,
+                0.08518639951944351,
+                0.4690075218677521,
+                0.09153527766466141,
+                -0.8627219796180725,
+                0.0801912322640419,
+                -0.4908173382282257
+              ],
+              "joint_positions": [
+                0.04697898030281067,
+                -0.5635344982147217,
+                -0.024007877334952354,
+                -2.807223081588745,
+                -0.3294866681098938,
+                3.2960333824157715,
+                1.3445637226104736,
+                0.018932458013296127,
+                0.03999999910593033
+              ],
+              "joint_velocities": [
+                2.4396755695343018,
+                0.05356612056493759,
+                0.832806408405304,
+                0.17734351754188538,
+                -2.6066770553588867,
+                2.626830816268921,
+                -1.5881576538085938,
+                -0.17748582363128662,
+                1.442495584487915
+              ]
+            },
+            "embodiment_id": "franka_panda_isaac_sim",
+            "row_id": "franka_panda_isaac_sim_accepted_0",
+            "runtime": "isaac_sim",
+            "runtime_capture_id": "franka_panda_isaac_sim_runtime_capture_20260622T010000Z",
+            "simulator": "isaac_sim",
+            "source_kind": "isaac_sim_runtime_backed_command_state_log",
+            "timestamp_ns": 1000000
+          }
+        ],
+        "rejected": [
+          {
+            "accepted": false,
+            "command_state": {
+              "actions_by_role": {
+                "executed_control": [
+                  0.04797898030281067,
+                  -0.5635344982147217,
+                  -0.024007877334952354,
+                  -2.807223081588745,
+                  -0.3294866681098938,
+                  3.2960333824157715,
+                  1.3445637226104736,
+                  0.018932458013296127,
+                  0.03999999910593033
+                ],
+                "learning_action": [
+                  0.04797898030281067,
+                  -0.5635344982147217,
+                  -0.024007877334952354,
+                  -2.807223081588745,
+                  -0.3294866681098938,
+                  3.2960333824157715,
+                  1.3445637226104736,
+                  0.018932458013296127,
+                  0.03999999910593033
+                ],
+                "retargeted_robot_action": [
+                  0.04797898030281067,
+                  -0.5635344982147217,
+                  -0.024007877334952354,
+                  -2.807223081588745,
+                  -0.3294866681098938,
+                  3.2960333824157715,
+                  1.3445637226104736,
+                  0.018932458013296127,
+                  0.03999999910593033
+                ],
+                "teleop_intent": [
+                  -0.039615372359752654,
+                  -0.003126084804534912,
+                  0.003165971487760544,
+                  -0.001909017562866211,
+                  0.17935889959335327,
+                  -0.10835146903991699,
+                  -0.128342866897583,
+                  0.0016935542225837708,
+                  0.0
+                ]
+              },
+              "eef_pose": [
+                0.4216320514678955,
+                0.12660656869411469,
+                0.4815938472747803,
+                0.1278030425310135,
+                -0.8433933854103088,
+                0.024308592081069946,
+                -0.5213090181350708
+              ],
+              "joint_positions": [
+                0.08759435266256332,
+                -0.5604084134101868,
+                -0.027173848822712898,
+                -2.805314064025879,
+                -0.5088455677032471,
+                3.4043848514556885,
+                1.4729065895080566,
+                0.017238903790712357,
+                0.03999999910593033
+              ],
+              "joint_velocities": [
+                -0.7014505863189697,
+                0.04973696172237396,
+                2.7563111782073975,
+                0.1059277355670929,
+                -2.6532645225524902,
+                2.6519620418548584,
+                0.9774398803710938,
+                -0.19061002135276794,
+                1.357698917388916
+              ]
+            },
+            "embodiment_id": "franka_panda_isaac_sim",
+            "row_id": "franka_panda_isaac_sim_rejected_0",
+            "runtime": "isaac_sim",
+            "runtime_capture_id": "franka_panda_isaac_sim_runtime_capture_20260622T010000Z",
+            "simulator": "isaac_sim",
+            "source_kind": "isaac_sim_runtime_backed_command_state_log",
+            "timestamp_ns": 2000000
+          }
+        ]
+      }
+    },
+    "universal_robots_ur10e_isaac_sim": {
+      "preflight": {
+        "action_command_writable": true,
+        "articulation_detected": true,
+        "asset_loaded": true,
+        "embodiment_id": "universal_robots_ur10e_isaac_sim",
+        "joint_state_readable": true,
+        "runtime_capture_id": "universal_robots_ur10e_isaac_sim_runtime_capture_20260622T010000Z",
+        "runtime_metadata_recorded": true,
+        "schema_version": "rdf_mvp3c_preflight_v0.1.0",
+        "source_log_rows_emitted": 2
+      },
+      "runtime_metadata": {
+        "asset_path": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Robots/UniversalRobots/ur10e/ur10e.usd",
+        "capture_origin": "isaac_sim_process",
+        "embodiment_id": "universal_robots_ur10e_isaac_sim",
+        "live_runtime_support": false,
+        "physical_robot_readiness": false,
+        "platform": "linux",
+        "prim_path": "/World/UR10e",
+        "real_robot_success": false,
+        "runtime": "isaac_sim",
+        "runtime_capture_id": "universal_robots_ur10e_isaac_sim_runtime_capture_20260622T010000Z",
+        "schema_version": "rdf_mvp3c_runtime_metadata_v0.1.0",
+        "simulator": "isaac_sim",
+        "source_kind": "isaac_sim_runtime_backed_command_state_log"
+      },
+      "source_rows": {
+        "accepted": [
+          {
+            "accepted": true,
+            "command_state": {
+              "actions_by_role": {
+                "executed_control": [
+                  0.13728149032592774,
+                  0.000596851110458374,
+                  0.0001991921744775027,
+                  0.00017792233848012984,
+                  -0.00015194117440842092,
+                  -0.00014020799426361918
+                ],
+                "learning_action": [
+                  0.13728149032592774,
+                  0.000596851110458374,
+                  0.0001991921744775027,
+                  0.00017792233848012984,
+                  -0.00015194117440842092,
+                  -0.00014020799426361918
+                ],
+                "retargeted_robot_action": [
+                  0.13728149032592774,
+                  0.000596851110458374,
+                  0.0001991921744775027,
+                  0.00017792233848012984,
+                  -0.00015194117440842092,
+                  -0.00014020799426361918
+                ],
+                "teleop_intent": [
+                  0.0010000000000000009,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "eef_pose": [
+                1.184249997138977,
+                0.2906999886035919,
+                0.003624912351369858,
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "joint_positions": [
+                0.13628149032592773,
+                0.000596851110458374,
+                0.0001991921744775027,
+                0.00017792233848012984,
+                -0.00015194117440842092,
+                -0.00014020799426361918
+              ],
+              "joint_velocities": [
+                -2.0944089889526367,
+                -0.07516846060752869,
+                -0.016285182908177376,
+                -0.06547506153583527,
+                0.11092700064182281,
+                0.12070082128047943
+              ]
+            },
+            "embodiment_id": "universal_robots_ur10e_isaac_sim",
+            "row_id": "universal_robots_ur10e_isaac_sim_accepted_0",
+            "runtime": "isaac_sim",
+            "runtime_capture_id": "universal_robots_ur10e_isaac_sim_runtime_capture_20260622T010000Z",
+            "simulator": "isaac_sim",
+            "source_kind": "isaac_sim_runtime_backed_command_state_log",
+            "timestamp_ns": 1000000
+          }
+        ],
+        "rejected": [
+          {
+            "accepted": false,
+            "command_state": {
+              "actions_by_role": {
+                "executed_control": [
+                  0.13728149032592774,
+                  0.000596851110458374,
+                  0.0001991921744775027,
+                  0.00017792233848012984,
+                  -0.00015194117440842092,
+                  -0.00014020799426361918
+                ],
+                "learning_action": [
+                  0.13728149032592774,
+                  0.000596851110458374,
+                  0.0001991921744775027,
+                  0.00017792233848012984,
+                  -0.00015194117440842092,
+                  -0.00014020799426361918
+                ],
+                "retargeted_robot_action": [
+                  0.13728149032592774,
+                  0.000596851110458374,
+                  0.0001991921744775027,
+                  0.00017792233848012984,
+                  -0.00015194117440842092,
+                  -0.00014020799426361918
+                ],
+                "teleop_intent": [
+                  0.036328567028045655,
+                  -0.00043015298433601856,
+                  -0.00013920519268140197,
+                  -7.19638483133167e-05,
+                  6.13569573033601e-05,
+                  5.7014854974113405e-05
+                ]
+              },
+              "eef_pose": [
+                1.184249997138977,
+                0.2906999886035919,
+                -0.01545009110122919,
+                1.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "joint_positions": [
+                0.10095292329788208,
+                0.0010270040947943926,
+                0.00033839736715890467,
+                0.00024988618679344654,
+                -0.00021329813171178102,
+                -0.0001972228492377326
+              ],
+              "joint_velocities": [
+                -2.0944066047668457,
+                -0.026873404160141945,
+                -0.0023807846009731293,
+                -0.09532586485147476,
+                0.10944623500108719,
+                0.1076294332742691
+              ]
+            },
+            "embodiment_id": "universal_robots_ur10e_isaac_sim",
+            "row_id": "universal_robots_ur10e_isaac_sim_rejected_0",
+            "runtime": "isaac_sim",
+            "runtime_capture_id": "universal_robots_ur10e_isaac_sim_runtime_capture_20260622T010000Z",
+            "simulator": "isaac_sim",
+            "source_kind": "isaac_sim_runtime_backed_command_state_log",
+            "timestamp_ns": 2000000
+          }
+        ]
+      }
+    }
+  },
+  "evidence_kind": "isaac_sim_runtime_backed_source_log",
+  "platform": "linux",
+  "runtime": "isaac_sim",
+  "schema_version": "rdf_mvp3c_isaac_sim_runtime_capture_v0.1.0",
+  "simulator": "isaac_sim",
+  "status": "runtime_evidence_captured",
+  "task_name": "mvp3c_isaac_sim_embodiment_source"
+}

@@ -1,0 +1,30 @@
+{
+  "accepted_count": 1,
+  "adapter_id": "franka_panda_isaac_sim",
+  "embodiment_id": "franka_panda_isaac_sim",
+  "projected_artifacts": {
+    "curation_manifest.json": "f065cc72b3b9a7885825fe7bc09ba51d57aea263e4770543a84159c66cd409c8",
+    "evaluations/accepted.json": "711c22f081aed2a499f165314235252331fcc037ce873187f6938bb714f8fed2",
+    "evaluations/rejected.json": "4c41c4c57f296c0524a5779892c3d85ac33a40ab32f8acf608cf49e210590657",
+    "trajectories/accepted.json": "b8f08c1dc63a046d2cbe269dc2c16b9b82307619b7d2f3143c272297de50c958",
+    "trajectories/rejected.json": "49bf3c61c2be0e4e21f9c6b59a2fb93615d19e5422535890b5d512b63945678a"
+  },
+  "projection_method": "RobotEmbodimentAdapter.project_mvp3c_source_evidence",
+  "rejected_count": 1,
+  "runtime_capture_id": "franka_panda_isaac_sim_runtime_capture_20260622T010000Z",
+  "runtime_metadata": {
+    "data_path": "data/runtime_metadata/franka_panda_isaac_sim_runtime_metadata.json",
+    "sha256": "87794a77c09f36f6c3143eb70c3a618ee5425154fbd90d4e10f1940c17c5f318"
+  },
+  "schema_version": "rdf_mvp3c_source_ingress_projection_v0.1.0",
+  "source_logs": {
+    "accepted_command_state.jsonl": {
+      "rows": 1,
+      "sha256": "e592b4cd1ad622efb6448400001289aa278662a9f1b3c593d8794819486cdd99"
+    },
+    "rejected_command_state.jsonl": {
+      "rows": 1,
+      "sha256": "25d79af3b3afc7a221abc8175577a216cb2155f8faf20eebfb11d8eced31e659"
+    }
+  }
+}

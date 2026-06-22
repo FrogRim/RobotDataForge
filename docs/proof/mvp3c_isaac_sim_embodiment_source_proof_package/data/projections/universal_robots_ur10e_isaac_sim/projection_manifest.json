@@ -1,0 +1,30 @@
+{
+  "accepted_count": 1,
+  "adapter_id": "universal_robots_ur10e_isaac_sim",
+  "embodiment_id": "universal_robots_ur10e_isaac_sim",
+  "projected_artifacts": {
+    "curation_manifest.json": "5b9a75200668f4a673e8e5c7ecb283b3797a5c22d0c80ebed02b7d4c05f8234b",
+    "evaluations/accepted.json": "4800f2b213e021430c6ef8dd5f8f49eeb97d91aef757984f7a2d126e6c7628d3",
+    "evaluations/rejected.json": "762f76d31419a0c77fd2bf235211d2699332fc89a4a71805aeed064886162155",
+    "trajectories/accepted.json": "1da0a0970a726977586e765452a076281695f7329dcbe0d72a189d0bcbd673ae",
+    "trajectories/rejected.json": "d51706973807e0b281dfbf7f1fcf854d0a7588f69fc75f4367e586d004d7bd32"
+  },
+  "projection_method": "RobotEmbodimentAdapter.project_mvp3c_source_evidence",
+  "rejected_count": 1,
+  "runtime_capture_id": "universal_robots_ur10e_isaac_sim_runtime_capture_20260622T010000Z",
+  "runtime_metadata": {
+    "data_path": "data/runtime_metadata/universal_robots_ur10e_isaac_sim_runtime_metadata.json",
+    "sha256": "45511e4450793d53a3f0d4e36caec677618eb514844fcacc70576e12d01c1e8b"
+  },
+  "schema_version": "rdf_mvp3c_source_ingress_projection_v0.1.0",
+  "source_logs": {
+    "accepted_command_state.jsonl": {
+      "rows": 1,
+      "sha256": "564f9be3815057540e1f69f393ea6a15adaf41c047f9f6a4b1d32f26ee4a71d1"
+    },
+    "rejected_command_state.jsonl": {
+      "rows": 1,
+      "sha256": "67fa80e6b4783bda2fcb2879adee5f41ac448bf88091bd3d3d2085097c4b33c7"
+    }
+  }
+}

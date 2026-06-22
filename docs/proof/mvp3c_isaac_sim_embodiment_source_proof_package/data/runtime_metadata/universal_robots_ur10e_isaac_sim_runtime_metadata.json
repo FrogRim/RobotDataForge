@@ -1,0 +1,15 @@
+{
+  "asset_path": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Robots/UniversalRobots/ur10e/ur10e.usd",
+  "capture_origin": "isaac_sim_process",
+  "embodiment_id": "universal_robots_ur10e_isaac_sim",
+  "live_runtime_support": false,
+  "physical_robot_readiness": false,
+  "platform": "linux",
+  "prim_path": "/World/UR10e",
+  "real_robot_success": false,
+  "runtime": "isaac_sim",
+  "runtime_capture_id": "universal_robots_ur10e_isaac_sim_runtime_capture_20260622T010000Z",
+  "schema_version": "rdf_mvp3c_runtime_metadata_v0.1.0",
+  "simulator": "isaac_sim",
+  "source_kind": "isaac_sim_runtime_backed_command_state_log"
+}
