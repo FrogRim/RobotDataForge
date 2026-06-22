@@ -4,6 +4,7 @@ import importlib.util
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -122,6 +123,7 @@ def test_mvp1plus_generates_jsonl_source_evidence_and_projected_inputs(tmp_path:
 
 def test_mvp1plus_uses_repo_local_ur_recorded_log_fixture_by_default(tmp_path: Path) -> None:
     assert (UR_RECORDED_LOG_FIXTURE / "metadata.json").exists()
+    profile = RobotEmbodimentAdapterRegistry.get("universal_robots_ur_industrial_arm")
 
     build_proof(tmp_path / "mvp1plus")
 
@@ -144,7 +146,9 @@ def test_mvp1plus_uses_repo_local_ur_recorded_log_fixture_by_default(tmp_path: P
     assert metadata["source_provenance"]["source_type"] == "file_backed_recorded_log_fixture"
     assert metadata["source_provenance"]["repo_local_recorded_log_fixture"] is True
     assert metadata["source_provenance"]["fixture_path"] == str(UR_RECORDED_LOG_FIXTURE)
+    assert metadata["claim_boundary"] == profile.claim_boundary
     assert metadata["claim_boundary"]["real_robot_success_claimed"] is False
+    assert metadata["claim_boundary"]["live_ur_hardware_support_claimed"] is False
     assert len(accepted_rows) == 4
     assert accepted_phases == ["APPROACH", "CONTACT", "INSERT", "SEAT"]
 
@@ -173,6 +177,23 @@ def test_mvp1plus_ur_recorded_log_dir_overrides_default_fixture(tmp_path: Path) 
     assert report["passed"] is True
     assert output_metadata["source_provenance"]["source_capture_id"] == "custom_ur_recorded_log_001"
     assert f"--ur-recorded-log-dir {custom_source}" in report["reproduce_command"]
+
+
+def test_mvp1plus_copied_ur_source_does_not_normalize_truthy_overclaim_away(tmp_path: Path) -> None:
+    proof = load_script("run_mvp1plus_embodiment_proof")
+    custom_source = tmp_path / "custom_ur_log"
+    shutil.copytree(UR_RECORDED_LOG_FIXTURE, custom_source)
+    metadata_path = custom_source / "metadata.json"
+    metadata = read_json(metadata_path)
+    metadata["claim_boundary"]["policy_uplift_claimed"] = True
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="policy_uplift_claimed"):
+        proof.build_mvp1plus_embodiment_proof(
+            tmp_path / "mvp1plus",
+            clean=True,
+            ur_recorded_log_dir=custom_source,
+        )
 
 
 def test_mvp1plus_lineage_hashes_source_and_projected_artifacts(tmp_path: Path) -> None:
