@@ -1,0 +1,12 @@
+{
+  "schema_version": "rdf_split_manifest_v0.1.0",
+  "splits": {
+    "test": [],
+    "train": [
+      "mvp1plus_robotis_sh5_ros2_dds_accepted_episode"
+    ],
+    "validation": []
+  },
+  "strategy": "mvp1plus_single_adapter_projection_split",
+  "task_id": "task_mvp1plus_cross_embodiment"
+}

@@ -1,0 +1,88 @@
+{
+  "accepted": [
+    {
+      "evaluation": {
+        "id": "mvp1plus_universal_robots_ur_industrial_arm_accepted_trajectory_evaluation"
+      },
+      "learning_eligibility_candidate": true,
+      "reasons": [
+        "accepted_projected_command_state_contract"
+      ],
+      "trajectory": {
+        "id": "mvp1plus_universal_robots_ur_industrial_arm_accepted_trajectory"
+      }
+    }
+  ],
+  "accepted_count": 1,
+  "adapter_id": "universal_robots_ur_industrial_arm",
+  "contract_smoke_only": true,
+  "curation_rules": [
+    "replay_action_gate_passed",
+    "data_quality_gate_passed",
+    "action_contract_valid",
+    "export_trainer_gate_required_for_learning_ready"
+  ],
+  "db_migration": false,
+  "db_migration_claimed": false,
+  "deployable_policy_readiness": false,
+  "deployable_policy_readiness_claimed": false,
+  "franka_hardware_support": false,
+  "franka_hardware_support_claimed": false,
+  "hmd_openxr_collection_readiness": false,
+  "hmd_openxr_collection_readiness_claimed": false,
+  "hmd_readiness": false,
+  "hmd_readiness_claimed": false,
+  "learning_proven_value": false,
+  "learning_proven_value_claimed": false,
+  "live_ros2_dds_runtime_support": false,
+  "live_ros2_dds_runtime_support_claimed": false,
+  "live_runtime_support": false,
+  "live_runtime_support_claimed": false,
+  "live_ur_runtime_support": false,
+  "live_ur_runtime_support_claimed": false,
+  "marketplace_readiness": false,
+  "marketplace_readiness_claimed": false,
+  "physical_robot_readiness": false,
+  "physical_robot_readiness_claimed": false,
+  "policy_uplift": false,
+  "policy_uplift_claimed": false,
+  "production_auth": false,
+  "production_auth_claimed": false,
+  "production_certification": false,
+  "production_certification_claimed": false,
+  "production_robot_support_claimed": false,
+  "public_sample_evidence_claimed": false,
+  "public_sample_import": false,
+  "public_sample_import_claimed": false,
+  "real_robot_readiness_claimed": false,
+  "real_robot_success": false,
+  "real_robot_success_claimed": false,
+  "rejected": [
+    {
+      "buyer_readable_reason": "The industrial-arm command did not satisfy the normalized action contract.",
+      "evaluation": {
+        "id": "mvp1plus_universal_robots_ur_industrial_arm_rejected_trajectory_evaluation"
+      },
+      "evidence_fields": [
+        "evaluation.metrics.data_quality.quality_failure_reasons",
+        "curation_manifest.rejected[].reasons"
+      ],
+      "learning_eligibility_candidate": false,
+      "reasons": [
+        "INDUSTRIAL_ACTION_CONTRACT_MISMATCH"
+      ],
+      "trajectory": {
+        "id": "mvp1plus_universal_robots_ur_industrial_arm_rejected_trajectory"
+      }
+    }
+  ],
+  "rejected_count": 1,
+  "rejection_reason_distribution": {
+    "INDUSTRIAL_ACTION_CONTRACT_MISMATCH": 1
+  },
+  "schema_version": "rdf_mvp1plus_curation_manifest_v0.1.0",
+  "universal_robot_support": false,
+  "universal_robot_support_claimed": false,
+  "visual_policy_performance": false,
+  "visual_policy_performance_claimed": false
+}

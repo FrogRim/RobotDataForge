@@ -12,6 +12,751 @@
 
 ---
 
+## 2026-06-22: MVP-3B Tasks 3-4 mypy review blocker fix
+
+### 작업 내용
+
+MVP-3B source-adapter runner/verifier/package tests에 대해 reviewer가 지적한
+modified-file typing blocker를 behavior 변경 없이 수정했다.
+
+변경 파일:
+
+```text
+apps/api/app/services/robot_embodiment_adapters.py
+scripts/run_mvp3b_source_adapter_infrastructure.py
+scripts/verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+.superpowers/sdd/task-3-4-report.md
+```
+
+수정 내용:
+
+```text
+- RobotEmbodimentAdapterRegistryProfile.builder_class를 no-arg builder factory
+  Protocol로 표현했다.
+- _profile() helper도 같은 builder factory type을 받게 맞췄다.
+- _write_contract_smoke() return annotation을 emit_contract() contract에 맞게
+  dict[str, Path | str]로 넓혔다.
+- verifier package surface 순회에서 JSON/JSONL payload branch assignment가
+  같은 union type을 쓰도록 명시했다.
+```
+
+### 판단 이유
+
+concrete builder class들은 `RobotEmbodimentContractBuilder`의 키워드 인자를 받는
+생성자가 아니라 no-arg factory다. 기존 annotation은 런타임 동작과 맞지 않아
+`profile.builder_class()` 호출을 type checker가 base constructor 호출로 해석했다.
+나머지 두 오류도 실제 값 shape은 유지하면서 annotation만 API contract와 맞추면 되는
+문제였으므로 proof semantics와 verifier checks는 변경하지 않았다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run mypy scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# Success: no issues found in 4 source files
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 8 passed in 0.13s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 24 passed in 0.62s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# 16 verifier checks passed
+
+uvx ruff check apps/api/app/services/robot_embodiment_adapters.py scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile apps/api/app/services/robot_embodiment_adapters.py scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- proof semantics는 변경하지 않았다.
+- verifier/package tests는 약화하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+
+---
+
+## 2026-06-22: MVP-3B Tasks 3-4 review blocker fix
+
+### 작업 내용
+
+MVP-3B source-adapter proof package verifier가 hash-locked package의 다른 JSON
+surface에 숨어 있는 learning-proven claim 필드를 놓치던 review blocker를 수정했다.
+
+변경 파일:
+
+```text
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+scripts/verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+.superpowers/sdd/task-3-4-report.md
+```
+
+수정 내용:
+
+```text
+- hash를 갱신한 semantic tamper 회귀 테스트를 먼저 추가했다.
+- generated_contract_smoke/<adapter>/<adapter>.trainer_smoke.json에서
+  learning_results_measured=true이면 non_claims_false만 실패하도록 검증한다.
+- adapter_results/<adapter>_adapter_result.json에서 policy_uplift=true 또는
+  learning_proven_value=true이면 non_claims_false만 실패하도록 검증한다.
+- source_adapter_matrix_summary.json에서 learning_results_measured=true 또는
+  contract_smoke_only=false이면 non_claims_false만 실패하도록 검증한다.
+- contracts/<adapter>_normalized_trajectory_contract.json의 learning_eligibility_gates에서
+  learning_results_measured=true, policy_uplift=true, trainer_export_smoke가
+  contract_smoke_only가 아니면 non_claims_false만 실패하도록 검증한다.
+- verifier가 package JSON/JSONL surface 전체를 순회해 learning_results_measured,
+  policy_uplift, learning_proven_value는 정확히 false, contract_smoke_only는 정확히
+  true, trainer_export_smoke는 config.contract_smoke 예외를 제외하고
+  contract_smoke_only로 강제한다.
+```
+
+### 판단 이유
+
+기존 verifier는 `config.contract_smoke`만 non-learning-proven boundary로 검사했다.
+따라서 공격자가 `trainer_smoke.json`, `adapter_result`, `summary`, `contract`를 semantic
+tamper한 뒤 package hash를 새로 고정하면 `hash_integrity`가 통과하고 claim boundary가
+뚫릴 수 있었다. Verifier가 package producer를 신뢰하지 않는다는 MVP-3B 원칙에 맞게 모든
+JSON/JSONL surface에서 동일한 non-learning-proven binding을 독립적으로 강제했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# RED before verifier fix: 4 failed, 20 passed in 0.52s
+# GREEN after verifier fix: 24 passed in 0.60s
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 8 passed in 0.12s
+
+uv run python scripts/run_mvp3b_source_adapter_infrastructure.py --clean
+# source_adapter_infrastructure_closed
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# 16 verifier checks passed
+
+uvx ruff check scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- Runner output 구조 변경은 필요하지 않았다.
+- 기본 package는 강화된 verifier로 VERIFIED 상태를 유지한다.
+- Frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+
+---
+
+## 2026-06-22: MVP-3B Tasks 3-4 source-adapter package runner
+
+### 작업 내용
+
+MVP-3B source-adapter matrix proof package runner와 RED/GREEN 테스트를 추가하고,
+기본 proof package를 생성했다.
+
+변경 파일:
+
+```text
+apps/api/tests/test_mvp3b_source_adapter_infrastructure.py
+scripts/run_mvp3b_source_adapter_infrastructure.py
+docs/proof/mvp3b_source_adapter_matrix_proof_package/
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+.superpowers/sdd/task-3-4-report.md
+```
+
+수정 내용:
+
+```text
+- Task 3 RED tests를 먼저 추가했다.
+- Runner가 RobotEmbodimentAdapterRegistry.create(...)를 통해 각 adapter를 생성하고
+  project_source_evidence(...) / emit_contract(...) 경로를 호출하도록 구현했다.
+- 기본 source log fixture를 repo-local generated/file-backed recorded-log evidence로
+  생성한다.
+- franka_research_arm, robotis_sh5_ros2_dds,
+  universal_robots_ur_industrial_arm adapter를 projection한다.
+- data/source_logs, projections, contracts, adapter_results, config,
+  non_claims_attestation, adapter_registry_snapshot, artifact_index,
+  source_adapter_matrix_summary를 포함하는 self-contained package를 생성한다.
+- package_manifest.json과 data/artifact_index.json은 file-byte sha256/byte_size를
+  기록한다.
+- trainer/export smoke는 contract smoke로만 표기하며 learning_results_measured,
+  policy_uplift, learning_proven_value는 false로 유지한다.
+- spent_no_reuse는 [[40000, 40049], [42000, 42049]]로 고정하고 opened range는
+  모두 empty로 둔다.
+- --clean은 기본 managed package output 또는 safe tmp output만 허용한다.
+```
+
+### 판단 이유
+
+MVP-3B의 변경 변수는 `source_adapter_matrix`다. 따라서 package producer가 새로운
+adapter path를 handwave하지 않고 기존 registry/adapter projection API를 실제로 호출해야
+한다. 동시에 verifier는 producer를 신뢰하지 않고 source log, projection, contract, hash
+index, non-claim surface를 독립적으로 재계산하므로, runner는 verdict-critical artifact를
+모두 package 내부에 복사하고 indexed hash로 고정해야 한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# RED before runner implementation: 8 failed in 0.09s
+# Failure reason: scripts/run_mvp3b_source_adapter_infrastructure.py FileNotFoundError
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 8 passed in 0.12s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 20 passed in 0.40s
+
+uv run python scripts/run_mvp3b_source_adapter_infrastructure.py --clean
+# source_adapter_infrastructure_closed
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# 16 verifier checks passed
+
+uvx ruff check scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/run_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- 최종 `git diff --check`와 commit 전 전체 diff review를 통과했다.
+- Frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- 이 작업은 live UR/ROS2-DDS/Franka support, real robot readiness, learning-proven
+  uplift를 claim하지 않는다.
+
+---
+
+## 2026-06-22: MVP-3B Task 2 final re-review fix
+
+### 작업 내용
+
+MVP-3B source-adapter proof package verifier의 buyer-facing README/text forbidden
+claim scan에서 no-comma coordinate positive claim clause가 이전 negated limitation에
+가려지는 final re-review blocker를 수정했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+.superpowers/sdd/task-2-report.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+수정 내용:
+
+```text
+- README.md regression을 2개 추가했다:
+  "This package does not claim production certification and it claims real robot success."
+  "This package does not claim production certification and claims real robot success."
+- 두 regression은 hash_integrity가 통과하고 forbidden_claims만 실패해야 한다.
+- text claim local prefix window가 no-comma positive claim introducer
+  `and it claims`, `and claims`, package-subject variants에서 reset되도록 했다.
+- 기존 safe limitation list 문장은 green fixture로 계속 통과한다.
+```
+
+### 판단 이유
+
+Task 2 verifier는 buyer-facing text surface에서 unsupported positive forbidden
+claim을 독립적으로 잡아야 한다. 이전 수정은 sentence, comma-coordinate,
+comma-splice boundary를 처리했지만 no-comma coordinate clause에서는 `does not claim`
+negation이 뒤의 positive claim까지 덮었다. ordinary limitation list는 보존해야 하므로
+분리 기준을 broad text rule이 아니라 explicit positive claim introducer로 제한했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_no_comma_coordinate_positive_claim_clause_fails_forbidden_claims_only apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_no_comma_coordinate_positive_claim_without_subject_fails_forbidden_claims_only -q
+# RED before production fix: 2 failed in 0.06s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_no_comma_coordinate_positive_claim_clause_fails_forbidden_claims_only apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_no_comma_coordinate_positive_claim_without_subject_fails_forbidden_claims_only apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_green_package_returns_source_adapter_infrastructure_closed -q
+# 3 passed in 0.05s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 20 passed in 0.38s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py --help
+# passed, exit 0
+
+uvx ruff check scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B runner/package builder는 수정하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- Task 2 final re-review blocker는 닫혔고, 다음 작업은 Task 3 runner/package builder다.
+
+---
+
+## 2026-06-22: MVP-3B Task 2 final-review fix
+
+### 작업 내용
+
+MVP-3B source-adapter proof package verifier의 buyer-facing README/text forbidden
+claim scan에서 comma/coordinate positive claim clause가 이전 negated limitation에
+가려지는 final-review blocker를 수정했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+.superpowers/sdd/task-2-report.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+수정 내용:
+
+```text
+- README.md regression을 2개 추가했다:
+  "This package does not claim production certification, and it claims real robot success."
+  "This package does not claim production certification, it claims real robot success."
+- 두 regression은 hash_integrity가 통과하고 forbidden_claims만 실패해야 한다.
+- text claim local prefix window가 comma-bound positive claim introducer
+  `, and it claims`, `, it claims` 등에서 reset되도록 했다.
+- safe limitation list 문장:
+  "It does not claim live robot support, real robot success, marketplace readiness, production certification, or learning-proven value."
+  는 green fixture로 계속 통과한다.
+```
+
+### 판단 이유
+
+Task 2 verifier는 buyer-facing text surface에서 unsupported positive forbidden
+claim을 독립적으로 잡아야 한다. 기존 sentence/semicolon/contrast boundary만으로는
+`does not claim production certification, and it claims real robot success` 같은
+coordinate clause와 comma splice가 이전 negation window에 포함되어 false-pass했다.
+따라서 ordinary limitation list comma는 보존하되 explicit positive claim introducer에서만
+claim window를 분리했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_coordinate_positive_claim_clause_fails_forbidden_claims_only apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_comma_spliced_positive_claim_clause_fails_forbidden_claims_only -q
+# RED before production fix: 2 failed in 0.06s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_coordinate_positive_claim_clause_fails_forbidden_claims_only apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_comma_spliced_positive_claim_clause_fails_forbidden_claims_only apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_green_package_returns_source_adapter_infrastructure_closed -q
+# 3 passed in 0.05s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 18 passed in 0.37s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py --help
+# passed, exit 0
+
+uvx ruff check scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B runner/package builder는 수정하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- Task 2 final-review blocker는 닫혔고, 다음 작업은 Task 3 runner/package builder다.
+
+---
+
+## 2026-06-22: MVP-3B Task 2 re-review fix
+
+### 작업 내용
+
+Task 2 re-review의 HIGH finding 1개를 수정했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+.superpowers/sdd/task-2-report.md
+```
+
+수정 내용:
+
+```text
+- README.md에 "This package does not claim production certification. It claims real robot success."
+  문장을 넣으면 hash_integrity는 통과하고 forbidden_claims만 실패해야 하는 regression test를 추가했다.
+- text forbidden claim scan의 negation marker 적용 범위를 전체 240자 prefix가 아니라
+  현재 sentence 또는 contrast clause prefix로 좁혔다.
+- 기존 green fixture의 safe limitation 문장, 즉 "It does not claim live robot support,
+  real robot success, marketplace readiness, production certification, or learning-proven value."
+  는 계속 통과하도록 유지했다.
+```
+
+### 판단 이유
+
+MVP-3B package README는 buyer-facing surface라서 limitation 문장과 positive claim 문장을
+구분해야 한다. 파일 전체 또는 넓은 prefix에 negation이 있다는 이유로 이후 문장의 positive
+claim을 허용하면 `real robot success`, `production certification` 같은 금지 claim boundary가
+무력화된다. 따라서 negation은 같은 sentence/local clause에만 적용하도록 좁혔다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py::test_readme_negated_limitation_does_not_mask_later_positive_claim -q
+# RED: 1 failed in 0.04s
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 16 passed in 0.36s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py --help
+# passed, exit 0
+
+uvx ruff check scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B runner/package builder는 수정하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- Task 3에서 실제 MVP-3B generated package에 verifier를 적용해야 한다.
+
+---
+
+## 2026-06-22: MVP-3B Task 2 review fix
+
+### 작업 내용
+
+Task 2 review의 HIGH finding 2개를 수정했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+.superpowers/sdd/task-2-report.md
+```
+
+수정 내용:
+
+```text
+- README.md 같은 package text surface의 unsupported positive support wording을
+  forbidden_claims check에서 실패시키도록 verifier를 확장했다.
+- JSON/JSONL package surface의 canonical forbidden claim key recursion은 유지했다.
+- frame_action_role_coverage.<role>.frames를 source log row의 actions_by_role
+  coverage count와 재계산 비교하도록 추가했다.
+- source_adapter_matrix_summary.json은 cached summary only로 유지했다.
+```
+
+### 판단 이유
+
+기존 verifier는 JSON/JSONL claim key만 검사해 buyer-facing README claim을 놓쳤고,
+contract의 frame coverage count는 int 여부만 확인해 inflated count를 놓쳤다.
+두 항목 모두 proof package가 self-contained audit에서 실제보다 강한 support/coverage를
+주장할 수 있는 false-pass라서 verifier에서 독립 재계산해야 한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# RED before production fix: 2 failed, 13 passed in 0.34s
+# failing tests:
+# - test_readme_unsupported_positive_support_wording_fails_forbidden_claims_only
+# - test_inflated_contract_frame_action_role_coverage_fails_coverage_only
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# GREEN after fix: 15 passed in 0.34s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py --help
+# passed, exit 0
+
+uvx ruff check scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B runner/package builder는 구현하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- Task 3에서 실제 MVP-3B generated package에 verifier를 적용해야 한다.
+
+## 2026-06-22: MVP-3B source-adapter verifier implemented
+
+### 작업 내용
+
+Task 2에서 stdlib-only source-adapter proof package verifier를 구현했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+.superpowers/sdd/task-2-report.md
+```
+
+수정 내용:
+
+```text
+- verify_package(manifest_path: Path) -> Report 공개 API를 추가했다.
+- Report는 ok, exit_code, checks, failures(), recomputed를 제공한다.
+- verifier는 Python stdlib만 import한다.
+- producer service, scripts/verify_mvp2_package.py, scripts/verify_proof_package.py를
+  import하지 않는다.
+- package_manifest.json과 data/artifact_index.json hash를 독립 검증한다.
+- data/ 파일 coverage, adapter set exactness, source logs, metadata/profile,
+  source/projection hash binding, accepted/rejected counts, contract source fields,
+  required action roles, frame action role coverage, non-claims false,
+  forbidden claim keys, spent_no_reuse exactness, opened range discipline,
+  learning-proven addendum absence, cached summary consistency를 재계산한다.
+```
+
+### 판단 이유
+
+MVP-3B Task 2는 runner/package builder가 아니라 self-contained package verifier를
+구축하는 단계다. 따라서 producer-side service를 신뢰하지 않고 package 내부 파일만으로
+claim boundary와 evidence binding을 재계산해야 한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 13 passed in 0.29s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py --help
+# passed, exit 0
+
+uvx ruff check scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B runner/package builder는 아직 구현하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- 다음 작업은 Task 3에서 source-adapter proof package 생성 경로를 구현하는 것이다.
+
+## 2026-06-22: MVP-3B RED verifier test review fix
+
+### 작업 내용
+
+Task 1 review finding을 반영해 semantic negative tests가 hash tamper failure와 섞이지
+않도록 테스트 fixture helper를 보강했다. Verifier 구현은 의도적으로 생성하지 않았다.
+
+커밋된 변경 파일:
+
+```text
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+```
+
+로컬/ignored 인계 산출물:
+
+```text
+.superpowers/sdd/task-1-report.md
+Handoff.md
+```
+
+### 판단 이유
+
+`_tamper_json()`은 indexed file을 수정한 뒤 `data/artifact_index.json`과
+`package_manifest.json`의 hash를 갱신하지 않아, future verifier 구현 후 forbidden
+claims, `spent_no_reuse`, opened ranges, addendum, contract roles, summary consistency
+negative tests가 의도한 check와 `hash_integrity`를 동시에 실패시킬 수 있었다.
+Hash/data coverage 전용 테스트만 dirty package를 유지하고, 나머지 semantic negative
+tests는 rehash 후 intended check 하나만 실패하도록 계약을 고정했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 13 failed in 0.18s
+# expected RED: FileNotFoundError for scripts/verify_mvp3b_source_adapter_package.py
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- Task 2에서 `scripts/verify_mvp3b_source_adapter_package.py`를 stdlib-only로 구현한다.
+- Semantic negative tests는 Task 2 verifier 추가 후 `hash_integrity.passed is True`와
+  intended check 단독 실패를 검증해야 한다.
+
+## 2026-06-22: MVP-3B source-adapter verifier RED tests
+
+### 작업 내용
+
+MVP-3B Source-Adapter Matrix의 Task 1 RED 테스트를 추가했다. Verifier 구현은 의도적으로
+생성하지 않았다.
+
+커밋된 변경 파일:
+
+```text
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+tasks/todo.md
+```
+
+로컬/ignored 인계 산출물:
+
+```text
+.superpowers/sdd/task-1-report.md
+Handoff.md
+```
+
+### 판단 이유
+
+Task 1은 TDD RED 단계이므로 `scripts/verify_mvp3b_source_adapter_package.py`가
+없어서 실패해야 한다. 새 테스트는 future verifier가 source logs, projections,
+contracts, adapter results, manifest hash lock, non-claims, no-reuse seed discipline,
+opened range 없음, summary cache consistency를 독립 재계산하도록 계약을 고정한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 13 failed in 0.17s
+# expected RED: FileNotFoundError for scripts/verify_mvp3b_source_adapter_package.py
+```
+
+### 남은 gap 또는 다음 작업
+
+- Task 2에서 `scripts/verify_mvp3b_source_adapter_package.py`를 stdlib-only로 구현한다.
+- Task 2 verifier는 `app.services.robot_embodiment_adapters` 또는
+  `app.services.normalized_trajectory_contract`를 import하지 않아야 한다.
+- Task 2 이후 같은 테스트 파일이 green이 되도록 각 tamper check를 개별 hard-fail로
+  구현해야 한다.
+
+## 2026-06-20: MVP-3B source-adapter infrastructure spec and ralplan approved
+
+Context:
+
+- MVP-3A actual Isaac proof infrastructure is closed, and held-out `42000-42049`
+  is spent/audit-only/no-reuse.
+- The user wanted MVP-3B planning to go through brainstorming, spec writing, and
+  ralplan review before implementation.
+- MVP-3B must be distinct from MVP-3A without weakening MVP-2/MVP-3A claim boundaries.
+
+Decision:
+
+- Chose **Option B: Source-Adapter Matrix Slice**.
+- MVP-3B changes `source_adapter_matrix`, not task variant and not policy evaluation.
+- The claim is source-profile projection through RDF infrastructure for:
+  `franka_research_arm`, `robotis_sh5_ros2_dds`, and
+  `universal_robots_ur_industrial_arm`.
+- The slice does not claim live robot support, independent robot integrations, policy
+  uplift, or learning-proven value.
+
+Changed files:
+
+```text
+docs/superpowers/specs/2026-06-20-mvp3b-source-adapter-infrastructure-design.md
+docs/superpowers/plans/2026-06-20-mvp3b-source-adapter-infrastructure.md
+tasks/todo.md
+Handoff.md
+.omx/context/mvp3b-source-adapter-infrastructure-20260620T131635Z.md
+.omx/plans/prd-mvp3b-source-adapter-infrastructure.md
+.omx/plans/test-spec-mvp3b-source-adapter-infrastructure.md
+.omx/plans/ralplan-architect-review-mvp3b-source-adapter-infrastructure-iteration1.md
+.omx/plans/ralplan-architect-review-mvp3b-source-adapter-infrastructure-iteration2.md
+.omx/plans/ralplan-critic-review-mvp3b-source-adapter-infrastructure-iteration1.md
+.omx/plans/ralplan-consensus-mvp3b-source-adapter-infrastructure.md
+```
+
+Ralplan result:
+
+```text
+architect_iteration_1=REQUEST_CHANGES
+architect_iteration_2=APPROVE
+critic_iteration_1=APPROVE
+implementation_status=not_started
+```
+
+Key guardrails:
+
+```text
+- verifier first, TDD first
+- MVP-3B package must be self-contained
+- verifier is stdlib-only and independent from producer services
+- exact spent_no_reuse must be [[40000, 40049], [42000, 42049]]
+- MVP-3B opens no calibration, held-out, tuning, or closure range
+- canonical forbidden claim keys include both MVP-3B-specific keys and all existing
+  producer DISALLOWED_TRUTHY_CLAIM_KEYS
+- any trainer/export smoke is contract smoke only, not learning-proven evidence
+```
+
+Validation:
+
+```text
+git diff --check
+  passed
+
+rg -n "RALPLAN APPROVED|Source-Adapter Matrix|source-profile projection|spent_no_reuse|opened_ranges|learning_proven_addendum|physical_robot_readiness_claimed|public_sample_evidence_claimed|live_runtime_support" ...
+  expected planning and claim-boundary anchors present
+
+python3 scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+  VERDICT: VERIFIED
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+  VERDICT: VERIFIED
+```
+
+Remaining gap / next work:
+
+- MVP-3B implementation has not started.
+- Next valid step is Task 1 from the MVP-3B plan: RED tests for
+  `scripts/verify_mvp3b_source_adapter_package.py`.
+
+---
+
 ## 2026-06-20: MVP-3A spent held-out rule promoted to project instructions
 
 Context:
@@ -17768,6 +18513,75 @@ git diff -- \
 - 아직 `MVP-3A Learning-Proven Addendum` claim도 없다.
 - 다음 slice는 actual Isaac evidence 생성 또는 runner/verifier code review/commit 전략이다.
 
+## 2026-06-22 KST - MVP-3B source-adapter verifier 구현
+
+### 작업 내용
+
+MVP-3B source-adapter matrix proof package를 producer 코드와 독립적으로 감사하는
+stdlib-only verifier를 구현했다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+docs/developer/worklog.md
+Handoff.md
+.superpowers/sdd/task-2-report.md
+```
+
+수정 내용:
+
+```text
+- verify_package(manifest_path: Path) -> Report 공개 API를 추가했다.
+- Report.ok, Report.exit_code, Report.checks, Report.failures(), Report.recomputed
+  계약을 구현했다.
+- package_manifest.json과 data/artifact_index.json의 file_bytes sha256을 검증한다.
+- data/ 하위 파일 coverage를 검증하되 data/artifact_index.json은 자기 자신을 내부
+  index에 포함하지 않는 패키지 형식을 허용한다.
+- adapter set, source log completeness, metadata/profile consistency,
+  source/projection hash binding, accepted/rejected counts를 self-contained package
+  파일에서 재계산한다.
+- normalized trajectory contract의 source fields, required_action_roles, source frame의
+  actions_by_role coverage를 검증한다.
+- canonical forbidden claim keys를 package JSON/JSONL surface에서 재귀적으로 검사한다.
+- spent_no_reuse == [[40000, 40049], [42000, 42049]]와 calibration/heldout/tuning/closure
+  미개방, learning_proven_addendum 부재를 hard-check로 강제한다.
+- source_adapter_matrix_summary.json은 cache consistency만 검증하며 verdict source of
+  truth로 사용하지 않는다.
+```
+
+### 판단 이유
+
+Task 2의 핵심은 MVP-3B runner/package builder가 아니라 독립 auditor다. 따라서 verifier는
+`app.services.*`나 기존 MVP-2/MVP-3A verifier를 import하지 않고, package에 포함된 파일만
+읽어서 closure를 재계산하도록 구현했다. RED tests가 의도한 semantic failure가 hash failure에
+가려지지 않도록 check boundary를 분리했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 13 passed in 0.29s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py --help
+# passed, exit 0
+
+uvx ruff check scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B runner/package builder는 아직 구현하지 않았다.
+- frozen MVP-2 assets와 MVP-3A proof package artifacts는 수정하지 않았다.
+- 다음 작업은 Task 3에서 source-adapter proof package 생성 경로를 구현하는 것이다.
+
 ## 2026-06-20 KST - MVP-3A 코드리뷰 hardening 반영
 
 ### 작업 내용
@@ -17864,3 +18678,264 @@ git diff -- \
 - 전체 회귀와 frozen MVP-2 diff-check는 통과했다.
 - 다음 slice는 actual Isaac evidence 생성 전 review/commit 전략 또는 actual evidence
   pre-registration이다.
+## 2026-06-22 KST - MVP-3B package manifest deterministic rebuild fix
+
+### 작업 내용
+
+MVP-3B source-adapter proof package runner의 `package_manifest.json` 재생성이 매번
+`created_at`만 바꿔 worktree를 dirty로 만드는 문제를 닫았다.
+
+변경 파일:
+
+```text
+scripts/run_mvp3b_source_adapter_infrastructure.py
+apps/api/tests/test_mvp3b_source_adapter_infrastructure.py
+docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+docs/developer/worklog.md
+```
+
+### 판단 이유
+
+MVP-3B proof package는 반복 검증 가능한 외부 감사 자산이어야 한다. `--clean` 재실행이
+timestamp drift만으로 package manifest를 바꾸면 이후 review/CI에서 artifact 변경 여부를
+불필요하게 혼동시킨다. 따라서 package slice 기준 고정 timestamp를 사용하고,
+`package_manifest.json` byte stability regression을 추가했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py::test_runner_rebuild_is_byte_stable_for_committed_package_manifest -q
+# RED 확인 후 GREEN: 1 passed
+
+uv run mypy scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# Success: no issues found in 4 source files
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 9 passed
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 24 passed
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uvx ruff check apps/api/app/services/robot_embodiment_adapters.py scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile apps/api/app/services/robot_embodiment_adapters.py scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G002 task-scoped re-review를 다시 받아 Tasks 3-4 완료 여부를 확정한다.
+- 다음 story는 Task 5 tamper matrix package verification이다.
+
+## 2026-06-22 KST - MVP-3B Task 5 real package tamper matrix
+
+### 작업 내용
+
+MVP-3B source-adapter verifier 테스트에 실제 생성 package를 `tmp_path`로 복사한 뒤
+실제 bundle file을 변조하는 tamper matrix를 추가했다.
+
+변경 파일:
+
+```text
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+tasks/todo.md
+docs/developer/worklog.md
+.superpowers/sdd/task-5-report.md
+```
+
+`Handoff.md`도 local ignored handoff 파일로 갱신했으며, tracked commit diff에는
+포함되지 않는다.
+
+### 판단 이유
+
+기존 synthetic fixture tamper test는 verifier contract를 폭넓게 잠갔지만, 실제 생성
+package의 file layout과 manifest/index 구조를 대상으로 한 회귀는 없었다. Task 5 요구에
+맞춰 실제 package copy에서 semantic contradiction을 만들 때는 manifest와
+`data/artifact_index.json` hash를 갱신해 byte tamper가 아니라 verifier recomputation
+실패를 검증했다.
+
+현재 verifier는 모든 실제 package tamper case를 이미 거부했다. 따라서
+`scripts/verify_mvp3b_source_adapter_package.py` 변경이나 package regeneration은 하지 않았다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 36 passed
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 9 passed
+
+uv run mypy scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# Success: no issues found in 4 source files
+
+uvx ruff check scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# All checks passed
+
+python3 -m py_compile scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- Task 5 범위에서는 verifier false pass가 발견되지 않았다.
+- frozen MVP-2 assets, MVP-3A proof package artifacts, MVP-3B generated package는
+  변경하지 않았다.
+
+## 2026-06-22 KST - MVP-3B Tasks 6-7 documentation and regression
+
+### 작업 내용
+
+MVP-3B proof package README를 reviewer-facing 문서로 보강하고, Task 7 전체 회귀와
+frozen proof asset 검증을 완료했다.
+
+변경 파일:
+
+```text
+docs/proof/mvp3b_source_adapter_matrix_proof_package/README.md
+docs/developer/worklog.md
+tasks/todo.md
+```
+
+`Handoff.md`도 local ignored handoff 파일로 갱신했다.
+
+### 판단 이유
+
+MVP-3B는 live robot/support claim이 아니라 generated/file-backed source-profile
+projection이 RDF adapter infrastructure를 반복 통과한다는 infrastructure proof다.
+README에는 claim, source-of-truth, verifier command, non-claim boundary, spent range를
+명시해 LinkedIn/외부 검토용 narrative와 proof package의 claim boundary가 어긋나지 않게
+했다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python3 scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 45 passed in 1.05s
+
+uv run pytest -q
+# 896 passed, 6 skipped in 28.55s
+
+uvx ruff check scripts apps/api
+# All checks passed
+
+python3 -m compileall -q scripts apps/api
+# passed
+
+git diff --check
+# passed
+
+git diff -- scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_isaac_proof_evaluator.py scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package
+# no output
+```
+
+### 남은 gap 또는 다음 작업
+
+- MVP-3B Infrastructure Closed는 verified 상태다.
+- `learning_proven_addendum=absent`이며 held-out/calibration/tuning/closure range는 열지 않았다.
+- `40000-40049`와 `42000-42049`는 spent/audit-only/no-reuse로 유지된다.
+- 최종 ultragoal quality gate(`ai-slop-cleaner`, focused verification, independent
+  code-reviewer + architect review)가 남았다.
+
+## 2026-06-22 KST - MVP-3B G005 claimed variant verifier blocker
+
+### 작업 내용
+
+MVP-3B verifier의 canonical forbidden claim schema에 누락된 `*_claimed` 변형을
+추가하고, 실제 생성 package를 복사해 indexed JSON을 변조한 뒤 hash를 갱신하는
+회귀 테스트를 추가했다. Producer constant 변경 후 MVP-3B proof package를 재생성해
+`config.json`, `non_claims_attestation.json`, `artifact_index.json`,
+`package_manifest.json` hash consistency를 맞췄다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+scripts/run_mvp3b_source_adapter_infrastructure.py
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+apps/api/tests/test_mvp3b_source_adapter_infrastructure.py
+docs/proof/mvp3b_source_adapter_matrix_proof_package/
+docs/superpowers/specs/2026-06-20-mvp3b-source-adapter-infrastructure-design.md
+docs/superpowers/plans/2026-06-20-mvp3b-source-adapter-infrastructure.md
+.superpowers/sdd/g005-claimed-variant-fix-report.md
+tasks/todo.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+### 판단 이유
+
+기존 verifier는 `CANONICAL_FORBIDDEN_CLAIMS`에 정확히 포함된 key만 recursive scan에서
+거부했다. 따라서 기존 non-claim schema가 암시하는 `live_ros2_dds_runtime_support`,
+`live_ur_runtime_support`, `franka_hardware_support`, `production_certification`,
+`learning_proven_value`의 claimed 변형을 추가하면 hash refresh 후 semantic verifier를
+통과할 수 있었다. 새 테스트는 byte tamper가 아니라 claim semantic failure를 검증한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# RED: failed before verifier/producer schema update; new real-package claimed-variant tamper case still verified
+
+uv run python scripts/run_mvp3b_source_adapter_infrastructure.py --clean --pretty
+# package regenerated; status=source_adapter_infrastructure_closed, adapter_count=3
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 37 passed in 1.02s
+```
+
+최종 required verification command set:
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 37 passed in 1.03s
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 9 passed in 0.15s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED, 16 checks passed
+
+uv run mypy scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# Success: no issues found in 4 source files
+
+uvx ruff check scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py apps/api/app/services/robot_embodiment_adapters.py
+# All checks passed
+
+python3 -m py_compile scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+
+git diff -- scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_isaac_proof_evaluator.py scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package
+# no output
+```
+
+### 남은 gap 또는 다음 작업
+
+- Verifier는 stdlib-only 독립성을 유지한다.
+- MVP-2 frozen asset과 MVP-3A proof package는 변경하지 않는다.
+- Live robot/runtime/support/production/learning-proven claim은 추가하지 않는다.

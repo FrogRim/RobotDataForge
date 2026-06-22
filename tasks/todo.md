@@ -1,5 +1,51 @@
 # ForgeXR / RDF Data Trust Layer Reset - 2026-06-04
 
+## Current MVP-3B Source-Adapter Infrastructure Plan - 2026-06-20 KST
+
+Goal: MVP-3B를 `source_adapter_matrix` slice로 진행해 Franka / ROS2-DDS-style /
+UR-style generated/file-backed recorded-log source profiles가 RDF normalized trajectory
+contract와 self-contained proof package로 projection되는지 검증한다.
+
+Current status:
+
+```text
+spec=docs/superpowers/specs/2026-06-20-mvp3b-source-adapter-infrastructure-design.md
+plan=docs/superpowers/plans/2026-06-20-mvp3b-source-adapter-infrastructure.md
+ralplan_consensus=.omx/plans/ralplan-consensus-mvp3b-source-adapter-infrastructure.md
+architect_iteration_1=REQUEST_CHANGES
+architect_iteration_2=APPROVE
+critic_iteration_1=APPROVE
+implementation_status=tasks_3_4_review_blocker_fixed_and_verified
+```
+
+Claim boundary:
+
+- [x] MVP-3B proves source-profile projection through RDF infrastructure.
+- [x] MVP-3B does not prove live UR/ROS2-DDS/Franka support.
+- [x] MVP-3B does not prove real robot success or physical robot readiness.
+- [x] MVP-3B does not prove policy uplift or learning-proven value.
+- [x] `40000-40049` and `42000-42049` remain spent/audit-only/no-reuse.
+- [x] MVP-3B opens no calibration, held-out, tuning, or closure range.
+
+Current completed step:
+
+- [x] Start implementation from Task 1 in the plan using TDD.
+- [x] Add RED tests for `scripts/verify_mvp3b_source_adapter_package.py`.
+- [x] Build `scripts/verify_mvp3b_source_adapter_package.py` before trusting any package.
+- [x] Add RED tests for `scripts/run_mvp3b_source_adapter_infrastructure.py`.
+- [x] Build `scripts/run_mvp3b_source_adapter_infrastructure.py` only after verifier RED
+  tests exist.
+- [x] Generate `docs/proof/mvp3b_source_adapter_matrix_proof_package/`.
+- [x] Verify generated package with
+  `python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json`.
+- [x] Commit Tasks 3-4 with Lore protocol.
+- [x] Fix Tasks 3-4 review blocker: verifier now enforces non-learning-proven
+  fields across package JSON/JSONL surfaces after hash-refreshed semantic tamper.
+- [x] Re-verify package remains VERIFIED under hardened verifier.
+- [x] Complete Task 5 real generated package tamper matrix tests against copied
+  `docs/proof/mvp3b_source_adapter_matrix_proof_package/`.
+- [x] Confirm no verifier hardening or package regeneration was required.
+
 ## Current MVP-3A Actual Isaac Proof Package - 2026-06-20 KST
 
 Goal: `target_fixture_pose_variant` actual Isaac proof package에서 MVP-2의 proof
@@ -2918,3 +2964,48 @@ storage/proof_evidence/mvp2c_isaac_training_calibration/
   wording without expanding claims beyond Isaac evaluator-domain learning proof.
 - [x] Mark held-out `40000-40049` as spent for future tuning and future closure
   proof.
+
+## 2026-06-22 - MVP-3B Source-Adapter Infrastructure Closed
+
+- [x] Task 2: stdlib-only MVP-3B source-adapter verifier implemented and reviewed.
+- [x] Tasks 3-4: source-adapter package runner and generated proof package implemented and reviewed.
+- [x] Task 5: real generated package tamper matrix added and reviewed.
+- [x] Task 6: proof package README, worklog, and handoff updated.
+- [x] Task 7: regression and frozen proof checks passed.
+
+Verified state:
+
+```text
+MVP-3B Infrastructure Closed=true
+learning_proven_addendum=absent
+opened_ranges={calibration:[], heldout:[], tuning:[], closure:[]}
+spent_no_reuse=[[40000,40049],[42000,42049]]
+```
+
+Verification:
+
+```text
+MVP-3B verifier=VERDICT: VERIFIED
+MVP-3A verifier=VERDICT: VERIFIED
+MVP-2 verifier=VERDICT: VERIFIED
+targeted_mvp3b_pytest=45 passed
+full_pytest=896 passed, 6 skipped
+ruff=scripts apps/api passed
+compileall=scripts apps/api passed
+git_diff_check=passed
+frozen_mvp2_diff=no output
+```
+
+- [ ] Final ultragoal quality gate:
+  `ai-slop-cleaner` on changed files, focused re-verification, independent
+  code-reviewer + architect review, then G004 checkpoint if clean.
+
+## 2026-06-22 - G005 MVP-3B claimed variant verifier blocker
+
+- [x] Added missing claimed variants to the canonical MVP-3B forbidden-claim schema.
+- [x] Added real-package tamper tests that refresh package hashes after injecting
+  missing `*_claimed` variants into indexed JSON.
+- [x] Updated verifier, producer, infrastructure tests, canonical spec/plan docs,
+  and regenerated the MVP-3B proof package.
+- [x] Run full required verification command set.
+- [x] Commit locally with Lore protocol.

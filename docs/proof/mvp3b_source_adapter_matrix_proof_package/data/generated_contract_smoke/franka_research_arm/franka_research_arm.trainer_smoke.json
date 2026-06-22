@@ -1,0 +1,10 @@
+{
+  "contract_smoke_only": true,
+  "curated_vs_uncurated_uplift": null,
+  "learning_proven_value": false,
+  "learning_results_measured": false,
+  "loader_smoke_passed": true,
+  "passed": true,
+  "policy_uplift": false,
+  "trainer_dry_run_passed": true
+}

@@ -1,0 +1,22 @@
+{
+  "episode_id": "mvp1plus_universal_robots_ur_industrial_arm_accepted_episode",
+  "failure_reason": null,
+  "id": "mvp1plus_universal_robots_ur_industrial_arm_accepted_trajectory_evaluation",
+  "metrics": {
+    "data_quality": {
+      "action_contract_status": "pass",
+      "action_contract_valid": true,
+      "control_quality": "pass",
+      "quality_failure_reasons": [],
+      "replay_verified": true,
+      "timestamp_gap_detected": false
+    },
+    "projection": {
+      "projected_from_jsonl_metadata": true,
+      "raw_jsonl_direct_trainer_input": false
+    }
+  },
+  "schema_version": "rdf_evaluation_v0.1.0",
+  "success": true,
+  "trajectory_id": "mvp1plus_universal_robots_ur_industrial_arm_accepted_trajectory"
+}

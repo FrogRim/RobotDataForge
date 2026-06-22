@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import copy
 import json
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Protocol
 
 from app.services.contract_builders import (
     FrankaContractBuilder,
@@ -60,6 +60,13 @@ class RobotEmbodimentAdapterRegistryError(ValueError):
     """Raised when a robot embodiment adapter registry operation is invalid."""
 
 
+class RobotEmbodimentContractBuilderFactory(Protocol):
+    __name__: str
+
+    def __call__(self) -> RobotEmbodimentContractBuilder:
+        """Create a no-argument robot embodiment contract builder."""
+
+
 @dataclass(frozen=True)
 class RobotEmbodimentAdapterRegistryProfile:
     schema_version: str
@@ -67,7 +74,7 @@ class RobotEmbodimentAdapterRegistryProfile:
     adapter_name: str
     robot_family: str
     embodiment_class: str
-    builder_class: type[RobotEmbodimentContractBuilder]
+    builder_class: RobotEmbodimentContractBuilderFactory
     adapter_class: type[RobotEmbodimentAdapter]
     capabilities: tuple[str, ...]
     limitations: tuple[str, ...]
@@ -496,7 +503,7 @@ def _profile(
     adapter_name: str,
     robot_family: str,
     embodiment_class: str,
-    builder_class: type[RobotEmbodimentContractBuilder],
+    builder_class: RobotEmbodimentContractBuilderFactory,
     capabilities: tuple[str, ...],
     limitations: tuple[str, ...],
     evidence_level: str,

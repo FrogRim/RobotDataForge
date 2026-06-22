@@ -1,0 +1,24 @@
+{
+  "episode_id": "mvp1plus_robotis_sh5_ros2_dds_rejected_episode",
+  "failure_reason": "COMMAND_STATE_TIMESTAMP_GAP",
+  "id": "mvp1plus_robotis_sh5_ros2_dds_rejected_trajectory_evaluation",
+  "metrics": {
+    "data_quality": {
+      "action_contract_status": "fail",
+      "action_contract_valid": false,
+      "control_quality": "fail",
+      "quality_failure_reasons": [
+        "COMMAND_STATE_TIMESTAMP_GAP"
+      ],
+      "replay_verified": false,
+      "timestamp_gap_detected": true
+    },
+    "projection": {
+      "projected_from_jsonl_metadata": true,
+      "raw_jsonl_direct_trainer_input": false
+    }
+  },
+  "schema_version": "rdf_evaluation_v0.1.0",
+  "success": false,
+  "trajectory_id": "mvp1plus_robotis_sh5_ros2_dds_rejected_trajectory"
+}
