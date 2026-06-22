@@ -1,5 +1,98 @@
 # ForgeXR / RDF Data Trust Layer Reset - 2026-06-04
 
+## Current MVP-3C Isaac Sim Embodiment Source Spec - 2026-06-22 KST
+
+Goal: MVP-3C를 `isaac_sim_embodiment_source` slice로 정의해 Franka + Universal
+Robots UR Isaac Sim runtime-backed source logs가 RDF adapter infrastructure,
+normalized trajectory contract, self-contained proof package, independent verifier
+discipline을 통과하는지 검증한다.
+
+Current status:
+
+```text
+spec=docs/superpowers/specs/2026-06-22-mvp3c-isaac-sim-embodiment-source-design.md
+plan=docs/superpowers/plans/2026-06-22-mvp3c-isaac-sim-embodiment-source.md
+ralplan=.omx/plans/ralplan-mvp3c-isaac-sim-embodiment-source.md
+ralplan_consensus=approved
+architect_iteration_3=APPROVE
+critic_iteration_2=APPROVE
+implementation_status=mvp3c_closed_g010_quality_gate_clean_pending_commit
+recommended_execution=ultragoal
+ultragoal=.omx/ultragoal/goals.json
+package_status=isaac_sim_embodiment_source_closed
+```
+
+Claim boundary:
+
+- [x] MVP-3C target claim is Isaac Sim runtime-backed Franka + UR embodiment source ingestion.
+- [x] MVP-3C does not prove live UR hardware support.
+- [x] MVP-3C does not prove live Franka hardware support.
+- [x] MVP-3C does not prove ROS2-DDS live bridge support.
+- [x] MVP-3C does not prove real robot success or physical robot readiness.
+- [x] MVP-3C does not prove policy uplift or learning-proven value.
+- [x] `40000-40049` and `42000-42049` remain spent/audit-only/no-reuse.
+- [x] MVP-3C opens no calibration, held-out, tuning, or closure range.
+- [x] Synthetic packages cannot verify as original `isaac_sim_embodiment_source_closed`.
+- [x] Closure requires per-row `runtime_capture_id` binding to hash-bound runtime metadata.
+- [x] Closure requires hash-bound `data/runtime_capture.json` equality against package rows/docs.
+- [x] Closure projection runs through `RobotEmbodimentAdapter.project_mvp3c_source_evidence()`.
+
+Next steps:
+
+- [x] Review/approve MVP-3C spec.
+- [x] Write `ralplan --deliberate` implementation plan.
+- [x] Decompose into ultragoal tasks.
+- [x] Start with verifier-first TDD before trusting any package.
+- [x] Add RED tests for `scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py`.
+- [x] Implement stdlib-only independent verifier for synthetic mechanics/non-closure.
+- [x] Start G003 Isaac Sim source-ingress profiles.
+- [x] Add `franka_panda_isaac_sim` and `universal_robots_ur10e_isaac_sim` source-ingress profiles.
+- [x] Keep existing MVP-3B registry IDs unchanged.
+- [x] Start G004 package builder with controlled evidence.
+- [x] Add `scripts/run_mvp3c_isaac_sim_embodiment_source.py`.
+- [x] Generate controlled package under
+  `docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/`.
+- [x] Verify controlled package as `synthetic_verifier_fixture`, not original
+  `isaac_sim_embodiment_source_closed`.
+- [x] Start G005 Isaac Sim preflight and runtime capture.
+- [x] Add `scripts/capture_mvp3c_isaac_sim_embodiment_source.py`.
+- [x] Capture actual Isaac Sim runtime evidence for Franka Panda and UR10e.
+- [x] Regenerate package as `runtime_evidence_captured`, not
+  `isaac_sim_embodiment_source_closed`.
+- [x] Verify runtime-backed non-closure package with the independent verifier.
+- [x] Start G006 real package tamper matrix and first closure assertion gate.
+- [x] Regenerate package with `closure_assertion=true`.
+- [x] Verify package as `isaac_sim_embodiment_source_closed`.
+- [x] Add real generated package hash-refreshed tamper matrix.
+- [x] Confirm tamper matrix fails semantic checks with hash integrity preserved.
+- [x] Start G007 documentation and handoff finalization.
+- [x] Expand package README with claim/non-claim/evidence/verify/tamper discipline.
+- [x] Regenerate package README from runner so docs survive rebuild.
+- [x] Update worklog and Handoff for closure package state.
+- [x] Start G008 final regression, ai-slop-cleaner, independent review, PR/tag candidate gate.
+- [x] Record non-clean G008 review as `review_blocked` and add G009 blocker-resolution story.
+- [x] Harden runtime-backed package against self-attested or incomplete capture payloads.
+- [x] Add hash-bound `data/runtime_capture.json` and verifier `runtime_capture_source` check.
+- [x] Route MVP-3C projection/contract generation through the adapter service boundary.
+- [x] Regenerate closed package and verify it as `isaac_sim_embodiment_source_closed`.
+- [x] Run focused MVP-3C regression: `36 passed`.
+- [x] Run full regression: `934 passed, 6 skipped`.
+- [x] Verify MVP-2, MVP-3A, MVP-3B, and MVP-3C packages.
+- [x] Record non-clean G009 review as `review_blocked` and add G010 source-row semantic/EEF blocker story.
+- [x] Add RED tests for hash-refreshed non-numeric source/runtime row tamper.
+- [x] Add RED test for hash-refreshed projection frame drift after projection hash refresh.
+- [x] Add RED test for unreadable EEF pose fail-closed capture behavior.
+- [x] Harden verifier source row semantics and projection/source row binding.
+- [x] Make capture script fail closed when EEF pose is unreadable.
+- [x] Run focused MVP-3C regression after G010 fix: `39 passed`.
+- [x] Run final G010 quality gate: ai-slop-cleaner, post-cleaner verification, independent `code-reviewer` APPROVE + `architect` CLEAR.
+- [x] Complete aggregate Codex goal and checkpoint G010 with `quality-gate-json`.
+- [ ] Commit locally with Lore protocol after user instruction.
+
+Status note: PR #5 was merged to `main` and tagged
+`mvp3b-v0.1-source-adapter-matrix-infrastructure` on 2026-06-22. Historical checklist
+below reflects the implementation path.
+
 ## Current MVP-3B Source-Adapter Infrastructure Plan - 2026-06-20 KST
 
 Goal: MVP-3B를 `source_adapter_matrix` slice로 진행해 Franka / ROS2-DDS-style /
