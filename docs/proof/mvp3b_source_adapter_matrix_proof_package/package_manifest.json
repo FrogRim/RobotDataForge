@@ -1,51 +1,51 @@
 {
   "artifact_index": [
     {
-      "byte_size": 7832,
+      "byte_size": 9041,
       "data_path": "data/adapter_registry_snapshot.json",
-      "file_sha256": "54090994ee79130df600ded6c94251186b041016021eac56986041f038d3a75b",
+      "file_sha256": "69460a1619e645d175fdf2631fa869d0125037fd4604c1d00748f7ce1cd9da7c",
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 1793,
+      "byte_size": 2164,
       "data_path": "data/adapter_results/franka_research_arm_adapter_result.json",
-      "file_sha256": "76181fab4dfd82c7efec2d2cf1c931e5b7ab45c30d2b2b3c4ca544fd642c5bab",
+      "file_sha256": "6280d1f33b01a44f8d1667b376457d5ebd87d89f5d7ef67e3e1687894d6bb43a",
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 1795,
+      "byte_size": 2166,
       "data_path": "data/adapter_results/robotis_sh5_ros2_dds_adapter_result.json",
-      "file_sha256": "b7777fb919cad24a37b9cd86fb989c670112c3405287fe37efe2acc9ca1563a5",
+      "file_sha256": "5aeca3ff451cb05527f9c9cbcfcbbcb5c330b5f9a6cdf78262f62497bfc647c7",
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 1823,
+      "byte_size": 2194,
       "data_path": "data/adapter_results/universal_robots_ur_industrial_arm_adapter_result.json",
-      "file_sha256": "2d0821e3124f3f24c1445ecc2f5cfcef69b4deb124d360fdb34229cdcd3346ff",
+      "file_sha256": "ca111a82b324b3d8d747ddcdf18ef0c1f2465a2ebada838852118a1d9fda898d",
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2039,
+      "byte_size": 2426,
       "data_path": "data/config.json",
-      "file_sha256": "df7775612ced461120b42fbb8324d8c7aeccf2c0a1052ff291cd001e0e8b7dbd",
+      "file_sha256": "59206e35f30034f7be6a4aa66919e573d66cf6b0d6c673f055ede2f62bf5974e",
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2343,
+      "byte_size": 2714,
       "data_path": "data/contracts/franka_research_arm_normalized_trajectory_contract.json",
-      "file_sha256": "959ecc09f8ab711bf6dca5ba4ebae89ff3718dec1f2696d2959aacd00b0c5745",
+      "file_sha256": "4e9a648a92d8d3d3488afba56d082c1bab6d5cb064ca16a5d220957c947341a7",
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2345,
+      "byte_size": 2716,
       "data_path": "data/contracts/robotis_sh5_ros2_dds_normalized_trajectory_contract.json",
-      "file_sha256": "7a606189bb927e8b03314f2662bba5f354df4c868009ccce0c04f4b26503af6f",
+      "file_sha256": "705b9f059dbaf413f055aef3970379381a6d8fc8573afc151470fc4ea16d1388",
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2373,
+      "byte_size": 2744,
       "data_path": "data/contracts/universal_robots_ur_industrial_arm_normalized_trajectory_contract.json",
-      "file_sha256": "f29baa4568c0fa28852ed8a34230105b1a61f11c1834343885b777705c37c183",
+      "file_sha256": "506032f2fa9326f5de6b4ebc5d66a33b820e9a54ab04f53ce7fca4cb984679f5",
       "hash_convention": "file_bytes"
     },
     {
@@ -85,15 +85,15 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 1363,
+      "byte_size": 1750,
       "data_path": "data/non_claims_attestation.json",
-      "file_sha256": "ab964ace2c96ccac2ecb5fa1b9374cb145b81c6e42db91fedf878dc61a00d393",
+      "file_sha256": "62dc938c2c546d4ad09853695886913b8564a6fd748ef2f33348264506205cdf",
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2587,
+      "byte_size": 2958,
       "data_path": "data/projections/franka_research_arm/curation_manifest.json",
-      "file_sha256": "659b8590058e2c3ffdcc5e706a0faa9adc2e21f25ed99e7514e38a470e8fd005",
+      "file_sha256": "5b0f191d4c1de44787a73c7d30d94d242c9fd2ff90cc6f026914116811ff40d5",
       "hash_convention": "file_bytes"
     },
     {
@@ -109,9 +109,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2499,
+      "byte_size": 2870,
       "data_path": "data/projections/franka_research_arm/projection_manifest.json",
-      "file_sha256": "27697921b53f585506df42b024bb75cd875c9f20899aefbb6f2035a4942d91a3",
+      "file_sha256": "d2f33d2d0a3cdc251266b6aa8a152fce51912a7ffb3d98138c20216b209080d6",
       "hash_convention": "file_bytes"
     },
     {
@@ -133,9 +133,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2557,
+      "byte_size": 2928,
       "data_path": "data/projections/robotis_sh5_ros2_dds/curation_manifest.json",
-      "file_sha256": "212078d9c7f7893c56fa8ab3af2858d4b0e8eb330f45ecb30905d76a112730cd",
+      "file_sha256": "0800aae91af90ceedef2d5457dc8e43ba0d216aa39762be0a6a472b80ad1d540",
       "hash_convention": "file_bytes"
     },
     {
@@ -151,9 +151,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2504,
+      "byte_size": 2875,
       "data_path": "data/projections/robotis_sh5_ros2_dds/projection_manifest.json",
-      "file_sha256": "1e3ee65fcf928a1fc8e8f6bd60fa40ceb314e921d86500c4b10bd9c0486206b0",
+      "file_sha256": "178695d24fd4be4ff2c2d2728888d77c65381c658f9e56fb94ad36082d9c870a",
       "hash_convention": "file_bytes"
     },
     {
@@ -175,9 +175,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2627,
+      "byte_size": 2998,
       "data_path": "data/projections/universal_robots_ur_industrial_arm/curation_manifest.json",
-      "file_sha256": "b1811e055967a6491ee6bc967c55c70b4186f695821f037a5c6772ffc769a10b",
+      "file_sha256": "aeb6778d4a38567e0dcf3b7b2c9ac5ce3f44a6678351c127df1b053b8784ba7f",
       "hash_convention": "file_bytes"
     },
     {
@@ -193,9 +193,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2574,
+      "byte_size": 2945,
       "data_path": "data/projections/universal_robots_ur_industrial_arm/projection_manifest.json",
-      "file_sha256": "c4c17c5d9c1178ca51d478eba506c9838c586718a1e322ad02ba1bcb77b5cb5a",
+      "file_sha256": "d8df28cfd8b6137ba9a497eb635019b7e2d2c2adeb7e46da032cb5a19df9f067",
       "hash_convention": "file_bytes"
     },
     {
@@ -217,9 +217,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 1761,
+      "byte_size": 2132,
       "data_path": "data/source_adapter_matrix_summary.json",
-      "file_sha256": "122b8a11d874b1ce0971ab358f6ebac3a85d196e98ad84871bb63e1a163b81d0",
+      "file_sha256": "7dc9fc544aa6cdf41ae84c22a0e4e4cd5105400247f86731a8d512b34a4c079a",
       "hash_convention": "file_bytes"
     },
     {
@@ -229,9 +229,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2705,
+      "byte_size": 3076,
       "data_path": "data/source_logs/franka_research_arm/metadata.json",
-      "file_sha256": "6f91f74c67cc3e8771bebd6d115d47c891e77221701656eac5a2e34a28650a18",
+      "file_sha256": "e93e5876af59909ba8cef50f98fee7ab0c944c7077d522bd04694e068b331992",
       "hash_convention": "file_bytes"
     },
     {
@@ -247,9 +247,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2727,
+      "byte_size": 3098,
       "data_path": "data/source_logs/robotis_sh5_ros2_dds/metadata.json",
-      "file_sha256": "fef49932872a651224d0af0b4d70373e4120825cc5860b89c818621d3705e701",
+      "file_sha256": "b5f41408568a9dabb4e7f4e25ca914d15edf761ed3767fbf51b03d23bba15848",
       "hash_convention": "file_bytes"
     },
     {
@@ -265,9 +265,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2761,
+      "byte_size": 3132,
       "data_path": "data/source_logs/universal_robots_ur_industrial_arm/metadata.json",
-      "file_sha256": "9ed28e8bd21d271f15123aceb90cb205264cfc8639e57933f067216d682ea228",
+      "file_sha256": "1e7207dccefaf6ab88186ef70977bace6f42c9f05628b7da9976d74b819e105a",
       "hash_convention": "file_bytes"
     },
     {
@@ -279,7 +279,7 @@
     {
       "byte_size": 12441,
       "data_path": "data/artifact_index.json",
-      "file_sha256": "7de1bc7f81b75b18e71eba62277d21cff4723f994039c8c23ba8b079f026323c",
+      "file_sha256": "612b3343d503f6354021ccd2a33738a14d9d570d4e4c37134db3c248ea19c104",
       "hash_convention": "file_bytes"
     }
   ],
@@ -293,15 +293,21 @@
     "db_migration": false,
     "db_migration_claimed": false,
     "deployable_policy_readiness": false,
+    "deployable_policy_readiness_claimed": false,
     "franka_hardware_support": false,
+    "franka_hardware_support_claimed": false,
     "hmd_openxr_collection_readiness": false,
+    "hmd_openxr_collection_readiness_claimed": false,
     "hmd_readiness": false,
     "hmd_readiness_claimed": false,
     "learning_proven_value": false,
+    "learning_proven_value_claimed": false,
     "live_ros2_dds_runtime_support": false,
+    "live_ros2_dds_runtime_support_claimed": false,
     "live_runtime_support": false,
     "live_runtime_support_claimed": false,
     "live_ur_runtime_support": false,
+    "live_ur_runtime_support_claimed": false,
     "marketplace_readiness": false,
     "marketplace_readiness_claimed": false,
     "physical_robot_readiness": false,
@@ -311,6 +317,7 @@
     "production_auth": false,
     "production_auth_claimed": false,
     "production_certification": false,
+    "production_certification_claimed": false,
     "production_robot_support_claimed": false,
     "public_sample_evidence_claimed": false,
     "public_sample_import": false,
@@ -320,7 +327,8 @@
     "real_robot_success_claimed": false,
     "universal_robot_support": false,
     "universal_robot_support_claimed": false,
-    "visual_policy_performance": false
+    "visual_policy_performance": false,
+    "visual_policy_performance_claimed": false
   },
   "package_name": "mvp3b_source_adapter_matrix_proof_package",
   "schema_version": "rdf_mvp3b_source_adapter_package_manifest_v0.1.0"

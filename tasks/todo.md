@@ -2999,3 +2999,13 @@ frozen_mvp2_diff=no output
 - [ ] Final ultragoal quality gate:
   `ai-slop-cleaner` on changed files, focused re-verification, independent
   code-reviewer + architect review, then G004 checkpoint if clean.
+
+## 2026-06-22 - G005 MVP-3B claimed variant verifier blocker
+
+- [x] Added missing claimed variants to the canonical MVP-3B forbidden-claim schema.
+- [x] Added real-package tamper tests that refresh package hashes after injecting
+  missing `*_claimed` variants into indexed JSON.
+- [x] Updated verifier, producer, infrastructure tests, canonical spec/plan docs,
+  and regenerated the MVP-3B proof package.
+- [x] Run full required verification command set.
+- [x] Commit locally with Lore protocol.

@@ -39,23 +39,31 @@ CANONICAL_FORBIDDEN_CLAIMS = (
     "physical_robot_readiness",
     "physical_robot_readiness_claimed",
     "deployable_policy_readiness",
+    "deployable_policy_readiness_claimed",
     "visual_policy_performance",
+    "visual_policy_performance_claimed",
     "hmd_openxr_collection_readiness",
+    "hmd_openxr_collection_readiness_claimed",
     "hmd_readiness",
     "hmd_readiness_claimed",
     "marketplace_readiness",
     "marketplace_readiness_claimed",
     "production_certification",
+    "production_certification_claimed",
     "universal_robot_support",
     "universal_robot_support_claimed",
     "policy_uplift",
     "policy_uplift_claimed",
     "learning_proven_value",
+    "learning_proven_value_claimed",
     "live_runtime_support",
     "live_runtime_support_claimed",
     "live_ur_runtime_support",
+    "live_ur_runtime_support_claimed",
     "live_ros2_dds_runtime_support",
+    "live_ros2_dds_runtime_support_claimed",
     "franka_hardware_support",
+    "franka_hardware_support_claimed",
     "public_sample_import",
     "public_sample_import_claimed",
     "public_sample_evidence_claimed",
@@ -960,6 +968,44 @@ def test_real_package_specific_forbidden_claim_keys_truthy_fail_after_hash_refre
         (
             "live_runtime_support",
             "data/source_adapter_matrix_summary.json",
+        ),
+    )
+    for key, rel_path in cases:
+        manifest = _copy_real_package(tmp_path / key)
+        _tamper_indexed_json(
+            manifest,
+            rel_path,
+            lambda payload, key=key: payload.update({key: True}),
+        )
+
+        report = _load_verifier().verify_package(manifest)
+
+        _assert_only_check_failed(report, "forbidden_claims")
+
+
+def test_real_package_missing_claimed_support_production_learning_variants_fail_after_hash_refresh(
+    tmp_path: Path,
+):
+    cases = (
+        (
+            "live_ros2_dds_runtime_support_claimed",
+            "data/source_adapter_matrix_summary.json",
+        ),
+        (
+            "live_ur_runtime_support_claimed",
+            "data/source_logs/universal_robots_ur_industrial_arm/metadata.json",
+        ),
+        (
+            "franka_hardware_support_claimed",
+            "data/source_logs/franka_research_arm/metadata.json",
+        ),
+        (
+            "production_certification_claimed",
+            "data/config.json",
+        ),
+        (
+            "learning_proven_value_claimed",
+            "data/adapter_results/franka_research_arm_adapter_result.json",
         ),
     )
     for key, rel_path in cases:

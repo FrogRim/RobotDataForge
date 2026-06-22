@@ -18858,3 +18858,84 @@ git diff -- scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_is
 - `40000-40049`와 `42000-42049`는 spent/audit-only/no-reuse로 유지된다.
 - 최종 ultragoal quality gate(`ai-slop-cleaner`, focused verification, independent
   code-reviewer + architect review)가 남았다.
+
+## 2026-06-22 KST - MVP-3B G005 claimed variant verifier blocker
+
+### 작업 내용
+
+MVP-3B verifier의 canonical forbidden claim schema에 누락된 `*_claimed` 변형을
+추가하고, 실제 생성 package를 복사해 indexed JSON을 변조한 뒤 hash를 갱신하는
+회귀 테스트를 추가했다. Producer constant 변경 후 MVP-3B proof package를 재생성해
+`config.json`, `non_claims_attestation.json`, `artifact_index.json`,
+`package_manifest.json` hash consistency를 맞췄다.
+
+변경 파일:
+
+```text
+scripts/verify_mvp3b_source_adapter_package.py
+scripts/run_mvp3b_source_adapter_infrastructure.py
+apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+apps/api/tests/test_mvp3b_source_adapter_infrastructure.py
+docs/proof/mvp3b_source_adapter_matrix_proof_package/
+docs/superpowers/specs/2026-06-20-mvp3b-source-adapter-infrastructure-design.md
+docs/superpowers/plans/2026-06-20-mvp3b-source-adapter-infrastructure.md
+.superpowers/sdd/g005-claimed-variant-fix-report.md
+tasks/todo.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+### 판단 이유
+
+기존 verifier는 `CANONICAL_FORBIDDEN_CLAIMS`에 정확히 포함된 key만 recursive scan에서
+거부했다. 따라서 기존 non-claim schema가 암시하는 `live_ros2_dds_runtime_support`,
+`live_ur_runtime_support`, `franka_hardware_support`, `production_certification`,
+`learning_proven_value`의 claimed 변형을 추가하면 hash refresh 후 semantic verifier를
+통과할 수 있었다. 새 테스트는 byte tamper가 아니라 claim semantic failure를 검증한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# RED: failed before verifier/producer schema update; new real-package claimed-variant tamper case still verified
+
+uv run python scripts/run_mvp3b_source_adapter_infrastructure.py --clean --pretty
+# package regenerated; status=source_adapter_infrastructure_closed, adapter_count=3
+
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 37 passed in 1.02s
+```
+
+최종 required verification command set:
+
+```bash
+uv run pytest apps/api/tests/test_verify_mvp3b_source_adapter_package.py -q
+# 37 passed in 1.03s
+
+uv run pytest apps/api/tests/test_mvp3b_source_adapter_infrastructure.py -q
+# 9 passed in 0.15s
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+# VERDICT: VERIFIED, 16 checks passed
+
+uv run mypy scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py
+# Success: no issues found in 4 source files
+
+uvx ruff check scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py apps/api/app/services/robot_embodiment_adapters.py
+# All checks passed
+
+python3 -m py_compile scripts/run_mvp3b_source_adapter_infrastructure.py scripts/verify_mvp3b_source_adapter_package.py
+# passed
+
+git diff --check
+# passed
+
+git diff -- scripts/run_mvp2c_isaac_training_calibration.py scripts/run_mvp2b_isaac_proof_evaluator.py scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package
+# no output
+```
+
+### 남은 gap 또는 다음 작업
+
+- Verifier는 stdlib-only 독립성을 유지한다.
+- MVP-2 frozen asset과 MVP-3A proof package는 변경하지 않는다.
+- Live robot/runtime/support/production/learning-proven claim은 추가하지 않는다.

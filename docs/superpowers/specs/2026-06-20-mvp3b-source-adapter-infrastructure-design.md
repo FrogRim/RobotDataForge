@@ -169,23 +169,31 @@ real_robot_success_claimed
 physical_robot_readiness
 physical_robot_readiness_claimed
 deployable_policy_readiness
+deployable_policy_readiness_claimed
 visual_policy_performance
+visual_policy_performance_claimed
 hmd_openxr_collection_readiness
+hmd_openxr_collection_readiness_claimed
 hmd_readiness
 hmd_readiness_claimed
 marketplace_readiness
 marketplace_readiness_claimed
 production_certification
+production_certification_claimed
 universal_robot_support
 universal_robot_support_claimed
 policy_uplift
 policy_uplift_claimed
 learning_proven_value
+learning_proven_value_claimed
 live_runtime_support
 live_runtime_support_claimed
 live_ur_runtime_support
+live_ur_runtime_support_claimed
 live_ros2_dds_runtime_support
+live_ros2_dds_runtime_support_claimed
 franka_hardware_support
+franka_hardware_support_claimed
 public_sample_import
 public_sample_import_claimed
 public_sample_evidence_claimed
@@ -403,18 +411,44 @@ Example:
   "learning_proven_addendum": "absent",
   "non_claims": {
     "real_robot_success": false,
+    "real_robot_success_claimed": false,
     "physical_robot_readiness": false,
+    "physical_robot_readiness_claimed": false,
     "live_ur_runtime_support": false,
+    "live_ur_runtime_support_claimed": false,
     "live_ros2_dds_runtime_support": false,
+    "live_ros2_dds_runtime_support_claimed": false,
     "franka_hardware_support": false,
+    "franka_hardware_support_claimed": false,
     "deployable_policy_readiness": false,
+    "deployable_policy_readiness_claimed": false,
     "visual_policy_performance": false,
+    "visual_policy_performance_claimed": false,
     "hmd_openxr_collection_readiness": false,
+    "hmd_openxr_collection_readiness_claimed": false,
+    "hmd_readiness": false,
+    "hmd_readiness_claimed": false,
     "marketplace_readiness": false,
+    "marketplace_readiness_claimed": false,
     "production_certification": false,
+    "production_certification_claimed": false,
     "universal_robot_support": false,
+    "universal_robot_support_claimed": false,
     "policy_uplift": false,
-    "learning_proven_value": false
+    "policy_uplift_claimed": false,
+    "learning_proven_value": false,
+    "learning_proven_value_claimed": false,
+    "live_runtime_support": false,
+    "live_runtime_support_claimed": false,
+    "public_sample_import": false,
+    "public_sample_import_claimed": false,
+    "public_sample_evidence_claimed": false,
+    "db_migration": false,
+    "db_migration_claimed": false,
+    "production_auth": false,
+    "production_auth_claimed": false,
+    "real_robot_readiness_claimed": false,
+    "production_robot_support_claimed": false
   }
 }
 ```
