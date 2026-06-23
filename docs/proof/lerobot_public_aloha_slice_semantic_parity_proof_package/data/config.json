@@ -1,0 +1,34 @@
+{
+  "external_source_included": true,
+  "non_claims": {
+    "deployable_policy_readiness": false,
+    "full_dataset_evaluation": false,
+    "full_lerobot_parser_support": false,
+    "general_robot_intelligence": false,
+    "learning_proven_value": false,
+    "live_aloha_support": false,
+    "live_franka_hardware_support": false,
+    "live_hardware_support": false,
+    "live_ros2_dds_bridge_readiness": false,
+    "live_ur_rtde_support": false,
+    "marketplace_readiness": false,
+    "physical_robot_readiness": false,
+    "policy_uplift": false,
+    "production_certification": false,
+    "real_robot_success": false,
+    "sim_to_real_proven": false,
+    "visual_policy_performance": false
+  },
+  "package_status": "external_data_evaluated",
+  "repo_id": "lerobot/aloha_static_coffee",
+  "resolved_revision": "b144896feb1f37398a862927b22cd3abdf005a6b",
+  "schema_version": "rdf_lerobot_public_slice_config_v0.1.0",
+  "slice_rule": {
+    "episode_index": 0,
+    "frame_count": 8,
+    "frame_start": 0,
+    "reason": "small deterministic public-source slice for semantic parity proof",
+    "slice_rule": "first_episode_first_n_frames"
+  },
+  "source_kind": "public_lerobot_aloha_audited_slice"
+}

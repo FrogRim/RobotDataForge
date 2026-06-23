@@ -1965,3 +1965,60 @@ curated_vs_uncurated_uplift >= 0.20
 `stronger_public_evidence_target_passed`는 close minimum과 별도다. 공개
 benchmark 또는 investor-facing claim에는 policy당 50개 이상 rollout과 confidence
 interval evidence가 필요하다.
+
+## LeRobot Public ALOHA Audited Slice Semantic Parity Schema
+
+`docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/`는
+public LeRobot source의 deterministic audited slice를 RDF trust layer에 태운
+첫 `external_data_evaluated` package다. 이 schema는 기존 UR-style
+command/state log와 다르며, EEF/object pose field를 만들지 않는다.
+
+Source binding artifact:
+
+```text
+data/source/public_source_binding.json
+data/source/upstream_file_hashes.json
+data/source/refetch_receipt.json
+data/source/extraction_receipt.json
+data/source/slice_selection_report.json
+data/source/lerobot_raw_rows.jsonl
+data/source/lerobot_feature_schema.json
+```
+
+Converted RDF row schema:
+
+```json
+{
+  "schema_version": "rdf_public_lerobot_state_action_row_v0.1.0",
+  "source_kind": "public_lerobot_dataset_slice",
+  "source_robot_type": "aloha",
+  "observation_state": [0.0],
+  "learning_action": [0.0],
+  "action_semantics": {
+    "representation": "lerobot_action_vector",
+    "coordinate_frame": "source_dataset_native_frame",
+    "normalized_contract_roles": ["source_action", "learning_action"]
+  }
+}
+```
+
+현재 canonical package의 측정값:
+
+```text
+repo_id=lerobot/aloha_static_coffee
+resolved_revision=b144896feb1f37398a862927b22cd3abdf005a6b
+slice_rule=first_episode_first_n_frames
+episode_index=0
+frame_start=0
+frame_count=8
+observation_state_dim=14
+action_dim=14
+full_source_verdict_claimed=false
+audited_slice_verdict_claimed=true
+```
+
+이 package가 허용하는 claim은 `public LeRobot ALOHA audited slice`의
+source binding, semantic conversion, generic state/action contract, HDF5 export,
+trainer smoke, verifier recomputation이다. Full LeRobot parser support, full
+dataset evaluation, real robot readiness, visual policy performance, policy uplift,
+deployable policy, marketplace, production, sim-to-real claim은 모두 false다.

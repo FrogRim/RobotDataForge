@@ -1,0 +1,13 @@
+{
+  "action_dim": 14,
+  "final_loss": 0.32744969744980373,
+  "initial_loss": 0.32758093826989587,
+  "issues": [],
+  "learning_results_measured": false,
+  "observation_state_dim": 14,
+  "passed": true,
+  "policy_uplift": null,
+  "sample_count": 8,
+  "schema_version": "rdf_generic_state_action_trainer_smoke_v0.1.0",
+  "trainer": "generic_state_action_trainer_smoke"
+}

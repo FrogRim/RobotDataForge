@@ -92,6 +92,145 @@ git diff --check
 
 ---
 
+## 2026-06-23: LeRobot Public ALOHA audited slice semantic parity 구현
+
+### 작업 내용
+
+승인된 RALPLAN을 기준으로 public LeRobot ALOHA deterministic audited slice를
+RDF trust layer에 태우는 package, producer, generic state/action contract, HDF5
+export, trainer smoke, independent verifier, tamper regression을 구현했다.
+
+변경/생성 파일:
+
+```text
+apps/api/app/services/lerobot_public_slice.py
+apps/api/app/services/lerobot_state_action_contract.py
+apps/api/tests/test_lerobot_public_slice_semantic_parity.py
+apps/api/tests/test_verify_lerobot_public_slice_package.py
+scripts/run_lerobot_public_slice_semantic_parity.py
+scripts/verify_lerobot_public_slice_package.py
+docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/
+docs/developer/data_schema.md
+docs/developer/debugging_guide.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+생성된 canonical package:
+
+```text
+package=docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/
+repo_id=lerobot/aloha_static_coffee
+resolved_revision=b144896feb1f37398a862927b22cd3abdf005a6b
+source_file=data/chunk-000/file-000.parquet
+slice_rule=first_episode_first_n_frames
+episode_index=0
+frame_start=0
+frame_count=8
+observation_state_dim=14
+action_dim=14
+package_status=external_data_evaluated
+full_source_verdict_claimed=false
+audited_slice_verdict_claimed=true
+```
+
+### 판단 이유
+
+Self-attested file drop은 외부성을 독립적으로 재검증하기 어렵다. 이번 slice는
+public source URL, pinned HF revision, upstream file hashes,
+`refetch_receipt.json`, `extraction_receipt.json`를 포함해 source binding을 더
+강하게 만들었다. 단, claim은 included 8-row audited slice에만 한정한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run --with huggingface_hub --with pyarrow \
+  scripts/run_lerobot_public_slice_semantic_parity.py --pretty
+# package generated, row_count=8, observation_state_dim=14, action_dim=14, trainer_smoke_passed=true
+
+python3 scripts/verify_lerobot_public_slice_package.py \
+  docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uv run python scripts/verify_lerobot_public_slice_package.py \
+  docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json --deep-hdf5
+# VERDICT: VERIFIED
+
+python3 scripts/verify_lerobot_public_slice_package.py \
+  docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json --refetch-public-source
+# VERDICT: VERIFIED
+
+uv run --with pyarrow scripts/verify_lerobot_public_slice_package.py \
+  docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json --reextract-public-source
+# VERDICT: VERIFIED
+
+uv run pytest -q \
+  apps/api/tests/test_lerobot_public_slice_semantic_parity.py \
+  apps/api/tests/test_verify_lerobot_public_slice_package.py
+# 17 passed
+
+uv run mypy \
+  apps/api/app/services/lerobot_public_slice.py \
+  apps/api/app/services/lerobot_state_action_contract.py \
+  scripts/run_lerobot_public_slice_semantic_parity.py \
+  scripts/verify_lerobot_public_slice_package.py \
+  apps/api/tests/test_lerobot_public_slice_semantic_parity.py \
+  apps/api/tests/test_verify_lerobot_public_slice_package.py \
+  --ignore-missing-imports
+# Success: no issues found in 6 source files
+
+uv run pytest -q
+# 978 passed, 6 skipped
+
+uvx ruff check .
+# All checks passed
+
+git diff --check
+# passed
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+python3 scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+python3 scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+python3 scripts/verify_external_robot_data_ingest_package.py docs/proof/external_robot_data_ingest_eval_v0_proof_package/package_manifest.json
+# all VERDICT: VERIFIED
+```
+
+### Review hardening
+
+독립 code review에서 발견된 세 구멍을 닫았다.
+
+```text
+- default verifier가 hash-refreshed HDF5 semantic drift를 놓치던 문제:
+  expected float32 observation/action payload bytes가 dataset.hdf5 안에 정확히
+  한 번 있는지 default verifier에서 확인한다.
+- branch-like revision self-attestation 문제:
+  resolved_revision은 40자 lowercase commit sha로 제한하고 raw rows를
+  repo_id/resolved_revision/source_file에 직접 bind한다.
+- artifact index traversal 문제:
+  data_path는 normalized data/ 하위 path만 허용하고 resolve 결과가 data root를
+  벗어나면 fail한다.
+```
+
+Architect review의 WATCH도 닫았다. `write_readme()` 생성 템플릿이 checked-in
+README와 같은 ALOHA audited-slice-only / default-offline / optional
+refetch-reextract boundary 문구를 생성하도록 수정했고, 이를 테스트로 잠갔다.
+
+최종 review gate:
+
+```text
+code-reviewer=APPROVE
+architect=CLEAR
+```
+
+### 남은 gap 또는 다음 작업
+
+- remote push와 PR은 별도 외부 동작으로 남아 있다.
+- 이번 package는 `lerobot/aloha_static_coffee` 8-row audited slice만 평가한다.
+- 다음 public dataset은 기존 constants를 재사용하지 말고 명시적 `LeRobotSliceProfile`을 둔다.
+
+---
+
 ## 2026-06-23: External Robot Data Ingest / Evaluation v0 G000-G007
 
 ### 작업 내용

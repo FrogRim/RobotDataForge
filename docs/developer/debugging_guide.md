@@ -4974,3 +4974,72 @@ heldout_42000_42049:
   regression fixture 설계 참고 자료로 보존한다.
 - future MVP-3B proof attempt는 fresh pre-registered held-out range를 별도로
   잡고, `40000-40049`와 `42000-42049` 모두와 disjoint해야 한다.
+
+## LeRobot public ALOHA audited slice verification
+
+LeRobot public source semantic parity package는 아래 위치에 있다.
+
+```text
+docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/
+```
+
+Package 재생성:
+
+```bash
+uv run --with huggingface_hub --with pyarrow \
+  scripts/run_lerobot_public_slice_semantic_parity.py --pretty
+```
+
+Default verifier는 stdlib-only이며 network나 heavy dependency 없이 included
+evidence에서 재계산한다.
+
+```bash
+python3 scripts/verify_lerobot_public_slice_package.py \
+  docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json
+```
+
+강한 optional verification:
+
+```bash
+uv run python scripts/verify_lerobot_public_slice_package.py \
+  docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json \
+  --deep-hdf5
+
+python3 scripts/verify_lerobot_public_slice_package.py \
+  docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json \
+  --refetch-public-source
+
+uv run --with pyarrow scripts/verify_lerobot_public_slice_package.py \
+  docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json \
+  --reextract-public-source
+```
+
+실패 해석:
+
+```text
+public_source_binding fail:
+  resolved_revision이 floating main이거나 license/source metadata가 변조됨.
+
+refetch_receipt fail:
+  package에 기록된 public source hash 확인 receipt가 upstream_file_hashes와 불일치.
+
+extraction_receipt fail:
+  included raw JSONL row digest가 pinned parquet에서 재추출한 digest와 불일치.
+
+conversion_parity fail:
+  rdf_converted_rows.jsonl이 raw row에서 deterministic하게 파생되지 않았거나
+  EEF/object/UR/Franka/ROS/RTDE 같은 fabricated field가 들어감.
+
+claim_and_spent_boundary fail:
+  README, buyer report, JSON artifact에 non-negated forbidden claim이 새거나
+  spent seed range 40000-40049 또는 42000-42049가 재사용됨.
+```
+
+중요한 경계:
+
+```text
+이 package는 full LeRobot dataset evaluation이 아니다.
+이 package는 real robot readiness나 policy uplift evidence가 아니다.
+이 package는 public ALOHA source의 8-row deterministic audited slice가
+RDF generic state/action trust layer를 통과하고 verifier로 재계산됨을 증명한다.
+```
