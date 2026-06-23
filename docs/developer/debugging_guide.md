@@ -38,6 +38,51 @@ Compile check를 실행한다.
 uv run python -m compileall -q apps/api/app apps/api/tests scripts
 ```
 
+## External Robot Data Ingest / Evaluation v0 확인
+
+현재 canonical external ingest package는 실제 external source row가 없어서
+`external_ingest_contract_ready` 상태다. `external_data_evaluated`를 claim하려면
+외부에서 제공되거나 공개 source에 refetch-bind된 `metadata.json`,
+`accepted_command_state.jsonl`, `rejected_command_state.jsonl`을
+`docs/proof/.../data/source/`에 포함할 수 있어야 한다.
+
+현재 package 검증:
+
+```bash
+cd ~/robot-data-forge
+python3 scripts/verify_external_robot_data_ingest_package.py \
+  docs/proof/external_robot_data_ingest_eval_v0_proof_package/package_manifest.json
+```
+
+예상 결과:
+
+```text
+VERDICT: VERIFIED
+status=external_ingest_contract_ready
+external_source_included=false
+```
+
+새 external JSONL drop을 임시로 검사할 때:
+
+```bash
+uv run python scripts/run_external_robot_data_ingest_eval_v0.py \
+  --external-source-dir /path/to/external_drop \
+  --output-dir /tmp/rdf_external_ingest_eval_v0 \
+  --package-status external_data_evaluated \
+  --clean \
+  --pretty
+```
+
+주의:
+
+```text
+- /path/to/external_drop이 repo fixture, docs/proof, storage, .omx 아래면 external_data_evaluated는 fail한다.
+- raw metadata는 adapter-only field를 갖출 필요가 없다. staging metadata는 RDF가 결정적으로 파생한다.
+- external_source_included=false package는 external robot data를 평가했다는 claim이 아니다.
+- 현재 verifier는 semantic parity artifact 검증이 추가되기 전까지 external_data_evaluated package를 fail-closed한다.
+- verifier는 package 내부 row/hash 일관성을 재계산하지만, self-asserted metadata의 물리적 origin을 암호학적으로 증명하지 않는다.
+```
+
 ---
 
 ## 2. Backend API 스모크 테스트

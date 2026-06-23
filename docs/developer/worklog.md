@@ -12,6 +12,106 @@
 
 ---
 
+## 2026-06-23: External Robot Data Ingest / Evaluation v0 G000-G007
+
+### 작업 내용
+
+승인된 `ralplan`을 기준으로 `$ultragoal` 실행을 시작했고, 외부 source 존재 여부
+확인부터 external JSONL source validator, deterministic staging derivation,
+adapter projection runner, normalized contract emission, HDF5 export, trainer smoke,
+self-contained proof package builder, stdlib-only verifier, tamper regression,
+developer-facing schema/debugging docs까지 구현했다.
+
+변경 파일:
+
+```text
+apps/api/app/services/external_robot_data_ingest.py
+apps/api/tests/test_external_robot_data_ingest_eval_v0.py
+scripts/run_external_robot_data_ingest_eval_v0.py
+scripts/verify_external_robot_data_ingest_package.py
+docs/proof/external_robot_data_ingest_eval_v0_proof_package/
+docs/developer/data_schema.md
+docs/developer/debugging_guide.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+핵심 결정:
+
+```text
+- repo 안에는 실제 external/public robot log가 없으므로 이번 v0는 external_data_evaluated를 claim하지 않는다.
+- target status는 external_ingest_contract_ready다.
+- raw external metadata는 data/source evidence로 불변이어야 하며 adapter-compatible metadata는 staging에서 결정적으로 파생한다.
+- adapter projection은 staging source directory를 통해 기존 RobotEmbodimentAdapterRegistry.project_source_evidence()를 재사용한다.
+- staging report는 raw metadata/source rows/staging metadata/staging rows sha256을 묶고, tamper 시 fail한다.
+- trainer-loadable claim은 HDF5 inspection과 trainer smoke가 통과한 경우에만 gate가 열린다.
+- canonical package는 `docs/proof/external_robot_data_ingest_eval_v0_proof_package/`에 생성했고, 현재는 `external_source_included=false`라 canonical source rows를 포함하지 않는다.
+- `scripts/verify_external_robot_data_ingest_package.py`는 producer service를 import하지 않고 package JSON만 검증한다.
+- tamper matrix는 hash mismatch뿐 아니라 hash refresh 후 source-row leakage, non-claim true, spent seed, README claim leakage를 실패시킨다.
+- `external_data_evaluated` verifier branch는 projection/export/trainer semantic parity 검증이 들어오기 전까지 fail-closed한다.
+```
+
+### 판단 이유
+
+MVP-2에서 발견했던 self-attestation 문제를 반복하지 않으려면, 외부 source가 없을 때
+generated fixture를 external evidence로 승격하면 안 된다. 따라서 v0는 실제 외부 로그가
+들어오면 같은 path가 동작하도록 계약과 runner를 닫되, 현재 claim은
+`external_ingest_contract_ready`에 묶는다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest -q apps/api/tests/test_external_robot_data_ingest_eval_v0.py
+# 24 passed
+
+python3 scripts/verify_external_robot_data_ingest_package.py \
+  docs/proof/external_robot_data_ingest_eval_v0_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+# status=external_ingest_contract_ready
+# external_source_included=false
+
+uvx ruff check scripts/run_external_robot_data_ingest_eval_v0.py \
+  scripts/verify_external_robot_data_ingest_package.py \
+  apps/api/app/services/external_robot_data_ingest.py \
+  apps/api/tests/test_external_robot_data_ingest_eval_v0.py
+# All checks passed!
+
+python3 -m compileall scripts/run_external_robot_data_ingest_eval_v0.py \
+  scripts/verify_external_robot_data_ingest_package.py \
+  apps/api/app/services/external_robot_data_ingest.py \
+  apps/api/tests/test_external_robot_data_ingest_eval_v0.py
+# passed
+
+git diff --check
+# passed
+
+uv run pytest -q
+# 961 passed, 6 skipped
+
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+python3 scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+python3 scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+# all VERIFIED
+```
+
+### Final quality gate
+
+```text
+ai_slop_cleaner=PASS
+code_reviewer=APPROVE
+architect_status=CLEAR
+independent_review_blocker=false
+```
+
+### 남은 gap 또는 다음 작업
+
+- 실제 external/public source row가 들어오면, `external_data_evaluated` verifier branch에
+  source validation, staging derivation, projection, HDF5 inspection, trainer smoke semantic parity
+  재계산을 추가한 뒤에만 evaluated claim을 연다.
+
+---
+
 ## 2026-06-22: MVP-3C Isaac Sim embodiment source spec 초안
 
 ### 작업 내용
@@ -19682,3 +19782,230 @@ architect_result=CLEAR
 
 - 로컬 변경을 Lore protocol에 맞춰 커밋한다.
 - push, PR, tag는 사용자 명시 지시 후 진행한다.
+
+## 2026-06-23 KST - External robot data ingest/evaluation v0 spec draft
+
+### 작업 내용
+
+MVP-3C 이후 다음 관문인 외부/실제 recorded robot log ingest proof를 위한 설계 spec을 작성했다.
+
+신규 spec:
+
+```text
+docs/superpowers/specs/2026-06-23-external-robot-data-ingest-evaluation-v0-design.md
+```
+
+### 판단 이유
+
+현재 tracked proof package들은 verifier-backed로 닫혀 있지만, repo에는 아직 실제 외부 제공 robot log가
+tracked source of truth로 존재하지 않는다. 기존 UR source-like 입력은
+`fixtures/mvp1plus/universal_robots_ur_recorded_log_fixture/`의 repo-local generated fixture이며,
+이를 external real data로 승격하면 self-attestation/claim boundary 문제가 재발한다.
+
+따라서 v0 spec은 `external_jsonl_command_state_drop`를 첫 anchor로 두고, 실제 외부 source가 없으면
+`external_ingest_contract_ready`까지만 닫으며, 실제 source/audited slice가 included evidence로 들어왔을
+때만 `external_data_evaluated`를 허용하도록 분리했다.
+
+### 변경 파일
+
+```text
+docs/superpowers/specs/2026-06-23-external-robot-data-ingest-evaluation-v0-design.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+wc -l docs/superpowers/specs/2026-06-23-external-robot-data-ingest-evaluation-v0-design.md
+# 614 docs/superpowers/specs/2026-06-23-external-robot-data-ingest-evaluation-v0-design.md
+
+rg -n "external_data_evaluated|real robot|live|policy uplift|generated_by_rdf|repo_fixture|Status:" \
+  docs/superpowers/specs/2026-06-23-external-robot-data-ingest-evaluation-v0-design.md
+# claim boundary and stop-condition terms are present in the spec
+```
+
+### 남은 gap 또는 다음 작업
+
+- 구현 전 `$ralplan --deliberate`로 plan을 작성한다.
+- 첫 실제 source가 user-supplied UR-style JSONL drop인지, public dataset audited slice인지 결정해야 한다.
+- 외부 source가 없으면 fixture를 external data로 부르지 말고 contract-ready proof만 닫는다.
+
+## 2026-06-23 KST - External ingest spec provenance trust boundary review 반영
+
+### 작업 내용
+
+Spec review에서 지적된 provenance self-attestation boundary를 반영했다.
+
+추가한 핵심:
+
+```text
+Provenance Trust Boundary
+trust_tier=attested_file_drop
+trust_tier=refetchable_public_source
+external_data_evaluated는 RDF evaluation 재계산 claim이지,
+외부 robot origin의 암호학적 증명 claim이 아님.
+```
+
+### 판단 이유
+
+오프라인 verifier는 included JSONL에서 count, quality, projection, contract, HDF5, trainer smoke
+일관성을 재계산할 수 있지만, self-asserted metadata가 실제 외부 robot event에서 왔는지는 증명할 수 없다.
+이 한계를 명시하지 않으면 `external_data_evaluated`가 실제 robot origin proof로 과장될 수 있다.
+
+따라서 spec은 `attested_file_drop`과 `refetchable_public_source`를 분리하고, public source의 경우
+`public_source_url`, `upstream_dataset_revision`, `upstream_published_sha256`를 요구하도록 보강했다.
+
+### 변경 파일
+
+```text
+docs/superpowers/specs/2026-06-23-external-robot-data-ingest-evaluation-v0-design.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- `$ralplan --deliberate`에서 verifier 계약을 구체 task로 나눈다.
+- first source는 spec default대로 user-supplied UR-style JSONL full rows commit을 우선한다.
+- LeRobot/public dataset은 refetchable binding이 준비된 뒤 Tier 2/native parser로 미룬다.
+
+## 2026-06-23 KST - External ingest v0 ralplan consensus 승인
+
+### 작업 내용
+
+`$ralplan --deliberate`로 External Robot Data Ingest / Evaluation v0 구현 계획을
+Planner -> Architect -> Critic 순서로 검토했고, Critic iteration 1에서 발견된 metadata staging
+boundary gap을 반영한 뒤 Architect iteration 3, Critic iteration 2에서 최종 승인됐다.
+
+승인된 핵심 결정:
+
+```text
+v0 source anchor=external_jsonl_command_state_drop
+status split=external_ingest_contract_ready vs external_data_evaluated
+raw metadata=data/source/metadata.json, immutable verdict evidence
+staging metadata=data/staging/metadata.json, deterministic adapter-compatible derivation
+verifier requirement=recompute/exact-check raw -> staging derivation
+v0 row contract=accepted_rows >= 4, rejected_rows == 1
+implementation_started=false
+recommended_followup=$ultragoal
+```
+
+### 판단 이유
+
+기존 `RobotEmbodimentAdapterRegistry.project_source_evidence()`는 `metadata.json`에
+`adapter_version`, `evidence_level`, `source_provenance`, `claim_boundary`, `limitations`
+같은 adapter 내부 필드를 요구한다. 이를 raw external metadata에 직접 요구하면 외부 source evidence가 RDF 내부
+형상에 오염된다.
+
+따라서 승인된 plan은 raw external metadata를 source of truth로 보존하고, 별도 staging metadata를 결정적으로
+파생해 기존 projection path에 전달한다. verifier는 raw/staging 파일과 derivation report를 다시 계산해
+self-attestation gap을 줄인다.
+
+### 변경 파일
+
+```text
+docs/superpowers/specs/2026-06-23-external-robot-data-ingest-evaluation-v0-design.md
+.omx/plans/prd-external-robot-data-ingest-evaluation-v0.md
+.omx/plans/test-spec-external-robot-data-ingest-evaluation-v0.md
+.omx/plans/ralplan-external-robot-data-ingest-evaluation-v0.md
+.omx/plans/ralplan-architect-review-external-robot-data-ingest-evaluation-v0-iteration3.md
+.omx/plans/ralplan-critic-review-external-robot-data-ingest-evaluation-v0-iteration1.md
+.omx/plans/ralplan-critic-review-external-robot-data-ingest-evaluation-v0-iteration2.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+git diff --check
+# passed
+
+rg -n "Metadata Staging|staging_derivation|external_source_included=false|adapter-only|raw external metadata" \
+  docs/superpowers/specs/2026-06-23-external-robot-data-ingest-evaluation-v0-design.md \
+  .omx/plans/prd-external-robot-data-ingest-evaluation-v0.md \
+  .omx/plans/test-spec-external-robot-data-ingest-evaluation-v0.md \
+  .omx/plans/ralplan-external-robot-data-ingest-evaluation-v0.md
+# required staging/provenance anchors present
+```
+
+### 남은 gap 또는 다음 작업
+
+- `$ultragoal`로 승인된 plan을 실행한다.
+- 첫 gate에서 실제 external/public source availability를 판정한다.
+- 외부 source가 없으면 `external_ingest_contract_ready`까지만 닫고, fixture를 external data로 승격하지 않는다.
+- 구현 시 staging derivation algorithm/version을 prose가 아니라 verifier-owned stable constant로 둔다.
+- arbitrary rejected-row preservation은 v0 밖 adapter enhancement로 남긴다.
+
+## 2026-06-23 KST - External ingest v0 Ultragoal G000 source availability gate
+
+### 작업 내용
+
+승인된 ralplan을 기준으로 `$ultragoal` 실행을 시작했고, G000에서 실제 external/public recorded source가
+repo 안에 있는지 확인했다.
+
+결과:
+
+```text
+actual_external_source_found=false
+target_status=external_ingest_contract_ready
+external_data_evaluated_claim_allowed=false
+```
+
+### 판단 이유
+
+검색 결과 source-like JSONL은 존재하지만 모두 아래 범주였다.
+
+```text
+fixtures/mvp1plus/universal_robots_ur_recorded_log_fixture/
+  repo-local generated fixture라 external real data로 승격 불가
+
+docs/proof/mvp3b_source_adapter_matrix_proof_package/data/source_logs/
+  기존 proof package evidence라 새 external source input이 아님
+
+docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/data/source_logs/
+  Isaac Sim proof evidence라 외부 recorded robot log가 아님
+```
+
+따라서 이번 실행은 importer/schema/verifier/package discipline을 닫는
+`external_ingest_contract_ready`를 목표로 하며, `external_data_evaluated`는 실제 external/public source 또는
+deterministic audited slice가 들어오기 전까지 claim하지 않는다.
+
+### 변경 파일
+
+```text
+Handoff.md
+docs/developer/worklog.md
+.omx/ultragoal/brief.md
+.omx/ultragoal/goals.json
+.omx/ultragoal/ledger.jsonl
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+omx ultragoal create-goals --from-stdin
+# 8 goals created
+
+rg -n "source_origin|external_supplied_recorded_log|public_dataset_recorded_log|generated_by_rdf|repo_fixture|recorded_log_backed|upstream_published_sha256" \
+  . --glob '!storage/**' --glob '!.venv/**' --glob '!.omx/**' --glob '!apps/api/**/__pycache__/**'
+# only spec/planning refs plus repo fixture/proof-package source-like evidence found
+
+find . -path './storage' -prune -o -path './.venv' -prune -o -path './.omx' -prune -o -path './.git' -prune -o \
+  \( -name 'accepted_command_state.jsonl' -o -name 'rejected_command_state.jsonl' -o -name 'metadata.json' \) -print
+# found fixture and existing proof package source logs; no standalone external/public source drop
+```
+
+### 남은 gap 또는 다음 작업
+
+- G001에서 external source eligibility validator를 구현한다.
+- Canonical proof package는 `external_source_included=false`로 contract-ready 상태만 닫아야 한다.
+- 실제 external/public source가 나중에 제공되면 별도 run에서 `external_data_evaluated`로 승격한다.

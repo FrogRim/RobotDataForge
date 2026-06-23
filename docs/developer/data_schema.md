@@ -2,6 +2,103 @@
 
 공유 JSON schema 파일은 `packages/shared/` 아래에 둔다.
 
+## External Robot Data Ingest v0 Source Drop
+
+`External Robot Data Ingest / Evaluation v0`의 입력 source는 repo fixture가 아니라
+외부에서 전달된 offline JSONL command/state drop이어야 한다. 현재 canonical package는
+실제 external source가 없어 `external_ingest_contract_ready`만 claim하며,
+`external_data_evaluated`를 claim하지 않는다.
+
+필수 파일:
+
+```text
+metadata.json
+accepted_command_state.jsonl
+rejected_command_state.jsonl
+PROVENANCE.md
+LICENSE.txt
+```
+
+`metadata.json`의 v0 필수 source evidence:
+
+```json
+{
+  "schema_version": "rdf_external_command_state_source_metadata_v0.1.0",
+  "source_id": "external_ur_log_20260623_temp",
+  "source_origin": "external_supplied_recorded_log",
+  "source_acquisition": "file_drop",
+  "source_owner": "Review Partner Lab",
+  "source_license": "private_review",
+  "source_redistribution_allowed": true,
+  "provenance_trust_tier": "attested_file_drop",
+  "recorded_log_backed": true,
+  "generated_by_rdf": false,
+  "repo_fixture": false,
+  "robot_family_claimed": "universal_robots_ur",
+  "embodiment_class_claimed": "industrial_arm",
+  "command_stream": {
+    "interface": "industrial_arm_command_fixture",
+    "unit": "meters_radians_normalized_gripper"
+  },
+  "state_stream": {
+    "interface": "industrial_arm_state_stream_fixture"
+  },
+  "coordinate_frames_declared": {
+    "command_frame": "task_frame",
+    "state_frame": "robot_base_frame"
+  }
+}
+```
+
+각 JSONL row는 최소한 아래 field를 포함해야 한다.
+
+```json
+{
+  "sequence_id": 1,
+  "timestamp": 0.04,
+  "task_phase": "insert",
+  "command": {
+    "interface": "industrial_arm_command_fixture",
+    "unit": "meters_radians_normalized_gripper",
+    "vector": [0.011, -0.002, -0.036, 0.001, -0.001, 0.0, 0.28]
+  },
+  "state": {
+    "interface": "industrial_arm_state_stream_fixture",
+    "joint_positions": [0.0, -0.42, 0.19, -1.89, 0.0, 1.58, 0.77],
+    "end_effector_position": [0.432, -0.016, 0.09],
+    "end_effector_quaternion": [1.0, 0.0, 0.0, 0.0],
+    "object_position": [0.44, -0.01, 0.06],
+    "object_quaternion": [1.0, 0.0, 0.0, 0.0]
+  },
+  "action_semantics": {
+    "representation": "robot_delta_ee_pose",
+    "coordinate_frame": "task_frame",
+    "normalized_contract_roles": [
+      "teleop_intent",
+      "executed_control",
+      "learning_action",
+      "retargeted_robot_action"
+    ]
+  },
+  "quality": {
+    "action_contract_valid": true,
+    "replay_verified": true,
+    "control_quality": "pass",
+    "rejection_reason": null
+  }
+}
+```
+
+v0 committed/evaluated evidence는 `accepted_rows >= 4`, `rejected_rows == 1`을
+요구한다. `rejected_command_state.jsonl`의 row는 failure predicate 또는
+buyer-readable `rejection_reason`을 포함해야 한다.
+
+Raw `metadata.json`은 adapter-only field를 요구하지 않는다. RDF는 이를
+`data/staging/metadata.json`으로 결정적으로 파생하고,
+`staging_derivation_report.json`에 raw/staging/source row hash를 묶는다.
+Offline verifier는 이 데이터 일관성을 재계산하지만, metadata에 적힌 외부 origin이
+실제 물리 로그인지 암호학적으로 증명하지는 못한다.
+
 ## Episode Lifecycle
 
 Episode lifecycle은 evaluator success와 분리한다. 즉, 사람이 episode를 `failure`로 finalize하더라도 evaluator가 trajectory를 task success로 판정할 수 있고, 반대로 사람이 `success`로 finalize했더라도 quality gate에서 evaluator failure가 날 수 있다.

@@ -1,0 +1,69 @@
+{
+  "artifact_index": [
+    {
+      "byte_size": 1433,
+      "data_path": "data/artifact_index.json",
+      "file_sha256": "909025b93f1ba59e3c70fe73848cfc2fb7f2cce2e5af6e79efa9e7139dc3b0e7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1443,
+      "data_path": "data/config.json",
+      "file_sha256": "927084711f6f19531c16a5a1f04e1327c6592d813c4b1aa4fe9ff4aa881448e6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 678,
+      "data_path": "data/non_claims_attestation.json",
+      "file_sha256": "3c4a1f81c7a14da2cdaeab145b281b6613fa5d4775624815ccb90bae6febd7b5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1555,
+      "data_path": "data/reports/buyer_data_evaluation_report.json",
+      "file_sha256": "f4f12b13705f7122cf1011fa698258d967b516cdbbadba24c7733ca7e40f6a91",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2392,
+      "data_path": "data/reports/run_report.json",
+      "file_sha256": "4572ba9e4f9d3beda86416a9852fa17cd55bf4672cfccda332e79d24757241c6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 456,
+      "data_path": "data/source/source_availability_report.json",
+      "file_sha256": "dafcdf0f53171f7c5b61224647f01816f4d0a32668881dbcbfbbdd9510023634",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3,
+      "data_path": "data/source/source_file_hashes.json",
+      "file_sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+      "hash_convention": "file_bytes"
+    }
+  ],
+  "external_source_included": false,
+  "non_claims": {
+    "deployable_policy_readiness": false,
+    "general_robot_intelligence": false,
+    "hmd_openxr_readiness": false,
+    "live_franka_hardware_support": false,
+    "live_ros2_dds_bridge_readiness": false,
+    "live_ur_rtde_support": false,
+    "marketplace_readiness": false,
+    "physical_robot_readiness": false,
+    "policy_uplift_or_learning_proven": false,
+    "production_certification": false,
+    "real_robot_success": false,
+    "sim_to_real_proven": false,
+    "universal_robot_support": false,
+    "visual_policy_performance": false
+  },
+  "package_name": "external_robot_data_ingest_eval_v0_proof_package",
+  "package_status": "external_ingest_contract_ready",
+  "provenance_trust_boundary": "RDF recomputes ingest/evaluation consistency from included rows and hashes. Offline verification does not cryptographically prove physical external origin.",
+  "schema_version": "rdf_external_robot_data_ingest_eval_package_manifest_v0.1.0",
+  "verdict_source_of_truth": "data/",
+  "verifier": "scripts/verify_external_robot_data_ingest_package.py"
+}
