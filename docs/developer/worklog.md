@@ -12,6 +12,86 @@
 
 ---
 
+## 2026-06-23: LeRobot Public Slice Semantic Parity spec 초안
+
+### 작업 내용
+
+External Robot Data Ingest / Evaluation v0가 `external_ingest_contract_ready`로
+닫힌 뒤, 실제 public robot-learning source를 RDF trust layer에 태우기 위한
+다음 slice spec을 작성했다. 구현은 시작하지 않았고, 이번 작업은
+`LeRobot public audited slice -> RDF generic state/action contract -> HDF5/export
+-> trainer smoke -> independent semantic parity verifier`의 claim boundary와
+stop rule을 고정하는 단계다.
+
+변경 파일:
+
+```text
+docs/superpowers/specs/2026-06-23-lerobot-public-slice-semantic-parity-design.md
+.omx/context/lerobot-public-slice-semantic-parity-20260623T021112Z.md
+.omx/plans/prd-lerobot-public-slice-semantic-parity.md
+.omx/plans/test-spec-lerobot-public-slice-semantic-parity.md
+.omx/plans/ralplan-lerobot-public-slice-semantic-parity.md
+.omx/plans/ralplan-architect-review-lerobot-public-slice-semantic-parity-iteration1.md
+.omx/plans/ralplan-architect-review-lerobot-public-slice-semantic-parity-iteration2.md
+.omx/plans/ralplan-critic-review-lerobot-public-slice-semantic-parity-iteration1.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+핵심 결정:
+
+```text
+- primary source 후보는 `lerobot/aloha_static_coffee`로 둔다.
+- fallback source `lerobot/pusht`는 tiny format smoke로만 취급하고 같은 claim을 열지 않는다.
+- 목표 package는 `docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/`다.
+- 최종 claim은 deterministic audited slice에만 한정하고 full dataset evaluation은 금지한다.
+- public source binding은 repo id, source URL, pinned revision, license, upstream file hash를 포함해야 한다.
+- `refetch_receipt.json`, `extraction_receipt.json`, `deep_hdf5_receipt.json`를 package evidence로 요구한다.
+- `extraction_receipt.json`는 Parquet -> included raw JSONL 경계를 닫기 위해 independent re-extraction row digest를 기록한다.
+- default verifier는 stdlib-only로 포함된 raw row JSONL에서 semantic parity를 재계산한다.
+- optional stronger checks는 `--deep-hdf5`, `--refetch-public-source`, `--reextract-public-source`로 분리한다.
+- LeRobot state/action row를 기존 UR-style external JSONL에 억지로 맞추지 않는다.
+- EEF pose, object pose, robot family, task success, rejected example은 source에 없으면 생성하지 않는다.
+- source에 rejected/failure label이 없으면 `canonical_source_rejected_examples_present=false`와
+  `accepted_rejected_pair_claimed=false`를 명시한다.
+- trainer smoke path는 `generic_state_action_trainer_smoke`로 명시하고 기존 EEF/object loader를 조용히 proof로 재사용하지 않는다.
+- `$ralplan --deliberate` 결과 Architect iteration 1은 extraction gap 때문에 ITERATE, Architect iteration 2와 Critic iteration 1은 APPROVE였다.
+```
+
+### 판단 이유
+
+자가 attestation file-drop만으로는 external origin을 독립적으로 재검증하기 어렵다. public
+LeRobot source는 dataset URL, revision, license, upstream file hash를 통해 source binding을
+더 강하게 만들 수 있다. 다만 public dataset slice도 full dataset claim이나 real robot readiness
+claim으로 확장되면 과장이므로, 이번 spec은 audited slice와 generic state/action semantic parity에
+claim을 제한한다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+rg -n "TBD|TODO|FIXME|PLACEHOLDER|placeholder|external_data_evaluated|full_source_verdict_claimed|fabricat|refetch|Parquet|LeRobotStateAction" \
+  docs/superpowers/specs/2026-06-23-lerobot-public-slice-semantic-parity-design.md
+# unresolved placeholder 없음. 핵심 claim boundary / refetch / fabrication guard 키워드 확인.
+
+rg -n "extraction_receipt|reextract|generic_state_action_trainer_smoke|refetch_receipt|deep_hdf5_receipt" \
+  docs/superpowers/specs/2026-06-23-lerobot-public-slice-semantic-parity-design.md \
+  .omx/plans/prd-lerobot-public-slice-semantic-parity.md \
+  .omx/plans/test-spec-lerobot-public-slice-semantic-parity.md \
+  .omx/plans/ralplan-lerobot-public-slice-semantic-parity.md
+# receipt / re-extract / generic trainer smoke 계약 확인.
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- 승인된 ralplan을 기준으로 `$ultragoal`을 실행한다.
+- 구현 전 feature branch를 정리하고 spec branch header를 실제 dedicated branch와 맞춘다.
+- 구현 전 ALOHA revision pinning, license/source hash binding, 최소 audited slice 추출 가능성을 먼저 검증한다.
+
+---
+
 ## 2026-06-23: External Robot Data Ingest / Evaluation v0 G000-G007
 
 ### 작업 내용
