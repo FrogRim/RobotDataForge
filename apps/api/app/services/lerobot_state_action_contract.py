@@ -96,7 +96,7 @@ class LeRobotStateActionContractValidator:
         return {
             "schema_version": CONTRACT_SCHEMA_VERSION,
             "source_format": "LeRobot public dataset audited slice",
-            "source_kind": "public_lerobot_aloha_audited_slice",
+            "source_kind": source_binding.get("source_kind") or "public_lerobot_aloha_audited_slice",
             "repo_id": source_binding.get("repo_id"),
             "resolved_revision": source_binding.get("resolved_revision"),
             "robot_type": source_binding.get("dataset_card_robot_type"),
