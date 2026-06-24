@@ -5144,3 +5144,71 @@ claim_boundary fail:
 이 package는 real robot readiness, policy uplift, live hardware/ROS2-DDS,
 marketplace, production, sim-to-real claim을 만들지 않는다.
 ```
+
+## RDF Public Dataset TrustPack Generator v0 verification
+
+RDF TrustPack Generator v0는 기존 LeRobot ALOHA + SO-100 public dataset
+matrix package를 새 proof claim으로 확장하지 않고, 같은 discipline을 공통
+package generator / buyer report / verifier surface로 materialize한다.
+
+생성 대상:
+
+```text
+docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/
+```
+
+재생성:
+
+```bash
+python3 scripts/run_rdf_public_dataset_trustpack_generator.py --clean --pretty
+```
+
+`--clean`은 managed TrustPack package directory 또는 safe temp 하위 경로만
+삭제한다. repo root, home, repo parent, `/tmp` root, 기존 baseline matrix
+package는 `ValueError: refusing to clean unsafe package_dir`로 막는다.
+
+필수 검증:
+
+```bash
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/package_manifest.json
+
+python3 scripts/scan_rdf_trustpack_html_claims.py \
+  --package-dir docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package
+
+python3 scripts/compare_rdf_public_dataset_trustpack_regeneration.py \
+  --baseline-package-dir docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package \
+  --generated-package-dir docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package
+```
+
+실패 해석:
+
+```text
+matrix verifier fail:
+  generated TrustPack package가 기존 matrix verifier hard contract를 깨뜨림.
+  data/config.json, data/profile_resolver_report.json, package_status,
+  per-profile required files, 또는 non-claim boundary를 확인한다.
+
+html claim scan fail:
+  buyer_report.html 또는 data/reports/buyer_report.html에 non-negated forbidden
+  claim이 들어감. HTML tag split/entity encoding도 scanner가 복원해 검사한다.
+
+regeneration comparison fail:
+  generated package가 frozen baseline matrix package와 semantic-equivalent하지 않음.
+  profile registry drift, raw/converted/contract/HDF5/trainer/buyer JSON drift,
+  또는 self-attested regeneration_report drift를 확인한다.
+
+missing dataset.hdf5 in git status:
+  새 TrustPack package의 HDF5는 `.gitignore` 예외가 필요하다. 현재 예외:
+  !docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/data/profiles/*/export/dataset.hdf5
+```
+
+중요한 경계:
+
+```text
+이 package는 generic LeRobot importer support가 아니다.
+이 package는 new public dataset proof가 아니다.
+이 package는 full dataset evaluation이 아니다.
+이 package는 policy uplift, real robot readiness, live hardware/runtime readiness,
+partner file-drop evaluation, 또는 full Croissant compliance를 증명하지 않는다.
+```

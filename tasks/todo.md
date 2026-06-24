@@ -3175,3 +3175,62 @@ frozen_mvp2_diff=no output
   and regenerated the MVP-3B proof package.
 - [x] Run full required verification command set.
 - [x] Commit locally with Lore protocol.
+
+## 2026-06-24 - LinkedIn postwrite post11-post15
+
+- [x] Draft post11: MVP-3 repeatable proof discipline.
+- [x] Draft post12: MVP-3C Isaac Sim visual receipt and metric cutaway boundary.
+- [x] Draft post13: external ingest contract-ready, not external_data_evaluated.
+- [x] Draft post14: LeRobot public ALOHA audited slice semantic parity.
+- [x] Draft post15: LeRobot public dataset matrix, ALOHA + SO-100.
+- [x] Apply adversarial review edits:
+  post12 MVP-3C task-success conflation fix, post15 wording nit, repeated non-claim trim.
+- [x] Create actual-value receipt assets for post14 and post15 under `postwrite/assets/`.
+- [x] User review and publish post11-post15 in order.
+
+## 2026-06-25 - MVP-4B RDF Public Dataset TrustPack Generator v0
+
+- [x] Brainstorm next direction and select `Public Dataset TrustPack Generator v0`.
+- [x] Write spec draft:
+  `docs/superpowers/specs/2026-06-25-rdf-public-dataset-trustpack-generator-v0-design.md`.
+- [x] Apply adversarial spec review blocker fixes:
+  B-1 existing verifier hard contract, B-2 HTML forbidden-claim scan,
+  B-3 required independent regeneration comparator.
+- [x] Final spec approval/readiness check before planning.
+- [x] Run `$ralplan --deliberate` after spec approval.
+  - Architect iteration 1: ITERATE, fixed `data/` artifact index and HTML layout.
+  - Architect iteration 2: ITERATE, fixed producer-independent vs stdlib-only wording.
+  - Architect iteration 3: APPROVE.
+  - Critic iteration 1: APPROVE.
+  - Consensus handoff:
+    `.omx/plans/ralplan-consensus-rdf-public-dataset-trustpack-generator-v0.md`.
+- [x] Run `$ultragoal .omx/plans/ralplan-rdf-public-dataset-trustpack-generator-v0.md`.
+  - G001-G007 complete.
+  - Implemented common TrustPack materializer for existing ALOHA + SO-100 matrix.
+  - Added buyer report HTML scanner.
+  - Added independent baseline-vs-generated regeneration comparator.
+  - Added tamper/regression tests.
+- [x] Generated package:
+  `docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/`.
+- [x] Current verification before final gate:
+
+```text
+generated_matrix_verifier=VERDICT: VERIFIED
+html_claim_scan=PASS
+regeneration_comparison=PASS
+new_trustpack_tests=9 passed
+focused_matrix_regression=32 passed
+ruff_touched_files=passed
+compileall_touched_files=passed
+```
+
+- [ ] G008 final ultragoal quality gate:
+  ai-slop-cleaner on changed files, rerun verification, independent code-reviewer
+  + architect review, then complete aggregate Codex goal if clean.
+  - [x] ai-slop-cleaner no-op report recorded:
+    `.omx/reports/ai-slop-cleaner-rdf-public-dataset-trustpack-generator-v0.md`.
+  - [x] Review blocker fixed: generated package README no longer points to the
+    baseline matrix package and is hash-locked in `data/trustpack_artifact_index.json`.
+  - [x] Review blocker fixed: regeneration comparator digest map passes mypy.
+  - [x] Independent code-reviewer re-review: APPROVE.
+  - [x] Independent architect re-review: CLEAR.
