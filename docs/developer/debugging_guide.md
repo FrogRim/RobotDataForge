@@ -5043,3 +5043,172 @@ claim_and_spent_boundary fail:
 이 package는 public ALOHA source의 8-row deterministic audited slice가
 RDF generic state/action trust layer를 통과하고 verifier로 재계산됨을 증명한다.
 ```
+
+## LeRobot public dataset matrix semantic parity verification
+
+LeRobot public dataset matrix package는 frozen verified ALOHA audited slice와
+새로 생성한 SO-100 audited slice를 같은 matrix verifier / generic state-action
+contract discipline으로 재검증한다.
+
+```text
+docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/
+```
+
+현재 matrix profile:
+
+```text
+lerobot_aloha_static_coffee
+  repo_id=lerobot/aloha_static_coffee
+  resolved_revision=b144896feb1f37398a862927b22cd3abdf005a6b
+  robot_type=aloha
+  state_dim=14
+  action_dim=14
+
+lerobot_svla_so100_pickplace
+  repo_id=lerobot/svla_so100_pickplace
+  resolved_revision=3d6d687a25cdf1565cdf24550814f72d999a861d
+  robot_type=so100
+  state_dim=6
+  action_dim=6
+```
+
+Package 재생성:
+
+```bash
+uv run --with huggingface_hub --with pyarrow --with h5py --with numpy \
+  scripts/run_lerobot_public_dataset_matrix_semantic_parity.py --clean --pretty
+```
+
+`--clean`은 managed matrix proof package directory 또는 safe temp 하위 경로만
+삭제한다. repo root, home, repo parent, `/tmp` root, 상위 proof root는
+`ValueError: refusing to clean unsafe package_dir`로 막는다.
+
+Default verifier는 stdlib-only이며 package 안의 작은 evidence에서
+profile별 source binding, raw row digest, conversion parity, contract summary,
+HDF5 float32 payload presence, non-claim boundary, spent seed boundary를
+재계산한다.
+
+```bash
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json
+```
+
+강한 optional verification:
+
+```bash
+uv run python scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json \
+  --deep-hdf5
+
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json \
+  --refetch-public-source
+
+uv run --with pyarrow scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json \
+  --reextract-public-source
+```
+
+실패 해석:
+
+```text
+matrix_variety fail:
+  profile count, robot_type variety, 또는 state/action dimension variety가 깨짐.
+
+profile_public_source_binding fail:
+  resolved_revision이 40-character commit sha가 아니거나 source binding이
+  registry/config와 불일치.
+
+profile_raw_rows fail:
+  raw JSONL row 수, row hash, repo/revision/source_file, dimension이 변조됨.
+
+profile_conversion_parity fail:
+  rdf_converted_rows.jsonl이 raw row에서 deterministic하게 파생되지 않았거나
+  fabricated EEF/object/task-success/UR/Franka/ROS/RTDE field가 들어감.
+
+profile_hdf5_payload fail:
+  default verifier가 expected state/action float32 payload를 HDF5 bytes에서 찾지 못함.
+
+claim_boundary fail:
+  generic LeRobot parser, full dataset evaluation, real robot readiness, policy uplift,
+  live hardware, ROS2-DDS, marketplace, production, sim-to-real 같은 forbidden claim이
+  package JSON 또는 README prose에 non-negated 형태로 새어 나감.
+```
+
+중요한 경계:
+
+```text
+이 package는 generic LeRobot parser support가 아니다.
+이 package는 full dataset evaluation이 아니다.
+이 package는 two-profile public source semantic parity matrix proof다.
+이 package는 real robot readiness, policy uplift, live hardware/ROS2-DDS,
+marketplace, production, sim-to-real claim을 만들지 않는다.
+```
+
+## RDF Public Dataset TrustPack Generator v0 verification
+
+RDF TrustPack Generator v0는 기존 LeRobot ALOHA + SO-100 public dataset
+matrix package를 새 proof claim으로 확장하지 않고, 같은 discipline을 공통
+package generator / buyer report / verifier surface로 materialize한다.
+
+생성 대상:
+
+```text
+docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/
+```
+
+재생성:
+
+```bash
+python3 scripts/run_rdf_public_dataset_trustpack_generator.py --clean --pretty
+```
+
+`--clean`은 managed TrustPack package directory 또는 safe temp 하위 경로만
+삭제한다. repo root, home, repo parent, `/tmp` root, 기존 baseline matrix
+package는 `ValueError: refusing to clean unsafe package_dir`로 막는다.
+
+필수 검증:
+
+```bash
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/package_manifest.json
+
+python3 scripts/scan_rdf_trustpack_html_claims.py \
+  --package-dir docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package
+
+python3 scripts/compare_rdf_public_dataset_trustpack_regeneration.py \
+  --baseline-package-dir docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package \
+  --generated-package-dir docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package
+```
+
+실패 해석:
+
+```text
+matrix verifier fail:
+  generated TrustPack package가 기존 matrix verifier hard contract를 깨뜨림.
+  data/config.json, data/profile_resolver_report.json, package_status,
+  per-profile required files, 또는 non-claim boundary를 확인한다.
+
+html claim scan fail:
+  buyer_report.html 또는 data/reports/buyer_report.html에 non-negated forbidden
+  claim이 들어감. HTML tag split/entity encoding도 scanner가 복원해 검사한다.
+
+regeneration comparison fail:
+  generated package가 frozen baseline matrix package와 semantic-equivalent하지 않음.
+  profile registry drift, raw/converted/contract/HDF5/trainer/buyer JSON drift,
+  또는 self-attested regeneration_report drift를 확인한다.
+
+missing dataset.hdf5 in git status:
+  새 TrustPack package의 HDF5는 `.gitignore` 예외가 필요하다. 현재 예외:
+  !docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/data/profiles/*/export/dataset.hdf5
+```
+
+중요한 경계:
+
+```text
+이 package는 generic LeRobot importer support가 아니다.
+이 package는 new public dataset proof가 아니다.
+이 package는 full dataset evaluation이 아니다.
+이 package는 policy uplift, real robot readiness, live hardware/runtime readiness,
+partner file-drop evaluation, 또는 full Croissant compliance를 증명하지 않는다.
+```

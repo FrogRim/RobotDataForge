@@ -1,0 +1,8 @@
+{
+  "action_dim": 6,
+  "issues": [],
+  "observation_state_dim": 6,
+  "ok": true,
+  "row_count": 8,
+  "schema_version": "rdf_lerobot_state_action_validator_report_v0.1.0"
+}

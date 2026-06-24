@@ -1,0 +1,16 @@
+{
+  "audited_slice_verdict_claimed": true,
+  "dataset_card_robot_type": "so100",
+  "dataset_card_rows": "not_claimed",
+  "dataset_card_total_file_size": "not_claimed",
+  "external_source_included": true,
+  "full_dataset_verdict_claimed": false,
+  "license": "apache-2.0",
+  "provenance_trust_tier": "refetchable_public_source",
+  "repo_id": "lerobot/svla_so100_pickplace",
+  "resolved_revision": "3d6d687a25cdf1565cdf24550814f72d999a861d",
+  "schema_version": "rdf_lerobot_public_source_binding_v0.1.0",
+  "source_file": "data/chunk-000/file-000.parquet",
+  "source_kind": "public_lerobot_so100_pickplace_audited_slice",
+  "source_url": "https://huggingface.co/datasets/lerobot/svla_so100_pickplace"
+}

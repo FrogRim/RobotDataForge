@@ -1,0 +1,31 @@
+{
+  "checked_at_utc": "2026-06-24T02:38:13.983841+00:00",
+  "files_checked": [
+    {
+      "declared_sha256": "923e4c260c7dce15f1d3ccccd06e1eb30dcb3675258790550fb4c0978e0c50cb",
+      "matched": true,
+      "path": "README.md",
+      "refetched_sha256": "923e4c260c7dce15f1d3ccccd06e1eb30dcb3675258790550fb4c0978e0c50cb",
+      "revision": "3d6d687a25cdf1565cdf24550814f72d999a861d"
+    },
+    {
+      "declared_sha256": "615e9fafcd9378b5df82e8969936e48ad521848e02f843b3a1715e3b64e1f262",
+      "matched": true,
+      "path": "data/chunk-000/file-000.parquet",
+      "refetched_sha256": "615e9fafcd9378b5df82e8969936e48ad521848e02f843b3a1715e3b64e1f262",
+      "revision": "3d6d687a25cdf1565cdf24550814f72d999a861d"
+    },
+    {
+      "declared_sha256": "aec8d0c7bd3d2dc693c160bd58f9fb6aabcbb24d4b28e2f09950a3aa6b246eef",
+      "matched": true,
+      "path": "meta/info.json",
+      "refetched_sha256": "aec8d0c7bd3d2dc693c160bd58f9fb6aabcbb24d4b28e2f09950a3aa6b246eef",
+      "revision": "3d6d687a25cdf1565cdf24550814f72d999a861d"
+    }
+  ],
+  "matched": true,
+  "repo_id": "lerobot/svla_so100_pickplace",
+  "resolved_revision": "3d6d687a25cdf1565cdf24550814f72d999a861d",
+  "schema_version": "rdf_lerobot_refetch_receipt_v0.1.0",
+  "source_url": "https://huggingface.co/datasets/lerobot/svla_so100_pickplace"
+}

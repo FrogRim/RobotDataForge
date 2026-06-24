@@ -1,0 +1,28 @@
+{
+  "baseline_core_digest": "607d25db59aee72a39ce324e8d3aa0966d2d6a216542c42515c00b52afca08cb",
+  "comparator": "rdf_trustpack_regeneration_comparator_v0.1.0",
+  "compared_profile_count": 2,
+  "compared_profiles": [
+    "lerobot_aloha_static_coffee",
+    "lerobot_svla_so100_pickplace"
+  ],
+  "generated_core_digest": "607d25db59aee72a39ce324e8d3aa0966d2d6a216542c42515c00b52afca08cb",
+  "html_byte_match": true,
+  "issue_count": 0,
+  "passed": true,
+  "profile_digests": {
+    "lerobot_aloha_static_coffee": {
+      "converted_rows_digest": "4d9510665bfdbb18d301eba9222c7a194b9e6b2f44f9368ff48bd43b03390e0d",
+      "hdf5_file_sha256": "05f4371de7a0d8594c75f1cee776ff6d7e52726ba9830d9c24d3134921954248",
+      "raw_rows_digest": "e4a1d525880385eabacc5e048a61271ce054f8c2eb7395f14e7e637ed7eb3e17"
+    },
+    "lerobot_svla_so100_pickplace": {
+      "converted_rows_digest": "d584dd575084c289bf6fc651b44230d683aa279acedb374241aa3007f9a93965",
+      "hdf5_file_sha256": "b515590dc55eea8777f89c4636ecb690526cb38f0e66e18c04c5e5247a5f0bc7",
+      "raw_rows_digest": "8b21798c163395574c2c7ca6b073ef903e743add3c2cd3ec65146bfc0666d8bf"
+    }
+  },
+  "report_is_source_of_truth": false,
+  "schema_version": "rdf_trustpack_regeneration_report_v0.1.0",
+  "semantic_equivalent": true
+}

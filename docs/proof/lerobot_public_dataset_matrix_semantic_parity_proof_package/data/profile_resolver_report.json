@@ -1,0 +1,86 @@
+{
+  "accepted_profiles": [
+    {
+      "action_dim": 14,
+      "episode_index": 0,
+      "frame_count": 8,
+      "frame_start": 0,
+      "license": "mit",
+      "observation_state_dim": 14,
+      "profile_id": "lerobot_aloha_static_coffee",
+      "repo_id": "lerobot/aloha_static_coffee",
+      "required_upstream_files": [
+        "data/chunk-000/file-000.parquet",
+        "meta/info.json",
+        "README.md"
+      ],
+      "resolved_revision": "b144896feb1f37398a862927b22cd3abdf005a6b",
+      "robot_type": "aloha",
+      "source_file": "data/chunk-000/file-000.parquet",
+      "source_kind": "public_lerobot_aloha_audited_slice"
+    },
+    {
+      "action_dim": 6,
+      "episode_index": 0,
+      "frame_count": 8,
+      "frame_start": 0,
+      "license": "apache-2.0",
+      "observation_state_dim": 6,
+      "profile_id": "lerobot_svla_so100_pickplace",
+      "repo_id": "lerobot/svla_so100_pickplace",
+      "required_upstream_files": [
+        "data/chunk-000/file-000.parquet",
+        "meta/info.json",
+        "README.md"
+      ],
+      "resolved_revision": "3d6d687a25cdf1565cdf24550814f72d999a861d",
+      "robot_type": "so100",
+      "source_file": "data/chunk-000/file-000.parquet",
+      "source_kind": "public_lerobot_so100_pickplace_audited_slice"
+    }
+  ],
+  "ok": true,
+  "rejected_candidates": [
+    {
+      "reason": "robot_type is unknown in meta/info.json, so it cannot satisfy the explicit different robot_type gate",
+      "repo_id": "lerobot/xarm_lift_medium",
+      "resolved_revision": "79efb0e3cef0e530ddec4b8569b190966ab45808"
+    },
+    {
+      "reason": "valid SO-100 fallback but not selected because svla_so100_pickplace satisfied the first-priority SO-100 gate",
+      "repo_id": "lerobot/svla_so100_sorting",
+      "resolved_revision": "d866fd30539d065e4d483104733a016dde8d22fa"
+    }
+  ],
+  "schema_version": "rdf_lerobot_matrix_profile_resolver_report_v0.1.0",
+  "selected_profile": {
+    "action_dim": 6,
+    "episode_index": 0,
+    "frame_count": 8,
+    "frame_start": 0,
+    "license": "apache-2.0",
+    "observation_state_dim": 6,
+    "profile_id": "lerobot_svla_so100_pickplace",
+    "repo_id": "lerobot/svla_so100_pickplace",
+    "required_upstream_files": [
+      "data/chunk-000/file-000.parquet",
+      "meta/info.json",
+      "README.md"
+    ],
+    "resolved_revision": "3d6d687a25cdf1565cdf24550814f72d999a861d",
+    "robot_type": "so100",
+    "source_file": "data/chunk-000/file-000.parquet",
+    "source_kind": "public_lerobot_so100_pickplace_audited_slice"
+  },
+  "selected_profile_id": "lerobot_svla_so100_pickplace",
+  "selection_rule": "Prefer the first public single-arm LeRobot profile that is pinned, redistributable, non-ALOHA, and has state/action dimensions different from ALOHA.",
+  "validation": {
+    "issues": [],
+    "ok": true,
+    "profile_ids": [
+      "lerobot_aloha_static_coffee",
+      "lerobot_svla_so100_pickplace"
+    ],
+    "schema_version": "rdf_lerobot_matrix_profile_registry_validation_v0.1.0"
+  }
+}

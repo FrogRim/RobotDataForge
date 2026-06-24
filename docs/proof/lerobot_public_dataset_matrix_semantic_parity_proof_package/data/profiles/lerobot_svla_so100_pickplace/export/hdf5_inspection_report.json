@@ -1,0 +1,13 @@
+{
+  "action_dim": 6,
+  "episode_ids": [
+    "lerobot_svla_so100_pickplace_episode_000000"
+  ],
+  "hdf5_path": "data/profiles/lerobot_svla_so100_pickplace/export/dataset.hdf5",
+  "hdf5_sha256": "b515590dc55eea8777f89c4636ecb690526cb38f0e66e18c04c5e5247a5f0bc7",
+  "observation_state_dim": 6,
+  "passed": true,
+  "row_count": 8,
+  "schema_version": "rdf_lerobot_hdf5_inspection_report_v0.1.0",
+  "timestamps_monotonic": true
+}

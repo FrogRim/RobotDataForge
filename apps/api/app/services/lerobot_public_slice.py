@@ -18,6 +18,8 @@ DEFAULT_SLICE_RULE = {
     "frame_count": 8,
     "reason": "small deterministic public-source slice for semantic parity proof",
 }
+PINNED_REVISION_LENGTH = 40
+REDISTRIBUTABLE_LICENSES = {"mit", "apache-2.0", "apache2"}
 
 FORBIDDEN_CONVERTED_FIELDS = {
     "end_effector_position",
@@ -65,6 +67,89 @@ class RawRowValidationReport:
     action_dim: int = 0
 
 
+@dataclass(frozen=True)
+class LeRobotPublicSliceProfile:
+    profile_id: str
+    repo_id: str
+    resolved_revision: str
+    source_file: str
+    robot_type: str
+    episode_index: int
+    frame_start: int
+    frame_count: int
+    observation_state_dim: int
+    action_dim: int
+    license: str
+    required_upstream_files: tuple[str, ...]
+    source_kind: str
+
+    @property
+    def slice_rule(self) -> dict[str, Any]:
+        return {
+            "slice_rule": "first_episode_first_n_frames",
+            "episode_index": self.episode_index,
+            "frame_start": self.frame_start,
+            "frame_count": self.frame_count,
+            "reason": "small deterministic public-source slice for semantic parity proof",
+        }
+
+    def to_public_dict(self) -> dict[str, Any]:
+        return {
+            "profile_id": self.profile_id,
+            "repo_id": self.repo_id,
+            "resolved_revision": self.resolved_revision,
+            "source_file": self.source_file,
+            "robot_type": self.robot_type,
+            "episode_index": self.episode_index,
+            "frame_start": self.frame_start,
+            "frame_count": self.frame_count,
+            "observation_state_dim": self.observation_state_dim,
+            "action_dim": self.action_dim,
+            "license": self.license,
+            "required_upstream_files": list(self.required_upstream_files),
+            "source_kind": self.source_kind,
+        }
+
+
+ALOHA_PUBLIC_SLICE_PROFILE = LeRobotPublicSliceProfile(
+    profile_id="lerobot_aloha_static_coffee",
+    repo_id="lerobot/aloha_static_coffee",
+    resolved_revision="b144896feb1f37398a862927b22cd3abdf005a6b",
+    source_file="data/chunk-000/file-000.parquet",
+    robot_type="aloha",
+    episode_index=0,
+    frame_start=0,
+    frame_count=8,
+    observation_state_dim=14,
+    action_dim=14,
+    license="mit",
+    required_upstream_files=("data/chunk-000/file-000.parquet", "meta/info.json", "README.md"),
+    source_kind="public_lerobot_aloha_audited_slice",
+)
+
+SO100_PICKPLACE_PUBLIC_SLICE_PROFILE = LeRobotPublicSliceProfile(
+    profile_id="lerobot_svla_so100_pickplace",
+    repo_id="lerobot/svla_so100_pickplace",
+    resolved_revision="3d6d687a25cdf1565cdf24550814f72d999a861d",
+    source_file="data/chunk-000/file-000.parquet",
+    robot_type="so100",
+    episode_index=0,
+    frame_start=0,
+    frame_count=8,
+    observation_state_dim=6,
+    action_dim=6,
+    license="apache-2.0",
+    required_upstream_files=("data/chunk-000/file-000.parquet", "meta/info.json", "README.md"),
+    source_kind="public_lerobot_so100_pickplace_audited_slice",
+)
+
+LEROBOT_MATRIX_PROFILE_REGISTRY = (
+    ALOHA_PUBLIC_SLICE_PROFILE,
+    SO100_PICKPLACE_PUBLIC_SLICE_PROFILE,
+)
+_LEROBOT_MATRIX_PROFILE_BY_ID = {profile.profile_id: profile for profile in LEROBOT_MATRIX_PROFILE_REGISTRY}
+
+
 def stable_json(data: Any, *, indent: int | None = 2) -> str:
     return json.dumps(data, ensure_ascii=False, sort_keys=True, indent=indent)
 
@@ -110,6 +195,87 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def get_lerobot_matrix_profile(profile_id: str) -> LeRobotPublicSliceProfile:
+    try:
+        return _LEROBOT_MATRIX_PROFILE_BY_ID[profile_id]
+    except KeyError as exc:
+        raise KeyError(f"unknown LeRobot matrix profile: {profile_id}") from exc
+
+
+def build_source_binding_from_profile(profile: LeRobotPublicSliceProfile) -> dict[str, Any]:
+    return {
+        "schema_version": "rdf_lerobot_public_source_binding_v0.1.0",
+        "repo_id": profile.repo_id,
+        "source_url": f"https://huggingface.co/datasets/{profile.repo_id}",
+        "resolved_revision": profile.resolved_revision,
+        "license": profile.license,
+        "dataset_card_robot_type": profile.robot_type,
+        "source_file": profile.source_file,
+        "source_kind": profile.source_kind,
+        "provenance_trust_tier": "refetchable_public_source",
+        "external_source_included": True,
+        "full_dataset_verdict_claimed": False,
+        "audited_slice_verdict_claimed": True,
+    }
+
+
+def validate_lerobot_matrix_profiles(profiles: tuple[LeRobotPublicSliceProfile, ...]) -> dict[str, Any]:
+    issues: list[str] = []
+    if len(profiles) != 2:
+        issues.append("matrix profile registry must contain exactly two profiles")
+    profile_ids = [profile.profile_id for profile in profiles]
+    if len(profile_ids) != len(set(profile_ids)):
+        issues.append("profile_id values must be unique")
+    repo_ids = [profile.repo_id for profile in profiles]
+    if len(repo_ids) != len(set(repo_ids)):
+        issues.append("repo_id values must be unique")
+
+    for profile in profiles:
+        issues.extend(_validate_lerobot_profile(profile))
+
+    robot_types = {profile.robot_type for profile in profiles}
+    if len(robot_types) != len(profiles):
+        issues.append("matrix profiles must have distinct robot_type values")
+    dims = {(profile.observation_state_dim, profile.action_dim) for profile in profiles}
+    if len(dims) != len(profiles):
+        issues.append("matrix profiles must have distinct state/action dims")
+
+    return {
+        "schema_version": "rdf_lerobot_matrix_profile_registry_validation_v0.1.0",
+        "ok": not issues,
+        "profile_ids": profile_ids,
+        "issues": list(dict.fromkeys(issues)),
+    }
+
+
+def build_matrix_profile_resolver_report() -> dict[str, Any]:
+    validation = validate_lerobot_matrix_profiles(LEROBOT_MATRIX_PROFILE_REGISTRY)
+    return {
+        "schema_version": "rdf_lerobot_matrix_profile_resolver_report_v0.1.0",
+        "ok": validation["ok"],
+        "selection_rule": (
+            "Prefer the first public single-arm LeRobot profile that is pinned, redistributable, "
+            "non-ALOHA, and has state/action dimensions different from ALOHA."
+        ),
+        "selected_profile_id": SO100_PICKPLACE_PUBLIC_SLICE_PROFILE.profile_id if validation["ok"] else None,
+        "selected_profile": SO100_PICKPLACE_PUBLIC_SLICE_PROFILE.to_public_dict() if validation["ok"] else None,
+        "accepted_profiles": [profile.to_public_dict() for profile in LEROBOT_MATRIX_PROFILE_REGISTRY],
+        "rejected_candidates": [
+            {
+                "repo_id": "lerobot/xarm_lift_medium",
+                "resolved_revision": "79efb0e3cef0e530ddec4b8569b190966ab45808",
+                "reason": "robot_type is unknown in meta/info.json, so it cannot satisfy the explicit different robot_type gate",
+            },
+            {
+                "repo_id": "lerobot/svla_so100_sorting",
+                "resolved_revision": "d866fd30539d065e4d483104733a016dde8d22fa",
+                "reason": "valid SO-100 fallback but not selected because svla_so100_pickplace satisfied the first-priority SO-100 gate",
+            },
+        ],
+        "validation": validation,
+    }
+
+
 def canonical_row_digest(row: dict[str, Any]) -> str:
     return sha256_bytes(canonical_json_bytes(_row_without_digest(row)))
 
@@ -153,7 +319,12 @@ def validate_slice_rule(slice_rule: dict[str, Any]) -> list[str]:
     return issues
 
 
-def validate_raw_rows(rows: list[dict[str, Any]], slice_rule: dict[str, Any]) -> RawRowValidationReport:
+def validate_raw_rows(
+    rows: list[dict[str, Any]],
+    slice_rule: dict[str, Any],
+    *,
+    expected_profile: LeRobotPublicSliceProfile | None = None,
+) -> RawRowValidationReport:
     issues = validate_slice_rule(slice_rule)
     if not rows:
         issues.append("raw rows are empty")
@@ -171,6 +342,13 @@ def validate_raw_rows(rows: list[dict[str, Any]], slice_rule: dict[str, Any]) ->
     for index, row in enumerate(rows):
         if row.get("schema_version") != RAW_ROW_SCHEMA_VERSION:
             issues.append(f"row {index}: schema_version mismatch")
+        if expected_profile is not None:
+            if row.get("repo_id") != expected_profile.repo_id:
+                issues.append(f"row {index}: repo_id contradicts profile")
+            if row.get("resolved_revision") != expected_profile.resolved_revision:
+                issues.append(f"row {index}: resolved_revision contradicts profile")
+            if row.get("source_file") != expected_profile.source_file:
+                issues.append(f"row {index}: source_file contradicts profile")
         if row.get("episode_index") != expected_episode:
             issues.append(f"row {index}: episode_index contradicts slice rule")
         frame_index = row.get("frame_index")
@@ -204,6 +382,14 @@ def validate_raw_rows(rows: list[dict[str, Any]], slice_rule: dict[str, Any]) ->
 
     if actual_frames != expected_frames:
         issues.append(f"frame indices {actual_frames} do not match declared slice {expected_frames}")
+    if expected_profile is not None:
+        if state_dim != expected_profile.observation_state_dim:
+            issues.append(
+                "observation.state dimension "
+                f"{state_dim} does not match profile {expected_profile.observation_state_dim}"
+            )
+        if action_dim != expected_profile.action_dim:
+            issues.append(f"action dimension {action_dim} does not match profile {expected_profile.action_dim}")
     return RawRowValidationReport(
         ok=not issues,
         issues=list(dict.fromkeys(issues)),
@@ -213,8 +399,18 @@ def validate_raw_rows(rows: list[dict[str, Any]], slice_rule: dict[str, Any]) ->
     )
 
 
-def convert_raw_rows_to_rdf(rows: list[dict[str, Any]], *, source_binding: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
-    robot_type = str(source_binding.get("dataset_card_robot_type") or "aloha")
+def convert_raw_rows_to_rdf(
+    rows: list[dict[str, Any]],
+    *,
+    source_binding: dict[str, Any],
+    profile: LeRobotPublicSliceProfile | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+    _ensure_no_forbidden_fields(rows)
+    robot_type = str(source_binding.get("dataset_card_robot_type") or (profile.robot_type if profile else "aloha"))
+    slice_rule = profile.slice_rule if profile is not None else DEFAULT_SLICE_RULE
+    validation = validate_raw_rows(rows, slice_rule, expected_profile=profile)
+    if not validation.ok:
+        raise ValueError(f"raw rows failed profile validation: {validation.issues}")
     converted: list[dict[str, Any]] = []
     for row in rows:
         state = _require_numeric_vector(row.get("observation.state"), "observation.state")
@@ -248,7 +444,6 @@ def convert_raw_rows_to_rdf(rows: list[dict[str, Any]], *, source_binding: dict[
         _ensure_no_forbidden_fields(converted_row)
         converted.append(converted_row)
 
-    validation = validate_raw_rows(rows, DEFAULT_SLICE_RULE)
     mapping_report = {
         "schema_version": "rdf_lerobot_semantic_mapping_report_v0.1.0",
         "mapping_algorithm": "lerobot_raw_state_action_to_rdf_generic_state_action_v0.1.0",
@@ -414,6 +609,48 @@ def _ensure_no_forbidden_fields(payload: Any, path: str = "") -> None:
     elif isinstance(payload, list):
         for index, item in enumerate(payload):
             _ensure_no_forbidden_fields(item, f"{path}[{index}]")
+
+
+def _validate_lerobot_profile(profile: LeRobotPublicSliceProfile) -> list[str]:
+    issues: list[str] = []
+    if not profile.profile_id.startswith("lerobot_"):
+        issues.append(f"{profile.profile_id}: profile_id must start with lerobot_")
+    if "/" not in profile.repo_id:
+        issues.append(f"{profile.profile_id}: repo_id must be owner/name")
+    if not _commit_sha_shaped(profile.resolved_revision):
+        issues.append(f"{profile.profile_id}: resolved_revision must be pinned 40-character lowercase sha")
+    if profile.source_file not in profile.required_upstream_files:
+        issues.append(f"{profile.profile_id}: required_upstream_files must include source_file")
+    if "meta/info.json" not in profile.required_upstream_files:
+        issues.append(f"{profile.profile_id}: required_upstream_files must include meta/info.json")
+    if "README.md" not in profile.required_upstream_files:
+        issues.append(f"{profile.profile_id}: required_upstream_files must include README.md")
+    if profile.license.lower() not in REDISTRIBUTABLE_LICENSES:
+        issues.append(f"{profile.profile_id}: license must be redistributable")
+    if not profile.robot_type or profile.robot_type == "unknown":
+        issues.append(f"{profile.profile_id}: robot_type must be explicit")
+    for key, value in (
+        ("episode_index", profile.episode_index),
+        ("frame_start", profile.frame_start),
+        ("frame_count", profile.frame_count),
+        ("observation_state_dim", profile.observation_state_dim),
+        ("action_dim", profile.action_dim),
+    ):
+        if not isinstance(value, int) or isinstance(value, bool):
+            issues.append(f"{profile.profile_id}: {key} must be integer")
+    if profile.frame_count <= 0:
+        issues.append(f"{profile.profile_id}: frame_count must be positive")
+    if profile.observation_state_dim <= 0 or profile.action_dim <= 0:
+        issues.append(f"{profile.profile_id}: state/action dims must be positive")
+    return issues
+
+
+def _commit_sha_shaped(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == PINNED_REVISION_LENGTH
+        and all(char in "0123456789abcdef" for char in value)
+    )
 
 
 def _row_without_digest(row: dict[str, Any]) -> dict[str, Any]:

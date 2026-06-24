@@ -1,0 +1,14 @@
+{
+  "accepted_rejected_pair_claimed": false,
+  "action_dim": 14,
+  "action_mapping": "action -> learning_action",
+  "canonical_source_rejected_examples_present": false,
+  "converted_row_count": 8,
+  "fabricated_fields": [],
+  "mapping_algorithm": "lerobot_raw_state_action_to_rdf_generic_state_action_v0.1.0",
+  "observation_state_dim": 14,
+  "observation_state_mapping": "observation.state -> observation_state",
+  "raw_row_count": 8,
+  "schema_version": "rdf_lerobot_semantic_mapping_report_v0.1.0",
+  "source_robot_type": "aloha"
+}

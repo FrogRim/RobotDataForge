@@ -1,0 +1,32 @@
+{
+  "audited_slice_verdict_claimed": true,
+  "cherry_pick_elimination": "bounded_by_slice_rule_and_public_refetch_binding",
+  "feature_schema_sha256": "22c267633cdc7ebd3e7d6eabba9ebda1e6850e813a45d9522739b8933d643040",
+  "full_source_verdict_claimed": false,
+  "raw_row_sha256s": [
+    "1ef857087622bf2fa9dba99fb6a91a3adbaacff93c36a915114ac359729d6310",
+    "e709c3b6551819f08de7ac6fdb53622d9cfb6da75913d25beb341a67438a79e2",
+    "85f1d2b3d0d12e82678fb4a174718a05be6141bba8fa495a56b351cca3aa103d",
+    "ba3439dacbec35ef90e30084ab4f4a2e6e8a8f3162e88898b82183ae1b2b2687",
+    "fa5d97ae5a6c5e4f8fba9d51b6e33e073026d7d2d37eb753162cdb1614c2d4ff",
+    "6f97282e629570b52c2b80f84c092bcd10a49ad99ffa77e6be3876f9c8af31b4",
+    "aae1bef9ddc4c4fe869ba968a4913738b05a679e62918890372d2ed2ea369cb1",
+    "84f7fcf3a36475604dde48851c97235b2ab2560ec28ee1973dbcb5e92574ad91"
+  ],
+  "row_count": 8,
+  "schema_version": "rdf_lerobot_slice_selection_report_v0.1.0",
+  "slice_rule": {
+    "episode_index": 0,
+    "frame_count": 8,
+    "frame_start": 0,
+    "reason": "small deterministic public-source slice for semantic parity proof",
+    "slice_rule": "first_episode_first_n_frames"
+  },
+  "source_file": "data/chunk-000/file-000.parquet",
+  "validation": {
+    "action_dim": 6,
+    "issues": [],
+    "observation_state_dim": 6,
+    "ok": true
+  }
+}

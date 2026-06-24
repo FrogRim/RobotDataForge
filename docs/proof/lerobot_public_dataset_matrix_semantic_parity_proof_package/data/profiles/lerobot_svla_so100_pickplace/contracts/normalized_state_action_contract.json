@@ -1,0 +1,17 @@
+{
+  "accepted_slice_evaluated": true,
+  "action_dim": 6,
+  "audited_slice_verdict_claimed": true,
+  "camera_visual_policy_readiness": false,
+  "full_source_verdict_claimed": false,
+  "observation_state_dim": 6,
+  "repo_id": "lerobot/svla_so100_pickplace",
+  "resolved_revision": "3d6d687a25cdf1565cdf24550814f72d999a861d",
+  "robot_type": "so100",
+  "row_count": 8,
+  "schema_version": "rdf_lerobot_state_action_contract_v0.1.0",
+  "source_format": "LeRobot public dataset audited slice",
+  "source_kind": "public_lerobot_so100_pickplace_audited_slice",
+  "task_success_labels_measured": false,
+  "visual_data_ignored": true
+}

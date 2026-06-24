@@ -1,0 +1,39 @@
+{
+  "canonical_row_digest_algorithm": "json.dumps(sort_keys=True,separators=(',',':'),ensure_ascii=False)+sha256",
+  "checked_at_utc": "2026-06-24T02:38:13.984076+00:00",
+  "dependency_versions": {
+    "huggingface_hub": "1.20.1",
+    "pyarrow": "24.0.0"
+  },
+  "episode_index": 0,
+  "extractor_implementation": "independent_public_source_reextractor",
+  "feature_schema_sha256": "22c267633cdc7ebd3e7d6eabba9ebda1e6850e813a45d9522739b8933d643040",
+  "frame_count": 8,
+  "frame_start": 0,
+  "included_raw_jsonl_sha256": "76296b4b95ef5699a28072db627853b4b76b308228cfbe95d8969feb196c8f2b",
+  "matched": true,
+  "raw_row_sha256s": [
+    "1ef857087622bf2fa9dba99fb6a91a3adbaacff93c36a915114ac359729d6310",
+    "e709c3b6551819f08de7ac6fdb53622d9cfb6da75913d25beb341a67438a79e2",
+    "85f1d2b3d0d12e82678fb4a174718a05be6141bba8fa495a56b351cca3aa103d",
+    "ba3439dacbec35ef90e30084ab4f4a2e6e8a8f3162e88898b82183ae1b2b2687",
+    "fa5d97ae5a6c5e4f8fba9d51b6e33e073026d7d2d37eb753162cdb1614c2d4ff",
+    "6f97282e629570b52c2b80f84c092bcd10a49ad99ffa77e6be3876f9c8af31b4",
+    "aae1bef9ddc4c4fe869ba968a4913738b05a679e62918890372d2ed2ea369cb1",
+    "84f7fcf3a36475604dde48851c97235b2ab2560ec28ee1973dbcb5e92574ad91"
+  ],
+  "reextract_command": "uv run --with pyarrow --with huggingface_hub scripts/verify_lerobot_public_dataset_matrix_package.py /home/kangrim/robot-data-forge/docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json --reextract-public-source",
+  "reextracted_raw_jsonl_sha256": "76296b4b95ef5699a28072db627853b4b76b308228cfbe95d8969feb196c8f2b",
+  "repo_id": "lerobot/svla_so100_pickplace",
+  "resolved_revision": "3d6d687a25cdf1565cdf24550814f72d999a861d",
+  "schema_version": "rdf_lerobot_extraction_receipt_v0.1.0",
+  "slice_rule": {
+    "episode_index": 0,
+    "frame_count": 8,
+    "frame_start": 0,
+    "reason": "small deterministic public-source slice for semantic parity proof",
+    "slice_rule": "first_episode_first_n_frames"
+  },
+  "source_file": "data/chunk-000/file-000.parquet",
+  "source_file_byte_sha256": "615e9fafcd9378b5df82e8969936e48ad521848e02f843b3a1715e3b64e1f262"
+}

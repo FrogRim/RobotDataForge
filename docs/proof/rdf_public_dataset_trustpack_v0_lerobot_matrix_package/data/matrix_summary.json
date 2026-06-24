@@ -1,0 +1,66 @@
+{
+  "claim": "external_public_lerobot_dataset_matrix_semantic_parity",
+  "non_claims": {
+    "deployable_policy_readiness": false,
+    "full_dataset_evaluation": false,
+    "full_lerobot_parser_support": false,
+    "general_robot_intelligence": false,
+    "learning_proven_value": false,
+    "live_aloha_support": false,
+    "live_franka_hardware_support": false,
+    "live_hardware_support": false,
+    "live_ros2_dds_bridge_readiness": false,
+    "live_ur_rtde_support": false,
+    "marketplace_readiness": false,
+    "physical_robot_readiness": false,
+    "policy_uplift": false,
+    "production_certification": false,
+    "real_robot_success": false,
+    "sim_to_real_proven": false,
+    "visual_policy_performance": false
+  },
+  "package_status": "external_data_evaluated",
+  "profile_count": 2,
+  "profile_summaries": [
+    {
+      "action_dim": 14,
+      "license": "mit",
+      "observation_state_dim": 14,
+      "profile_id": "lerobot_aloha_static_coffee",
+      "repo_id": "lerobot/aloha_static_coffee",
+      "resolved_revision": "b144896feb1f37398a862927b22cd3abdf005a6b",
+      "robot_type": "aloha",
+      "row_count": 8,
+      "source_file": "data/chunk-000/file-000.parquet",
+      "trainer_smoke_passed": true
+    },
+    {
+      "action_dim": 6,
+      "license": "apache-2.0",
+      "observation_state_dim": 6,
+      "profile_id": "lerobot_svla_so100_pickplace",
+      "repo_id": "lerobot/svla_so100_pickplace",
+      "resolved_revision": "3d6d687a25cdf1565cdf24550814f72d999a861d",
+      "robot_type": "so100",
+      "row_count": 8,
+      "source_file": "data/chunk-000/file-000.parquet",
+      "trainer_smoke_passed": true
+    }
+  ],
+  "required_profiles": [
+    "lerobot_aloha_static_coffee",
+    "lerobot_svla_so100_pickplace"
+  ],
+  "schema_version": "rdf_lerobot_public_dataset_matrix_summary_v0.1.0",
+  "variety_gate": {
+    "distinct_robot_types": [
+      "aloha",
+      "so100"
+    ],
+    "distinct_state_action_dims": [
+      "14x14",
+      "6x6"
+    ],
+    "passed": true
+  }
+}

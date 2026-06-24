@@ -1,5 +1,78 @@
 # ForgeXR / RDF Data Trust Layer Reset - 2026-06-04
 
+## Current LeRobot Public Dataset Matrix Semantic Parity - 2026-06-24 KST
+
+Goal: ALOHA 단일 public audited slice를 2-profile LeRobot public source matrix로
+확장해 profile registry, single-arm resolver, conversion, contract, export,
+trainer smoke, package, verifier discipline이 source별로 반복되는지 검증한다.
+
+Current status:
+
+```text
+branch=codex/lerobot-public-dataset-matrix-semantic-parity
+spec=docs/superpowers/specs/2026-06-24-lerobot-public-dataset-matrix-semantic-parity-design.md
+ralplan=.omx/plans/ralplan-lerobot-public-dataset-matrix-semantic-parity.md
+package=docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/
+implementation_status=G001-G007 complete and checkpointed
+current_gate=complete_pending_user_approved_commit
+```
+
+Claim boundary:
+
+- [x] Matrix proves two pinned public LeRobot source profiles can pass RDF semantic parity discipline.
+- [x] Matrix includes ALOHA `14x14` and SO-100 `6x6` state/action profiles.
+- [x] Matrix verifier is stdlib-only by default and independent from producer code.
+- [x] Matrix package includes verdict-critical small evidence under `docs/proof/.../data/`.
+- [x] Matrix does not prove generic LeRobot parser support.
+- [x] Matrix does not prove full dataset evaluation.
+- [x] Matrix does not prove real robot success or physical robot readiness.
+- [x] Matrix does not prove live ALOHA/UR/Franka/ROS/RTDE support.
+- [x] Matrix does not prove visual policy performance, policy uplift, marketplace, production, or sim-to-real.
+- [x] Spent ranges `40000-40049` and `42000-42049` remain no-reuse.
+
+Ultragoal checklist:
+
+- [x] G001 planning and branch hygiene.
+- [x] G002 profile registry and single-arm resolver gate.
+- [x] G003 profile-aware extractor/converter/contract reuse.
+- [x] G004 matrix package builder.
+- [x] G005 independent stdlib matrix verifier.
+- [x] G006 tamper/variety/regression test matrix.
+- [x] G007 documentation and handoff update.
+- [x] G007 full regression and frozen verifier gate.
+- [x] G007 ai-slop-cleaner gate.
+- [x] G007 first independent review issues reproduced and fixed.
+- [x] G007 independent code-reviewer + architect gate.
+- [x] G007 ultragoal complete checkpoint.
+
+Current verification:
+
+```text
+focused_matrix_pytest=23 passed
+matrix_verifier=VERDICT: VERIFIED
+matrix_deep_hdf5=VERDICT: VERIFIED
+matrix_refetch_public_source=VERDICT: VERIFIED
+matrix_reextract_public_source=VERDICT: VERIFIED
+full_regression=1001 passed, 6 skipped
+frozen_verifiers=LeRobot ALOHA/external-ingest/MVP-2/MVP-3A/MVP-3B/MVP-3C all VERIFIED
+ruff_touched_matrix_files=passed
+compileall_touched_matrix_files=passed
+git_diff_check=passed
+hdf5_git_add_dry_run=both profile dataset.hdf5 files addable
+unsafe_clean_target_check=/tmp --clean rejected as expected
+review_hardening=strict clause-scoped prose scanner, safe --clean guard, HDF5 gitignore exception, narrowed ALOHA/SO-100 claim wording
+code_reviewer_re_review=APPROVE, no findings
+architect_re_review=APPROVE/CLEAR, no blockers or WATCH items
+final_precommit_code_review=APPROVE after mypy narrowing fixes
+final_precommit_mypy=Success, no issues found in 2 source files
+```
+
+Next valid step:
+
+```text
+User-approved Lore protocol commit, push, and PR if requested.
+```
+
 ## Current MVP-3C Isaac Sim Embodiment Source Spec - 2026-06-22 KST
 
 Goal: MVP-3C를 `isaac_sim_embodiment_source` slice로 정의해 Franka + Universal
@@ -3102,3 +3175,62 @@ frozen_mvp2_diff=no output
   and regenerated the MVP-3B proof package.
 - [x] Run full required verification command set.
 - [x] Commit locally with Lore protocol.
+
+## 2026-06-24 - LinkedIn postwrite post11-post15
+
+- [x] Draft post11: MVP-3 repeatable proof discipline.
+- [x] Draft post12: MVP-3C Isaac Sim visual receipt and metric cutaway boundary.
+- [x] Draft post13: external ingest contract-ready, not external_data_evaluated.
+- [x] Draft post14: LeRobot public ALOHA audited slice semantic parity.
+- [x] Draft post15: LeRobot public dataset matrix, ALOHA + SO-100.
+- [x] Apply adversarial review edits:
+  post12 MVP-3C task-success conflation fix, post15 wording nit, repeated non-claim trim.
+- [x] Create actual-value receipt assets for post14 and post15 under `postwrite/assets/`.
+- [x] User review and publish post11-post15 in order.
+
+## 2026-06-25 - MVP-4B RDF Public Dataset TrustPack Generator v0
+
+- [x] Brainstorm next direction and select `Public Dataset TrustPack Generator v0`.
+- [x] Write spec draft:
+  `docs/superpowers/specs/2026-06-25-rdf-public-dataset-trustpack-generator-v0-design.md`.
+- [x] Apply adversarial spec review blocker fixes:
+  B-1 existing verifier hard contract, B-2 HTML forbidden-claim scan,
+  B-3 required independent regeneration comparator.
+- [x] Final spec approval/readiness check before planning.
+- [x] Run `$ralplan --deliberate` after spec approval.
+  - Architect iteration 1: ITERATE, fixed `data/` artifact index and HTML layout.
+  - Architect iteration 2: ITERATE, fixed producer-independent vs stdlib-only wording.
+  - Architect iteration 3: APPROVE.
+  - Critic iteration 1: APPROVE.
+  - Consensus handoff:
+    `.omx/plans/ralplan-consensus-rdf-public-dataset-trustpack-generator-v0.md`.
+- [x] Run `$ultragoal .omx/plans/ralplan-rdf-public-dataset-trustpack-generator-v0.md`.
+  - G001-G007 complete.
+  - Implemented common TrustPack materializer for existing ALOHA + SO-100 matrix.
+  - Added buyer report HTML scanner.
+  - Added independent baseline-vs-generated regeneration comparator.
+  - Added tamper/regression tests.
+- [x] Generated package:
+  `docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/`.
+- [x] Current verification before final gate:
+
+```text
+generated_matrix_verifier=VERDICT: VERIFIED
+html_claim_scan=PASS
+regeneration_comparison=PASS
+new_trustpack_tests=9 passed
+focused_matrix_regression=32 passed
+ruff_touched_files=passed
+compileall_touched_files=passed
+```
+
+- [ ] G008 final ultragoal quality gate:
+  ai-slop-cleaner on changed files, rerun verification, independent code-reviewer
+  + architect review, then complete aggregate Codex goal if clean.
+  - [x] ai-slop-cleaner no-op report recorded:
+    `.omx/reports/ai-slop-cleaner-rdf-public-dataset-trustpack-generator-v0.md`.
+  - [x] Review blocker fixed: generated package README no longer points to the
+    baseline matrix package and is hash-locked in `data/trustpack_artifact_index.json`.
+  - [x] Review blocker fixed: regeneration comparator digest map passes mypy.
+  - [x] Independent code-reviewer re-review: APPROVE.
+  - [x] Independent architect re-review: CLEAR.

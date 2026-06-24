@@ -20228,3 +20228,698 @@ find . -path './storage' -prune -o -path './.venv' -prune -o -path './.omx' -pru
 - G001에서 external source eligibility validator를 구현한다.
 - Canonical proof package는 `external_source_included=false`로 contract-ready 상태만 닫아야 한다.
 - 실제 external/public source가 나중에 제공되면 별도 run에서 `external_data_evaluated`로 승격한다.
+
+## 2026-06-24 KST - LeRobot public dataset matrix semantic parity ultragoal
+
+### 작업 내용
+
+승인된 SPEC/RALPLAN을 기준으로 `$ultragoal`을 실행해 LeRobot public ALOHA 단일
+audited slice를 2-profile matrix proof로 확장했다.
+
+새 matrix profile:
+
+```text
+lerobot_aloha_static_coffee
+  repo_id=lerobot/aloha_static_coffee
+  resolved_revision=b144896feb1f37398a862927b22cd3abdf005a6b
+  robot_type=aloha
+  state_dim=14
+  action_dim=14
+
+lerobot_svla_so100_pickplace
+  repo_id=lerobot/svla_so100_pickplace
+  resolved_revision=3d6d687a25cdf1565cdf24550814f72d999a861d
+  robot_type=so100
+  state_dim=6
+  action_dim=6
+```
+
+구현 결과:
+
+```text
+package=docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/
+package_status=external_data_evaluated
+profile_count=2
+profile_variety.robot_types=aloha,so100
+profile_variety.state_action_dims=14x14,6x6
+full_source_verdict_claimed=false
+real_robot_readiness_claimed=false
+policy_uplift_claimed=false
+```
+
+### 판단 이유
+
+MVP-4A external/public data 방향에서 ALOHA 단일 source만 통과하면 “특정
+dataset 전용 변환”으로 오독될 수 있다. 이번 slice는 profile registry,
+single-arm resolver gate, profile-aware converter, package builder, stdlib-only
+independent verifier를 추가해 서로 다른 LeRobot public source profile 2개가 같은
+semantic parity discipline을 통과함을 증명한다.
+
+다만 이는 generic LeRobot parser나 full dataset evaluation이 아니다. Claim은
+결정적 audited slice 2개에 한정한다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/lerobot_public_slice.py
+apps/api/app/services/lerobot_state_action_contract.py
+apps/api/tests/test_lerobot_public_dataset_matrix.py
+apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+docs/developer/data_schema.md
+docs/developer/debugging_guide.md
+docs/developer/worklog.md
+docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/
+scripts/run_lerobot_public_dataset_matrix_semantic_parity.py
+scripts/verify_lerobot_public_dataset_matrix_package.py
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest -q apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# 23 passed
+
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uv run --with h5py --with numpy python scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json --deep-hdf5
+# VERDICT: VERIFIED
+
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json --refetch-public-source
+# VERDICT: VERIFIED
+
+uv run --with pyarrow python scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json --reextract-public-source
+# VERDICT: VERIFIED
+
+uv run pytest -q
+# 1001 passed, 6 skipped
+
+uvx ruff check apps/api/app/services/lerobot_public_slice.py \
+  apps/api/app/services/lerobot_state_action_contract.py \
+  scripts/run_lerobot_public_dataset_matrix_semantic_parity.py \
+  scripts/verify_lerobot_public_dataset_matrix_package.py \
+  apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# All checks passed
+
+python3 -m compileall apps/api/app/services/lerobot_public_slice.py \
+  apps/api/app/services/lerobot_state_action_contract.py \
+  scripts/run_lerobot_public_dataset_matrix_semantic_parity.py \
+  scripts/verify_lerobot_public_dataset_matrix_package.py \
+  apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# passed
+```
+
+G007 중 발견한 optional verifier bug:
+
+```text
+symptom:
+  matrix verifier --reextract-public-source에서 ALOHA profile만 row digest mismatch.
+
+root cause:
+  matrix reextractor가 ALOHA Parquet를 full-column으로 읽으면서 frozen ALOHA
+  audited slice가 의도적으로 제외한 observation.effort optional column을
+  source row digest에 포함했다.
+
+fix:
+  verifier가 package의 source/lerobot_feature_schema.json column projection을
+  source of truth로 읽고 pq.read_table(..., columns=...)에 전달한다.
+
+regression:
+  test_reextract_uses_recorded_feature_schema_column_projection 추가.
+```
+
+G007 independent review hardening:
+
+```text
+code-reviewer finding:
+  README/prose forbidden-claim scanner가 이전 문장의 negation으로 뒤 문장의
+  affirmative forbidden claim을 masking할 수 있었다.
+fix:
+  verifier prose scanner를 clause-scoped direct negation으로 제한했다.
+regression:
+  test_forbidden_prose_after_unrelated_negation_fails_after_hash_refresh
+
+code-reviewer finding:
+  runner가 기존 package_dir를 항상 삭제해 unsafe target에 취약했다.
+fix:
+  --clean 없이는 기존 package_dir를 거부하고, --clean target은 managed matrix
+  package dir 또는 safe temp subdir만 허용한다.
+regression:
+  test_runner_requires_clean_for_existing_package_dir
+  test_runner_rejects_unsafe_clean_target
+
+code-reviewer finding:
+  package의 verdict-critical HDF5 export가 repo-wide *.hdf5 ignore에 걸릴 수 있었다.
+fix:
+  .gitignore에 matrix proof package dataset.hdf5 예외를 추가했다.
+verification:
+  git add --dry-run docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/data/profiles/*/export/dataset.hdf5
+  # both profile dataset.hdf5 files are addable
+
+architect watch:
+  ALOHA는 frozen verified slice이고 SO-100은 신규 생성 slice이므로 "두 profile이
+  모두 같은 신규 ingest를 돌았다"는 식의 claim을 피해야 한다.
+fix:
+  README/docs wording을 frozen ALOHA + newly generated SO-100 + same matrix verifier
+  discipline으로 좁혔다.
+```
+
+### 남은 gap 또는 다음 작업
+
+- `G007` final quality gate를 완료한다.
+- `ai-slop-cleaner`는 masking fallback slop 없음으로 완료됐다.
+- 독립 `code-reviewer`/`architect` re-review가 clean이면 ultragoal을 완료 처리한다.
+- 이후 사용자 지시가 있으면 Lore protocol로 commit/push/PR을 진행한다.
+
+G007 independent re-review result:
+
+```text
+architect=APPROVE/CLEAR
+  blockers=0
+  watch_items=0
+  reran default matrix verifier, VERDICT: VERIFIED, 21 checks passed, profile_count=2
+```
+
+Final pre-commit review:
+
+```text
+architect=APPROVE/CLEAR
+code-reviewer initial=REQUEST CHANGES
+  issue_1=mypy narrowing in matrix verifier
+  issue_2=mypy narrowing in matrix runner
+fix:
+  - verifier narrows upstream files payload to dict[str, Any]
+  - verifier uses TypeGuard for numeric vectors
+  - verifier validates checked receipt paths are str before dict lookup
+  - runner validates source_file_sha is str before extraction receipt
+code-reviewer re-review=APPROVE
+```
+
+Post-review verification:
+
+```bash
+uv run mypy scripts/verify_lerobot_public_dataset_matrix_package.py \
+  scripts/run_lerobot_public_dataset_matrix_semantic_parity.py --ignore-missing-imports
+# Success: no issues found in 2 source files
+
+uv run pytest -q apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# 23 passed
+
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uvx ruff check apps/api/app/services/lerobot_public_slice.py \
+  apps/api/app/services/lerobot_state_action_contract.py \
+  scripts/run_lerobot_public_dataset_matrix_semantic_parity.py \
+  scripts/verify_lerobot_public_dataset_matrix_package.py \
+  apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# All checks passed
+
+python3 -m compileall apps/api/app/services/lerobot_public_slice.py \
+  apps/api/app/services/lerobot_state_action_contract.py \
+  scripts/run_lerobot_public_dataset_matrix_semantic_parity.py \
+  scripts/verify_lerobot_public_dataset_matrix_package.py \
+  apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+G007 ultragoal checkpoint:
+
+```text
+omx ultragoal checkpoint=success
+microgoal_ledger=7/7 complete
+quality_gate=.omx/ultragoal/quality-gate-lerobot-matrix-20260624.json
+codex_goal_status=complete
+codex_goal_tokens_used=906464
+codex_goal_time_used_seconds=2184
+```
+
+## 2026-06-24 - LinkedIn postwrite post11-post15 draft series
+
+### 작업 내용
+
+MVP-2 proof-freeze post10 이후 현재 진행상황까지 이어지는 LinkedIn chapter series를
+`postwrite/`에 작성했다. 최소 post13 압축 대신 claim boundary가 섞이지 않도록 5편으로 나눴다.
+
+생성 파일:
+
+```text
+postwrite/post11_mvp3_repeatable_proof_discipline_linkedin_draft.md
+postwrite/post12_mvp3c_isaac_sim_visual_receipt_linkedin_draft.md
+postwrite/post13_external_ingest_contract_ready_linkedin_draft.md
+postwrite/post14_lerobot_public_aloha_slice_semantic_parity_linkedin_draft.md
+postwrite/post15_lerobot_public_dataset_matrix_linkedin_draft.md
+```
+
+### 판단 이유
+
+- `post11`: MVP-3A/B/C를 "bigger demo"가 아니라 repeatable proof discipline으로 묶는다.
+- `post12`: MVP-3C visual receipt와 task visual receipt를 설명하되, video가 proof source of truth가 아님을 명시한다.
+- `post13`: `external_ingest_contract_ready`를 `external_data_evaluated`와 분리한다.
+- `post14`: public LeRobot ALOHA audited slice의 첫 `external_data_evaluated` claim을 연다.
+- `post15`: ALOHA + SO-100 public dataset matrix로 확장하되, generic parser/full dataset claim은 하지 않는다.
+
+### 검증
+
+```bash
+wc -w postwrite/post11_mvp3_repeatable_proof_discipline_linkedin_draft.md \
+  postwrite/post12_mvp3c_isaac_sim_visual_receipt_linkedin_draft.md \
+  postwrite/post13_external_ingest_contract_ready_linkedin_draft.md \
+  postwrite/post14_lerobot_public_aloha_slice_semantic_parity_linkedin_draft.md \
+  postwrite/post15_lerobot_public_dataset_matrix_linkedin_draft.md
+# post11 547 words, post12 378, post13 412, post14 410, post15 445
+
+rg -n "prove real robot|full LeRobot support|policy uplift|sim-to-real" postwrite/post11_*.md postwrite/post12_*.md postwrite/post13_*.md postwrite/post14_*.md postwrite/post15_*.md
+# only negated/non-claim contexts found
+```
+
+### 남은 gap 또는 다음 작업
+
+- `postwrite/`는 git ignored local draft 영역이다.
+- 기존 `post11_mvp3c_isaac_sim_ur_franka_embodiment_source_linkedin_draft.md`와
+  `post12a_external_robot_data_ingest_contract_ready_linkedin_draft.md`는 legacy draft로 남아 있다.
+  public sequence는 새 canonical post11-post15 파일을 기준으로 사용한다.
+- post12 업로드 시 첨부 추천 영상:
+  `/home/kangrim/rdf-worktrees/mvp3c-visual-receipt/postwrite/assets/mvp3c_connector_insertion_task_visual_receipt.mp4`
+
+### External review 반영
+
+Claude 검수 결과 `APPROVE WITH EDITS`였다. 필수 blocker는 post12의 MVP-3C
+embodiment-source claim과 connector-insertion task-state visual metric이 섞여 읽힐 수 있다는 점이었다.
+
+반영:
+
+```text
+post12: MVP-3C proof is not a task-success claim 문단 추가
+post12: 27.0mm / 1.2mm는 captured scene-state values이며 geometry legibility를 위한 값으로 재프레이밍
+post12: MVP-3C proof-package verifier does not certify task success 문구 추가
+post15: frozen verified ALOHA wording을 self-contained copy wording으로 교체
+post13-post15: 반복 non-claim 세로 나열을 짧은 Out of scope footer로 축약
+post11-post15: hashtag casing을 post10과 맞춰 lowercase로 통일
+```
+
+## 2026-06-24 - LinkedIn post14/post15 actual-value receipt assets
+
+### 작업 내용
+
+post14와 post15에 첨부할 실제 proof package 값 기반 receipt 이미지를 생성했다. 생성형 장면이나
+상상 이미지가 아니라 tracked proof JSON 값, verifier PASS, non-claim boundary를 시각화한
+communication-only 자료다.
+
+생성 파일:
+
+```text
+postwrite/assets/post14_lerobot_aloha_slice_semantic_parity_receipt.png
+postwrite/assets/post14_lerobot_aloha_slice_semantic_parity_receipt_manifest.json
+postwrite/assets/post15_lerobot_dataset_matrix_semantic_parity_receipt.png
+postwrite/assets/post15_lerobot_dataset_matrix_semantic_parity_receipt_manifest.json
+```
+
+### 판단 이유
+
+- post14: `lerobot/aloha_static_coffee` audited slice의 `8 rows`, `14 x 14`
+  state/action contract, `external_data_evaluated`, `refetchable` provenance tier를
+  한 장으로 보여준다.
+- post15: ALOHA `14 x 14`와 SO-100 `6 x 6` public profile matrix, variety gate,
+  `MATRIX VERIFIED` 상태를 한 장으로 보여준다.
+- 두 이미지 모두 `visual_receipt_only=true`이고, proof source of truth는 verifier-backed package로 유지한다.
+
+### 검증
+
+```bash
+python scripts/verify_lerobot_public_slice_package.py \
+  docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+python - <<'PY'
+# manifest sanity: visual_receipt_only=true, uses_actual_tracked_package_values=true,
+# ai_generated_scene_or_synthetic_robot_visual=false, non_claims all false
+PY
+# passed
+
+git diff --check
+# passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- `postwrite/assets/`는 LinkedIn용 local ignored asset 영역이다.
+- 이미지 자체는 proof가 아니며, post 본문에서도 verifier-backed package가 source of truth임을 유지한다.
+
+## 2026-06-24 - LinkedIn post11-post15 length trim
+
+### 작업 내용
+
+LinkedIn 예약 게시 시 글자수 제한에 걸리지 않도록 canonical post11-post15 draft를
+복사용 본문만 남기는 형태로 줄였다. 기존 `Purpose`/내부 메타데이터는 제거했고,
+각 본문을 약 1,500자 내외로 압축했다.
+
+수정 파일:
+
+```text
+postwrite/post11_mvp3_repeatable_proof_discipline_linkedin_draft.md
+postwrite/post12_mvp3c_isaac_sim_visual_receipt_linkedin_draft.md
+postwrite/post13_external_ingest_contract_ready_linkedin_draft.md
+postwrite/post14_lerobot_public_aloha_slice_semantic_parity_linkedin_draft.md
+postwrite/post15_lerobot_public_dataset_matrix_linkedin_draft.md
+```
+
+### 검증
+
+```text
+post11 chars=1559
+post12 chars=1545
+post13 chars=1591
+post14 chars=1562
+post15 chars=1537
+git diff --check=passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- post12는 기존 영상 첨부, post14/post15는 생성된 actual-value receipt PNG 첨부를 유지한다.
+
+## 2026-06-24 - LinkedIn post11-post15 published
+
+### 작업 내용
+
+사용자 보고 기준으로 LinkedIn post11-post15 업로드가 모두 완료되었다. 기존 post10의
+MVP-2 proof-freeze 글 이후 다음 공개 narrative가 게시 완료 상태가 됐다.
+
+게시 완료 범위:
+
+```text
+post11=MVP-3 repeatable proof discipline
+post12=MVP-3C Isaac Sim visual receipt
+post13=external_ingest_contract_ready fail-closed boundary
+post14=LeRobot public ALOHA audited slice external_data_evaluated
+post15=LeRobot public dataset matrix, ALOHA + SO-100
+```
+
+첨부 사용:
+
+```text
+post12=/home/kangrim/rdf-worktrees/mvp3c-visual-receipt/postwrite/assets/mvp3c_connector_insertion_task_visual_receipt.mp4
+post14=postwrite/assets/post14_lerobot_aloha_slice_semantic_parity_receipt.png
+post15=postwrite/assets/post15_lerobot_dataset_matrix_semantic_parity_receipt.png
+```
+
+### 판단 이유
+
+- post11-post15는 MVP-2 이후 진행된 MVP-3A/B/C, external ingest contract,
+  public LeRobot slice, public dataset matrix를 순서대로 설명한다.
+- post12/post14/post15의 첨부는 visual communication 자료이며, proof source of truth는
+  tracked proof package와 verifier PASS로 유지한다.
+- post15 receipt는 최종적으로 4:5 세로형, 큰 `MATRIX VERIFIER: VERIFIED` 배너,
+  짧은 metric label로 재생성하여 텍스트 overflow를 제거했다.
+
+### 검증
+
+```text
+user_reported_posted_through_post15=true
+post15_receipt_dimensions=1200x1500
+post15_receipt_visual_receipt_only=true
+post15_receipt_non_claims_all_false=true
+git_diff_check=passed during asset finalization
+```
+
+### 남은 gap 또는 다음 작업
+
+- 공개 글은 post15까지 업로드 완료.
+- 다음 public narrative는 새 proof package 또는 외부/partner recorded log 평가 결과가 생긴 뒤 작성한다.
+
+## 2026-06-25 - MVP-4B Public Dataset TrustPack Generator v0 spec draft
+
+### 작업 내용
+
+MVP-3 / external public dataset matrix 이후 다음 방향을 `RDF Public Dataset TrustPack Generator v0`로
+좁혀 spec 초안을 작성했다. 구현은 시작하지 않았다.
+
+생성 파일:
+
+```text
+docs/superpowers/specs/2026-06-25-rdf-public-dataset-trustpack-generator-v0-design.md
+```
+
+### 판단 이유
+
+- 다음 목표는 새 proof를 여는 것이 아니라, 이미 닫힌 `ALOHA + SO-100` public dataset matrix
+  proof discipline을 반복 생성 가능한 제품 표면으로 바꾸는 것이다.
+- v0는 generic TrustPack kernel이 아니라 `public dataset profile TrustPack generator`로 제한한다.
+- 기존 matrix package를 byte-identical하게 복제하는 것이 아니라 semantic-equivalent하게 재생성하는 것을
+  목표로 한다.
+- verifier는 generator 코드를 import하지 않는 독립 auditor로 유지한다.
+
+### Spec 핵심
+
+```text
+in_scope:
+  explicit profile registry
+  generated self-contained TrustPack package for existing ALOHA + SO-100 matrix
+  buyer_report.html
+  existing matrix verifier PASS
+  non-claim machine-check
+  tamper tests
+
+out_of_scope:
+  generic LeRobot importer
+  new public profile
+  all proof package unification
+  Croissant full compliance
+  partner file-drop
+  external learning uplift
+```
+
+### 남은 gap 또는 다음 작업
+
+- spec의 3개 open question을 adversarial review 후 결정한다.
+- 승인되면 `$ralplan --deliberate`로 구현 계획을 작성한다.
+
+## 2026-06-25 - MVP-4B TrustPack Generator spec review patch
+
+### 작업 내용
+
+외부/적대적 spec review에서 지적된 세 blocking issue를
+`docs/superpowers/specs/2026-06-25-rdf-public-dataset-trustpack-generator-v0-design.md`
+에 반영했다. 구현은 시작하지 않았다.
+
+반영 사항:
+
+```text
+B-1:
+  Target Output을 기존 matrix verifier의 hardcoded contract에 맞춤.
+  data/trustpack_config.json rename 방지 → data/config.json 유지.
+  data/profile_resolver_report.json 포함.
+  package_status=external_data_evaluated 고정.
+  per-profile 19-file required set 유지.
+
+B-2:
+  buyer_report.html은 기존 matrix verifier가 스캔하지 않으므로,
+  별도 TrustPack HTML forbidden-claim scan을 acceptance gate로 명시.
+
+B-3:
+  data/regeneration_report.json을 required artifact로 승격.
+  generator self-report가 아니라 independent baseline-vs-generated comparator가
+  양쪽 evidence digest를 재계산해야 함을 명시.
+```
+
+### 판단 이유
+
+- 기존 `scripts/verify_lerobot_public_dataset_matrix_package.py`는 generic verifier가 아니라
+  `data/config.json`, `data/profile_resolver_report.json`, `package_status=external_data_evaluated`,
+  고정 profile set, per-profile required files를 강제한다.
+- `buyer_report.html`은 buyer-facing artifact지만 기존 verifier의 forbidden prose scan 대상이 아니므로
+  overclaim tamper test를 별도 gate 없이 만족할 수 없다.
+- matrix verifier PASS는 generated package의 내부 정합성을 증명하지만, frozen baseline과의
+  semantic-equivalent regeneration 자체를 증명하지 않는다.
+
+### 검증
+
+```text
+rg key_sections=passed
+git diff --check=passed
+implementation_started=false
+```
+
+### 남은 gap 또는 다음 작업
+
+- 최종 spec review 후 `$ralplan --deliberate`로 구현 계획을 작성한다.
+- 구현 단계에서는 existing matrix verifier PASS, HTML claim scan PASS,
+  independent regeneration comparator PASS를 별도 evidence로 남겨야 한다.
+
+## 2026-06-25 - MVP-4B TrustPack Generator RALPLAN deliberate approval
+
+### 작업 내용
+
+`docs/superpowers/specs/2026-06-25-rdf-public-dataset-trustpack-generator-v0-design.md`
+를 기준으로 `$ralplan --deliberate` 계획을 작성하고, Architect -> Critic 순서의
+consensus gate를 완료했다. 구현은 시작하지 않았다.
+
+생성/갱신된 planning artifact:
+
+```text
+.omx/context/rdf-public-dataset-trustpack-generator-v0-20260624T164527Z.md
+.omx/plans/prd-rdf-public-dataset-trustpack-generator-v0.md
+.omx/plans/test-spec-rdf-public-dataset-trustpack-generator-v0.md
+.omx/plans/ralplan-rdf-public-dataset-trustpack-generator-v0.md
+.omx/plans/ralplan-architect-review-rdf-public-dataset-trustpack-generator-v0-iteration1.md
+.omx/plans/ralplan-architect-review-rdf-public-dataset-trustpack-generator-v0-iteration2.md
+.omx/plans/ralplan-architect-review-rdf-public-dataset-trustpack-generator-v0-iteration3.md
+.omx/plans/ralplan-critic-review-rdf-public-dataset-trustpack-generator-v0-iteration1.md
+.omx/plans/ralplan-consensus-rdf-public-dataset-trustpack-generator-v0.md
+```
+
+### 판단 이유
+
+- Architect iteration 1에서 기존 matrix verifier의 `data/` artifact index 제한을
+  반영해 canonical HTML을 `data/reports/buyer_report.html`로 두고, top-level
+  `buyer_report.html`은 TrustPack-only metadata로만 hash-lock하도록 수정했다.
+- Architect iteration 2에서 기존 matrix verifier를 "stdlib-only"로 잘못 부른
+  부분을 수정했다. 기존 verifier는 producer-independent가 정확하며,
+  optional deep/reextract mode는 `h5py`, `numpy`, `pyarrow` import를 유지할 수 있다.
+- Architect iteration 3과 Critic iteration 1이 모두 APPROVE를 반환했다.
+
+### 검증
+
+```text
+architect_iteration1=ITERATE
+architect_iteration2=ITERATE
+architect_iteration3=APPROVE
+critic_iteration1=APPROVE
+implementation_started=false
+git diff --check=passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- 승인된 plan의 권장 next lane은 다음이다.
+
+```text
+$ultragoal .omx/plans/ralplan-rdf-public-dataset-trustpack-generator-v0.md
+```
+
+- 구현 완료 기준은 generated TrustPack package, existing matrix verifier PASS,
+  HTML claim scan PASS, independent regeneration comparator PASS, tamper tests PASS,
+  frozen proof verifier regression PASS다.
+
+## 2026-06-25 - MVP-4B RDF Public Dataset TrustPack Generator v0 implementation
+
+### 작업 내용
+
+승인된
+`.omx/plans/ralplan-rdf-public-dataset-trustpack-generator-v0.md`
+를 기준으로 RDF Public Dataset TrustPack Generator v0를 구현했다. 새 public
+dataset proof를 열지 않고, 기존
+`lerobot_public_dataset_matrix_semantic_parity_proof_package`의 ALOHA + SO-100
+matrix discipline을 공통 생성기 표면으로 재생성했다.
+
+생성/변경된 주요 산출물:
+
+```text
+apps/api/app/services/rdf_public_dataset_trustpack.py
+scripts/run_rdf_public_dataset_trustpack_generator.py
+scripts/scan_rdf_trustpack_html_claims.py
+scripts/compare_rdf_public_dataset_trustpack_regeneration.py
+apps/api/tests/test_rdf_public_dataset_trustpack_generator.py
+docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/
+.gitignore
+```
+
+TrustPack package는 기존 matrix verifier의 hardcoded contract를 유지한다.
+
+```text
+data/config.json
+data/profile_resolver_report.json
+package_status=external_data_evaluated
+per-profile required matrix evidence set
+```
+
+TrustPack-only additive artifacts:
+
+```text
+data/profile_registry.json
+data/reports/buyer_report.html
+buyer_report.html
+data/claim_scan_report.json
+data/regeneration_report.json
+data/trustpack_artifact_index.json
+```
+
+### 판단 이유
+
+- 기존 matrix verifier를 변경하지 않고 재사용하려면 package layout을
+  byte-structural하게 맞춰야 한다.
+- `buyer_report.html`은 기존 matrix verifier의 prose scan 대상이 아니므로
+  별도 HTML claim scanner를 추가했다.
+- matrix verifier PASS는 generated package의 내부 정합성을 증명하지만,
+  frozen baseline과의 faithful regeneration은 증명하지 않으므로 독립 comparator를
+  추가했다.
+- 새 package의 `dataset.hdf5` 두 개가 global `*.hdf5` ignore에 걸려 normal
+  `git add`에서 빠질 수 있어, 새 proof package 경로 전용 예외를 `.gitignore`에
+  추가했다.
+
+### 검증
+
+```text
+generator=python3 scripts/run_rdf_public_dataset_trustpack_generator.py --clean --pretty
+generated_matrix_verifier=VERDICT: VERIFIED
+html_claim_scan=PASS
+regeneration_comparison=PASS, semantic_equivalent=true
+new_trustpack_tests=9 passed
+focused_matrix_regression=32 passed
+ruff_touched_files=passed
+compileall_touched_files=passed
+unsafe_clean_targets=repo_root/tmp/baseline package rejected
+```
+
+Final review hardening:
+
+```text
+architect_watch_fixed=generated README now names RDF TrustPack v0 and points verifier commands at the TrustPack package
+readme_hash_locked=data/trustpack_artifact_index.json includes README.md as reviewer_entrypoint
+code_review_medium_fixed=comparator digest values computed as typed local strings
+mypy_comparator=passed
+full_pytest_after_fix=1010 passed, 6 skipped
+```
+
+### 남은 gap 또는 다음 작업
+
+- G008 final quality gate에서 전체 frozen verifier regression, ai-slop-cleaner,
+  independent code-reviewer + architect review를 완료해야 한다.
+- 이 slice의 allowed claim은 다음으로 제한한다.
+
+```text
+RDF Public Dataset TrustPack Generator v0 can materialize a self-contained,
+verifier-backed TrustPack package and buyer-readable report for the existing
+explicit LeRobot ALOHA + SO-100 public dataset matrix profile set.
+```
+
+- Non-claims:
+
+```text
+generic LeRobot importer 아님
+new public profile proof 아님
+full dataset evaluation 아님
+policy uplift 또는 learning-proven proof 아님
+real robot / hardware / live runtime readiness 아님
+full Croissant compliance 아님
+partner file-drop evaluation 아님
+```

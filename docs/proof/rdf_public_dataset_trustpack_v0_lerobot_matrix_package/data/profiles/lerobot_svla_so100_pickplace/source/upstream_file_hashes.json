@@ -1,0 +1,22 @@
+{
+  "files": {
+    "README.md": {
+      "sha256": "923e4c260c7dce15f1d3ccccd06e1eb30dcb3675258790550fb4c0978e0c50cb",
+      "size_bytes": 3730,
+      "source_url": "https://huggingface.co/datasets/lerobot/svla_so100_pickplace/resolve/3d6d687a25cdf1565cdf24550814f72d999a861d/README.md"
+    },
+    "data/chunk-000/file-000.parquet": {
+      "sha256": "615e9fafcd9378b5df82e8969936e48ad521848e02f843b3a1715e3b64e1f262",
+      "size_bytes": 479560,
+      "source_url": "https://huggingface.co/datasets/lerobot/svla_so100_pickplace/resolve/3d6d687a25cdf1565cdf24550814f72d999a861d/data/chunk-000/file-000.parquet"
+    },
+    "meta/info.json": {
+      "sha256": "aec8d0c7bd3d2dc693c160bd58f9fb6aabcbb24d4b28e2f09950a3aa6b246eef",
+      "size_bytes": 2623,
+      "source_url": "https://huggingface.co/datasets/lerobot/svla_so100_pickplace/resolve/3d6d687a25cdf1565cdf24550814f72d999a861d/meta/info.json"
+    }
+  },
+  "repo_id": "lerobot/svla_so100_pickplace",
+  "resolved_revision": "3d6d687a25cdf1565cdf24550814f72d999a861d",
+  "schema_version": "rdf_lerobot_upstream_file_hashes_v0.1.0"
+}

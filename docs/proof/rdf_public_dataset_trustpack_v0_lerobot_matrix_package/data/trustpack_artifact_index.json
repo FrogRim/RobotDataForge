@@ -1,0 +1,23 @@
+{
+  "artifact_index": [
+    {
+      "byte_size": 1991,
+      "file_sha256": "43f610a8d28d896aa3ffdf2a9610a8f553fc78926022328262292bda154531b7",
+      "hash_convention": "file_bytes",
+      "matrix_artifact_index_entry": false,
+      "path": "README.md",
+      "role": "reviewer_entrypoint"
+    },
+    {
+      "byte_size": 3045,
+      "file_sha256": "5554e91216a155af0a783538e17bb3baf00c3878942e0b269889f2050ac15cf7",
+      "hash_convention": "file_bytes",
+      "matrix_artifact_index_entry": false,
+      "path": "buyer_report.html",
+      "role": "reviewer_convenience_copy"
+    }
+  ],
+  "reviewer_entrypoint_count": 1,
+  "schema_version": "rdf_public_dataset_trustpack_artifact_index_v0.1.0",
+  "top_level_convenience_copy_count": 1
+}
