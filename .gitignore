@@ -32,6 +32,7 @@ storage/proof_evidence/**
 *.sqlite
 *.db
 *.hdf5
+!docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/data/profiles/*/export/dataset.hdf5
 *.h5
 *.log
 output.txt

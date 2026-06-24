@@ -1,0 +1,24 @@
+{
+  "frozen_package_manifest_sha256": "3a0f96e521410eb8d47f507cb1f5acfe9ca6b5f59e8494f1e2d233325926660e",
+  "profile": {
+    "action_dim": 14,
+    "episode_index": 0,
+    "frame_count": 8,
+    "frame_start": 0,
+    "license": "mit",
+    "observation_state_dim": 14,
+    "profile_id": "lerobot_aloha_static_coffee",
+    "repo_id": "lerobot/aloha_static_coffee",
+    "required_upstream_files": [
+      "data/chunk-000/file-000.parquet",
+      "meta/info.json",
+      "README.md"
+    ],
+    "resolved_revision": "b144896feb1f37398a862927b22cd3abdf005a6b",
+    "robot_type": "aloha",
+    "source_file": "data/chunk-000/file-000.parquet",
+    "source_kind": "public_lerobot_aloha_audited_slice"
+  },
+  "schema_version": "rdf_lerobot_matrix_profile_metadata_v0.1.0",
+  "source": "copied_from_frozen_v0.1_aloha_package"
+}

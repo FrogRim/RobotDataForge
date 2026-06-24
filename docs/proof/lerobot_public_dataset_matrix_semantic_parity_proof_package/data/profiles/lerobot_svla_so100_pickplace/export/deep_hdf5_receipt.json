@@ -1,0 +1,24 @@
+{
+  "action_dim": 6,
+  "checked_at_utc": "2026-06-24T02:38:14.000039+00:00",
+  "checker": "generic_state_action_hdf5_deep_compare",
+  "converted_row_sha256s": [
+    "5fc59c228d01e9a2c54d474bc0e16bb8edc135801fe964fe9392cdb7f6b1c68a",
+    "03a747616943dff15c9d1387c17080a65179d7e6792a4a153ea89aef5eb8fa93",
+    "02448117091fb383fcc516895d2a1322e13d1f7b9e28ab99ca8a810bcc5450a0",
+    "e1e2fdab9ac39b2fd6fa242244382dbf367c58760c892555da72dee64fdd6875",
+    "e671b4f483f8c8070aaa45dc6181e8b67d18c6560b2cdccf132dce34c14927c2",
+    "d394dabb45d09cbcd6cbab7b87781dbcbdf7760f27eacaa6ff3c1e468427d748",
+    "e26fc99906335a709a7bd28a06f2258a4f2f9b14ef8eaeab8f57e885763a45b5",
+    "3727ac2c56af05fec8a6c166d5f613a24ebeae2dd025a675ad37e9858c3d52af"
+  ],
+  "expected_learning_action_sha256": "ac89fab85c62552ea45d9c0e3c0c4f9a7a3831f4d0e18f793929dccc1ef325b0",
+  "expected_observation_state_sha256": "6ff97344160a6f437babc433b96f6b41677399ed6a33b2ba3ae1ee3e3b90ff53",
+  "hdf5_learning_action_sha256": "ac89fab85c62552ea45d9c0e3c0c4f9a7a3831f4d0e18f793929dccc1ef325b0",
+  "hdf5_observation_state_sha256": "6ff97344160a6f437babc433b96f6b41677399ed6a33b2ba3ae1ee3e3b90ff53",
+  "hdf5_path": "data/profiles/lerobot_svla_so100_pickplace/export/dataset.hdf5",
+  "matched": true,
+  "observation_state_dim": 6,
+  "row_count": 8,
+  "schema_version": "rdf_lerobot_deep_hdf5_receipt_v0.1.0"
+}

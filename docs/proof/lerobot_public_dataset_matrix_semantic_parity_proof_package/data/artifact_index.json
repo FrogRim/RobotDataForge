@@ -1,0 +1,257 @@
+{
+  "artifact_index": [
+    {
+      "byte_size": 1182,
+      "data_path": "data/config.json",
+      "file_sha256": "fbdd24cb04b24aeeaf90b0d96275aa72d09b6dad48458c49fcc508875d985274",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2006,
+      "data_path": "data/matrix_summary.json",
+      "file_sha256": "fcbffcfed34348db9406686bced072817bcbe2f8afea7d82fb564bbbafb87727",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 736,
+      "data_path": "data/non_claims_attestation.json",
+      "file_sha256": "dd27bb86176ab7e3bb5f7c685f610963e496a325fe58af2d447b94684bf33f3b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2986,
+      "data_path": "data/profile_resolver_report.json",
+      "file_sha256": "1bdbfbdd3dd0ea3dad5fe34366747f71243a1e5affab9f2a076a43ecc02471e2",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 618,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/contracts/normalized_state_action_contract.json",
+      "file_sha256": "3d4f07f608bc3192f9f7199bf2700b80cf2ff825303b6f9ac8b2558e8f0b8d97",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 174,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/contracts/validator_report.json",
+      "file_sha256": "091ca1975f6414cb622d49cc8be99d991cdf0f3cf1a8acf7f1fb1b243989a646",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1326,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/conversion/conversion_manifest.json",
+      "file_sha256": "7bf6e5cd6de1001d10ccde1f023b2f93a801f7d5dffbf9bd3b3d8ea0695f2ff1",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 11598,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/conversion/rdf_converted_rows.jsonl",
+      "file_sha256": "7fdaee3078592a2a18a776b242c4f8f6f5cbf4ca4add13037c1dc2d0e74f5d7f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 535,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/conversion/semantic_mapping_report.json",
+      "file_sha256": "13e39b05e93bd4ac980be62e0e23f4a33d74c68d353ab6d65d015c2fa26eb7c9",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 15800,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/export/dataset.hdf5",
+      "file_sha256": "05f4371de7a0d8594c75f1cee776ff6d7e52726ba9830d9c24d3134921954248",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1330,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/export/deep_hdf5_receipt.json",
+      "file_sha256": "9cef91aff097980688fd7d0e1daf706e2f95b9c9d8926c7bc9e804acd7dbd894",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 366,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/export/hdf5_inspection_report.json",
+      "file_sha256": "4563fd9a07908328eaf2f64b4c65946daf7bce3524b77abb8cac3be72defd3cd",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 368,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/export/trainer_smoke_report.json",
+      "file_sha256": "2fb2ccecd53c4e52d98bb8f08badccc85ee8184c940f53868cac20047beea843",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 815,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/profile_metadata.json",
+      "file_sha256": "2c08dda1ced95728d17fbad735cd6330648f11a7a4c7a3aada408fb32f1953cf",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1575,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/reports/buyer_data_evaluation_report.json",
+      "file_sha256": "4a553058227242ffa3a7607e3983c408f115bb6024c3e6db092e8ab00f8b4de7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 87,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/source/LICENSE.txt",
+      "file_sha256": "9767dd37f330f188e0410c4ddf6a5b02fc9eb8b0ae2e2d55803a8e872b42eda4",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2121,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/source/extraction_receipt.json",
+      "file_sha256": "c3ea14c42db3797526b0a32f80daf4cdfd4b0cef764a59981dd3aeae03ce1fbe",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 741,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/source/lerobot_feature_schema.json",
+      "file_sha256": "4509d5fc1f3dabbabc1da865ec2768b8281a38ef1c0bdd7ba730fe650a11330e",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 8510,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/source/lerobot_raw_rows.jsonl",
+      "file_sha256": "bb39335e1d06465e543e8acaed5d8fc735351b4176a9b281e9266b752b0d6a7f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 615,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/source/public_source_binding.json",
+      "file_sha256": "46646cc5cfee3dd0c3f4ad69fd41c02f4202f803a351cfb5dad437cc97589e3b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1311,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/source/refetch_receipt.json",
+      "file_sha256": "a56917fd6e738d2222d3397595927a632923479e951d65f5fe54486927c06190",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1332,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/source/slice_selection_report.json",
+      "file_sha256": "9760a6188089e6b63a359935ee6b105eabffc3812a6c01ef23c0a3b1f74e4347",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1082,
+      "data_path": "data/profiles/lerobot_aloha_static_coffee/source/upstream_file_hashes.json",
+      "file_sha256": "0672dc2ec1cb6534219ade9a8c53e5edb0b2836e34f1cd26d2b16a78cfc38c5c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 627,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/contracts/normalized_state_action_contract.json",
+      "file_sha256": "034261851d4ddabe296def819cc715ed5f73642b0fe915f14b0b0029da6154f8",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 172,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/contracts/validator_report.json",
+      "file_sha256": "7647b6fe58b116f4023d29fab9b121d4f1a71e1297ba9d17dd0afd80c59debc9",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1326,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/conversion/conversion_manifest.json",
+      "file_sha256": "3f1cb697f63d5d97542dc85330fb309551a024721d1f7856ddcc08903a161f34",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 8087,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/conversion/rdf_converted_rows.jsonl",
+      "file_sha256": "6e311219a9f6dbca24d95241b2d1445974b5057afd363512f59f4cacb91aa5ec",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 533,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/conversion/semantic_mapping_report.json",
+      "file_sha256": "b489ef56922a9e537339d3236a41a456411058a7b8850fd299ddce205d647660",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 15800,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/export/dataset.hdf5",
+      "file_sha256": "b515590dc55eea8777f89c4636ecb690526cb38f0e66e18c04c5e5247a5f0bc7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1366,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/export/deep_hdf5_receipt.json",
+      "file_sha256": "1ae2683cf2a68e59763a5e94bba32c6e65cfd365fb67334bbcec59a34879e356",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 425,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/export/hdf5_inspection_report.json",
+      "file_sha256": "90f388c1c625c8063c166a20d8b91232e3801aa6395bc9fb2f2dacfe9d3449bf",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 364,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/export/trainer_smoke_report.json",
+      "file_sha256": "89d95b9a4b9af5e0ec0804eff15148cb59ffe090fde5f3b6f426736d8b0d5aa4",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 675,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/profile_metadata.json",
+      "file_sha256": "4c37623be7526ea5459703c6cc9f4ff5ad9b1a49ff3deb482a1498689bad94ab",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1760,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/reports/buyer_data_evaluation_report.json",
+      "file_sha256": "fb7ffb91ea94938b06c47e1dbc17c34441c6c1ad3f61efeadfcf659b6840d2ac",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 95,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/source/LICENSE.txt",
+      "file_sha256": "0f0443fb6e16728b4b0cde2b0fa008b445bede501d499baffbc48ca7407b084a",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2134,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/source/extraction_receipt.json",
+      "file_sha256": "f232fd3672d77e8292df885921dc3b923ff00ba4f8628477f83ef975a5d62301",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 678,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/source/lerobot_feature_schema.json",
+      "file_sha256": "1a573ea8fb7ca0fbf592443fbc23077c5094a15cbfd2437bb7268372ee371cc4",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4839,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/source/lerobot_raw_rows.jsonl",
+      "file_sha256": "76296b4b95ef5699a28072db627853b4b76b308228cfbe95d8969feb196c8f2b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 702,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/source/public_source_binding.json",
+      "file_sha256": "51ab9ccc787210fb481fe6c396d302c18273c852accf359ed6984fb7986fedac",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1313,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/source/refetch_receipt.json",
+      "file_sha256": "a06c17439fb69d7d90bcabb3ef89b14a4007f2895836b0812944dddc8f913086",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1330,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/source/slice_selection_report.json",
+      "file_sha256": "6edf5d5f2b3f4336edf1c29c4a39f993050650777fc3b2c5c45e8eb1cd4b2494",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1085,
+      "data_path": "data/profiles/lerobot_svla_so100_pickplace/source/upstream_file_hashes.json",
+      "file_sha256": "737af07e13a59ee8202643a1eac4f1bff97ee21f6fa4d7eedb983a78b2fff940",
+      "hash_convention": "file_bytes"
+    }
+  ],
+  "schema_version": "rdf_lerobot_public_dataset_matrix_artifact_index_v0.1.0"
+}
