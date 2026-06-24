@@ -1,0 +1,125 @@
+{
+  "artifact_index": [
+    {
+      "byte_size": 1198,
+      "data_path": "data/config.json",
+      "file_sha256": "a8897b05ce17cc75d091e7bcd8cc5468794c02bd510d9e1845d24208769595f3",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 618,
+      "data_path": "data/contracts/normalized_state_action_contract.json",
+      "file_sha256": "3d4f07f608bc3192f9f7199bf2700b80cf2ff825303b6f9ac8b2558e8f0b8d97",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 174,
+      "data_path": "data/contracts/validator_report.json",
+      "file_sha256": "091ca1975f6414cb622d49cc8be99d991cdf0f3cf1a8acf7f1fb1b243989a646",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1326,
+      "data_path": "data/conversion/conversion_manifest.json",
+      "file_sha256": "7bf6e5cd6de1001d10ccde1f023b2f93a801f7d5dffbf9bd3b3d8ea0695f2ff1",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 11598,
+      "data_path": "data/conversion/rdf_converted_rows.jsonl",
+      "file_sha256": "7fdaee3078592a2a18a776b242c4f8f6f5cbf4ca4add13037c1dc2d0e74f5d7f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 535,
+      "data_path": "data/conversion/semantic_mapping_report.json",
+      "file_sha256": "13e39b05e93bd4ac980be62e0e23f4a33d74c68d353ab6d65d015c2fa26eb7c9",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 15800,
+      "data_path": "data/export/dataset.hdf5",
+      "file_sha256": "05f4371de7a0d8594c75f1cee776ff6d7e52726ba9830d9c24d3134921954248",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1330,
+      "data_path": "data/export/deep_hdf5_receipt.json",
+      "file_sha256": "9cef91aff097980688fd7d0e1daf706e2f95b9c9d8926c7bc9e804acd7dbd894",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 366,
+      "data_path": "data/export/hdf5_inspection_report.json",
+      "file_sha256": "4563fd9a07908328eaf2f64b4c65946daf7bce3524b77abb8cac3be72defd3cd",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 368,
+      "data_path": "data/export/trainer_smoke_report.json",
+      "file_sha256": "2fb2ccecd53c4e52d98bb8f08badccc85ee8184c940f53868cac20047beea843",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 729,
+      "data_path": "data/non_claims_attestation.json",
+      "file_sha256": "752a5010f93407b82cdb7e214eb87189353f4e5302f07507320ac0ce41ff7af9",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1575,
+      "data_path": "data/reports/buyer_data_evaluation_report.json",
+      "file_sha256": "4a553058227242ffa3a7607e3983c408f115bb6024c3e6db092e8ab00f8b4de7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 87,
+      "data_path": "data/source/LICENSE.txt",
+      "file_sha256": "9767dd37f330f188e0410c4ddf6a5b02fc9eb8b0ae2e2d55803a8e872b42eda4",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2121,
+      "data_path": "data/source/extraction_receipt.json",
+      "file_sha256": "c3ea14c42db3797526b0a32f80daf4cdfd4b0cef764a59981dd3aeae03ce1fbe",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 741,
+      "data_path": "data/source/lerobot_feature_schema.json",
+      "file_sha256": "4509d5fc1f3dabbabc1da865ec2768b8281a38ef1c0bdd7ba730fe650a11330e",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 8510,
+      "data_path": "data/source/lerobot_raw_rows.jsonl",
+      "file_sha256": "bb39335e1d06465e543e8acaed5d8fc735351b4176a9b281e9266b752b0d6a7f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 615,
+      "data_path": "data/source/public_source_binding.json",
+      "file_sha256": "46646cc5cfee3dd0c3f4ad69fd41c02f4202f803a351cfb5dad437cc97589e3b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1311,
+      "data_path": "data/source/refetch_receipt.json",
+      "file_sha256": "a56917fd6e738d2222d3397595927a632923479e951d65f5fe54486927c06190",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1332,
+      "data_path": "data/source/slice_selection_report.json",
+      "file_sha256": "9760a6188089e6b63a359935ee6b105eabffc3812a6c01ef23c0a3b1f74e4347",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1082,
+      "data_path": "data/source/upstream_file_hashes.json",
+      "file_sha256": "0672dc2ec1cb6534219ade9a8c53e5edb0b2836e34f1cd26d2b16a78cfc38c5c",
+      "hash_convention": "file_bytes"
+    }
+  ],
+  "schema_version": "rdf_lerobot_public_slice_artifact_index_v0.1.0"
+}

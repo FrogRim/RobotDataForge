@@ -1,0 +1,41 @@
+{
+  "action_dim": 14,
+  "columns": [
+    {
+      "name": "episode_index",
+      "type": "int64"
+    },
+    {
+      "name": "frame_index",
+      "type": "int64"
+    },
+    {
+      "name": "timestamp",
+      "type": "float"
+    },
+    {
+      "name": "observation.state",
+      "type": "list<element: float>"
+    },
+    {
+      "name": "action",
+      "type": "list<element: float>"
+    },
+    {
+      "name": "next.done",
+      "type": "bool"
+    },
+    {
+      "name": "index",
+      "type": "int64"
+    },
+    {
+      "name": "task_index",
+      "type": "int64"
+    }
+  ],
+  "observation_state_dim": 14,
+  "row_count_in_selected_table": 55000,
+  "schema_version": "rdf_lerobot_feature_schema_v0.1.0",
+  "source": "pyarrow parquet schema"
+}

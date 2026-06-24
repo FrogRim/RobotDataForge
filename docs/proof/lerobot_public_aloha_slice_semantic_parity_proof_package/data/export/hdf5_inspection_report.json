@@ -1,0 +1,13 @@
+{
+  "action_dim": 14,
+  "episode_ids": [
+    "aloha_episode_000000"
+  ],
+  "hdf5_path": "data/export/dataset.hdf5",
+  "hdf5_sha256": "05f4371de7a0d8594c75f1cee776ff6d7e52726ba9830d9c24d3134921954248",
+  "observation_state_dim": 14,
+  "passed": true,
+  "row_count": 8,
+  "schema_version": "rdf_lerobot_hdf5_inspection_report_v0.1.0",
+  "timestamps_monotonic": true
+}

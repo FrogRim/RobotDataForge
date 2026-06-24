@@ -1,0 +1,22 @@
+{
+  "non_claims": {
+    "deployable_policy_readiness": false,
+    "full_dataset_evaluation": false,
+    "full_lerobot_parser_support": false,
+    "general_robot_intelligence": false,
+    "learning_proven_value": false,
+    "live_aloha_support": false,
+    "live_franka_hardware_support": false,
+    "live_hardware_support": false,
+    "live_ros2_dds_bridge_readiness": false,
+    "live_ur_rtde_support": false,
+    "marketplace_readiness": false,
+    "physical_robot_readiness": false,
+    "policy_uplift": false,
+    "production_certification": false,
+    "real_robot_success": false,
+    "sim_to_real_proven": false,
+    "visual_policy_performance": false
+  },
+  "schema_version": "rdf_lerobot_non_claims_attestation_v0.1.0"
+}
