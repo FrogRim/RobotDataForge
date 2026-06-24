@@ -1,0 +1,15 @@
+{
+  "audited_slice_verdict_claimed": true,
+  "dataset_card_robot_type": "aloha",
+  "dataset_card_rows": 55000,
+  "dataset_card_total_file_size": "1.57GB",
+  "external_source_included": true,
+  "full_dataset_verdict_claimed": false,
+  "license": "mit",
+  "provenance_trust_tier": "refetchable_public_source",
+  "repo_id": "lerobot/aloha_static_coffee",
+  "resolved_revision": "b144896feb1f37398a862927b22cd3abdf005a6b",
+  "schema_version": "rdf_lerobot_public_source_binding_v0.1.0",
+  "source_file": "data/chunk-000/file-000.parquet",
+  "source_url": "https://huggingface.co/datasets/lerobot/aloha_static_coffee"
+}

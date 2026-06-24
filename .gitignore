@@ -33,6 +33,7 @@ storage/proof_evidence/**
 *.db
 *.hdf5
 !docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/data/profiles/*/export/dataset.hdf5
+!docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/data/profiles/*/export/dataset.hdf5
 *.h5
 *.log
 output.txt

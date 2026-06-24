@@ -1,0 +1,17 @@
+{
+  "canonical_and_top_level_byte_match": true,
+  "entity_unescape_applied": true,
+  "forbidden_phrase_rule_count": 19,
+  "issue_count": 0,
+  "negation_rule_count": 13,
+  "passed": true,
+  "raw_html_scanned": true,
+  "scanned_paths": [
+    "buyer_report.html",
+    "data/reports/buyer_report.html"
+  ],
+  "scanner": "rdf_trustpack_html_claim_scan_v0.1.0",
+  "schema_version": "rdf_trustpack_html_claim_scan_report_v0.1.0",
+  "script_style_handling": "ignored_for_visible_text",
+  "visible_text_scanned": true
+}

@@ -1,0 +1,31 @@
+{
+  "checked_at_utc": "2026-06-23T03:04:32.992176+00:00",
+  "files_checked": [
+    {
+      "declared_sha256": "da783ef780c38b7a85c85db2a03dad304adfcd1de48b69b0618cf1eeab4024c8",
+      "matched": true,
+      "path": "README.md",
+      "refetched_sha256": "da783ef780c38b7a85c85db2a03dad304adfcd1de48b69b0618cf1eeab4024c8",
+      "revision": "b144896feb1f37398a862927b22cd3abdf005a6b"
+    },
+    {
+      "declared_sha256": "ed62be90cd794f6672b26485be2b01af47409ba4cd31042fe261ddc79090bcc1",
+      "matched": true,
+      "path": "data/chunk-000/file-000.parquet",
+      "refetched_sha256": "ed62be90cd794f6672b26485be2b01af47409ba4cd31042fe261ddc79090bcc1",
+      "revision": "b144896feb1f37398a862927b22cd3abdf005a6b"
+    },
+    {
+      "declared_sha256": "b01266672ae75793cfc0ad4d769ae8601a194ec009b0cac4b443df70b517757e",
+      "matched": true,
+      "path": "meta/info.json",
+      "refetched_sha256": "b01266672ae75793cfc0ad4d769ae8601a194ec009b0cac4b443df70b517757e",
+      "revision": "b144896feb1f37398a862927b22cd3abdf005a6b"
+    }
+  ],
+  "matched": true,
+  "repo_id": "lerobot/aloha_static_coffee",
+  "resolved_revision": "b144896feb1f37398a862927b22cd3abdf005a6b",
+  "schema_version": "rdf_lerobot_refetch_receipt_v0.1.0",
+  "source_url": "https://huggingface.co/datasets/lerobot/aloha_static_coffee"
+}

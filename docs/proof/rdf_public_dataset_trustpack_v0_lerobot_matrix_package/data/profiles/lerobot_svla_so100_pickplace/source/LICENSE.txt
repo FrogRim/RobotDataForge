@@ -1,0 +1,1 @@
+apache-2.0 license declared by Hugging Face dataset metadata for lerobot/svla_so100_pickplace.
