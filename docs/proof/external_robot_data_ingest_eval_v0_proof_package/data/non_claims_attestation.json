@@ -1,0 +1,20 @@
+{
+  "all_false_required": true,
+  "non_claims": {
+    "deployable_policy_readiness": false,
+    "general_robot_intelligence": false,
+    "hmd_openxr_readiness": false,
+    "live_franka_hardware_support": false,
+    "live_ros2_dds_bridge_readiness": false,
+    "live_ur_rtde_support": false,
+    "marketplace_readiness": false,
+    "physical_robot_readiness": false,
+    "policy_uplift_or_learning_proven": false,
+    "production_certification": false,
+    "real_robot_success": false,
+    "sim_to_real_proven": false,
+    "universal_robot_support": false,
+    "visual_policy_performance": false
+  },
+  "schema_version": "rdf_external_robot_data_ingest_eval_non_claims_v0.1.0"
+}

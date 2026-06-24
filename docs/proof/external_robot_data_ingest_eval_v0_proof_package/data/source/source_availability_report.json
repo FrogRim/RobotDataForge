@@ -1,0 +1,13 @@
+{
+  "checked_source_dir": "/tmp/rdf_external_missing_source",
+  "external_data_evaluated": false,
+  "external_source_included": false,
+  "required_for_external_data_evaluated": [
+    "metadata.json",
+    "accepted_command_state.jsonl",
+    "rejected_command_state.jsonl",
+    "PROVENANCE.md or public source binding"
+  ],
+  "schema_version": "rdf_external_source_availability_report_v0.1.0",
+  "stop_reason": "no eligible external source rows available"
+}

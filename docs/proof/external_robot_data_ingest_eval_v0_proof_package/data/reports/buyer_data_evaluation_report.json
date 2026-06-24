@@ -1,0 +1,39 @@
+{
+  "claim": "external_ingest_contract_ready",
+  "counts": {
+    "accepted_rows": 0,
+    "rejected_rows": 0
+  },
+  "external_data_evaluated": false,
+  "external_ingest_contract_ready": true,
+  "gates": {
+    "adapter_projection_passed": false,
+    "hdf5_exported": false,
+    "hdf5_inspection_clean": false,
+    "normalized_contract_emitted": false,
+    "source_validation_passed": false,
+    "staging_derivation_passed": false,
+    "staging_derivation_verified": false,
+    "trainer_smoke_passed": false
+  },
+  "non_claims": {
+    "deployable_policy_readiness": false,
+    "general_robot_intelligence": false,
+    "hmd_openxr_readiness": false,
+    "live_franka_hardware_support": false,
+    "live_ros2_dds_bridge_readiness": false,
+    "live_ur_rtde_support": false,
+    "marketplace_readiness": false,
+    "physical_robot_readiness": false,
+    "policy_uplift_or_learning_proven": false,
+    "production_certification": false,
+    "real_robot_success": false,
+    "sim_to_real_proven": false,
+    "universal_robot_support": false,
+    "visual_policy_performance": false
+  },
+  "provenance_trust_boundary": "RDF recomputes ingest/evaluation consistency from included rows and hashes. Offline verification does not cryptographically prove physical external origin.",
+  "schema_version": "rdf_external_robot_data_ingest_eval_buyer_report_v0.1.0",
+  "what_is_missing": "No actual external/public recorded robot source rows are included in this package.",
+  "what_is_proven": "RDF has a verifier/package contract for external JSONL command-state ingest."
+}

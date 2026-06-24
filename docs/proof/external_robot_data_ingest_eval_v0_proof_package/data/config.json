@@ -1,0 +1,41 @@
+{
+  "allowed_future_status": "external_data_evaluated",
+  "external_source_included": false,
+  "external_source_required_for_external_data_evaluated": true,
+  "non_claims": {
+    "deployable_policy_readiness": false,
+    "general_robot_intelligence": false,
+    "hmd_openxr_readiness": false,
+    "live_franka_hardware_support": false,
+    "live_ros2_dds_bridge_readiness": false,
+    "live_ur_rtde_support": false,
+    "marketplace_readiness": false,
+    "physical_robot_readiness": false,
+    "policy_uplift_or_learning_proven": false,
+    "production_certification": false,
+    "real_robot_success": false,
+    "sim_to_real_proven": false,
+    "universal_robot_support": false,
+    "visual_policy_performance": false
+  },
+  "package_status": "external_ingest_contract_ready",
+  "provenance_trust_boundary": "RDF recomputes ingest/evaluation consistency from included rows and hashes. Offline verification does not cryptographically prove physical external origin.",
+  "row_contract": {
+    "accepted_rows_min": 4,
+    "accepted_source_file": "data/source/accepted_command_state.jsonl",
+    "rejected_rows_exact": 1,
+    "rejected_source_file": "data/source/rejected_command_state.jsonl"
+  },
+  "schema_version": "rdf_external_robot_data_ingest_eval_package_config_v0.1.0",
+  "spent_ranges_audit_only_no_reuse": [
+    [
+      40000,
+      40049
+    ],
+    [
+      42000,
+      42049
+    ]
+  ],
+  "status": "external_ingest_contract_ready"
+}

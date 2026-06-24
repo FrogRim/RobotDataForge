@@ -1,0 +1,64 @@
+{
+  "artifact_paths": {
+    "accepted_evaluation": null,
+    "accepted_trajectory": null,
+    "contract_proof": null,
+    "curation_manifest": null,
+    "hdf5_export": null,
+    "hdf5_inspection": null,
+    "normalized_contract": null,
+    "projection_manifest": null,
+    "rejected_evaluation": null,
+    "rejected_trajectory": null,
+    "report": "docs/proof/external_robot_data_ingest_eval_v0_proof_package/.build_work/external_ingest_eval_report.json",
+    "split_manifest": null,
+    "staging_derivation_report": null,
+    "staging_metadata": null,
+    "trainer_smoke_report": null
+  },
+  "counts": {
+    "accepted_rows": 0,
+    "rejected_rows": 0
+  },
+  "export_trainer_evidence": null,
+  "external_source_dir": "/tmp/rdf_external_missing_source",
+  "gates": {
+    "adapter_projection_passed": false,
+    "hdf5_exported": false,
+    "hdf5_inspection_clean": false,
+    "normalized_contract_emitted": false,
+    "source_validation_passed": false,
+    "staging_derivation_passed": false,
+    "staging_derivation_verified": false,
+    "trainer_smoke_passed": false
+  },
+  "issues": [
+    "missing source file: metadata.json",
+    "missing source file: accepted_command_state.jsonl",
+    "missing source file: rejected_command_state.jsonl"
+  ],
+  "non_claims": {
+    "deployable_policy_readiness": false,
+    "general_robot_intelligence": false,
+    "hmd_openxr_readiness": false,
+    "live_franka_hardware_support": false,
+    "live_ros2_dds_bridge_readiness": false,
+    "live_ur_rtde_support": false,
+    "marketplace_readiness": false,
+    "physical_robot_readiness": false,
+    "policy_uplift_or_learning_proven": false,
+    "production_certification": false,
+    "real_robot_success": false,
+    "sim_to_real_proven": false,
+    "universal_robot_support": false,
+    "visual_policy_performance": false
+  },
+  "output_dir": "docs/proof/external_robot_data_ingest_eval_v0_proof_package/.build_work",
+  "package_status": "external_ingest_contract_ready",
+  "provenance_trust_boundary": "RDF recomputes ingest/evaluation consistency from included rows and hashes. Offline verification does not cryptographically prove physical external origin.",
+  "schema_version": "rdf_external_robot_data_ingest_eval_report_v0.1.0",
+  "selected_adapter_id": null,
+  "source_file_hashes": {},
+  "status": "external_ingest_contract_ready",
+  "stop_reason": "no eligible external source rows available"
+}
