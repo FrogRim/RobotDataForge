@@ -1,5 +1,78 @@
 # ForgeXR / RDF Data Trust Layer Reset - 2026-06-04
 
+## Current LeRobot Public Dataset Matrix Semantic Parity - 2026-06-24 KST
+
+Goal: ALOHA 단일 public audited slice를 2-profile LeRobot public source matrix로
+확장해 profile registry, single-arm resolver, conversion, contract, export,
+trainer smoke, package, verifier discipline이 source별로 반복되는지 검증한다.
+
+Current status:
+
+```text
+branch=codex/lerobot-public-dataset-matrix-semantic-parity
+spec=docs/superpowers/specs/2026-06-24-lerobot-public-dataset-matrix-semantic-parity-design.md
+ralplan=.omx/plans/ralplan-lerobot-public-dataset-matrix-semantic-parity.md
+package=docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/
+implementation_status=G001-G007 complete and checkpointed
+current_gate=complete_pending_user_approved_commit
+```
+
+Claim boundary:
+
+- [x] Matrix proves two pinned public LeRobot source profiles can pass RDF semantic parity discipline.
+- [x] Matrix includes ALOHA `14x14` and SO-100 `6x6` state/action profiles.
+- [x] Matrix verifier is stdlib-only by default and independent from producer code.
+- [x] Matrix package includes verdict-critical small evidence under `docs/proof/.../data/`.
+- [x] Matrix does not prove generic LeRobot parser support.
+- [x] Matrix does not prove full dataset evaluation.
+- [x] Matrix does not prove real robot success or physical robot readiness.
+- [x] Matrix does not prove live ALOHA/UR/Franka/ROS/RTDE support.
+- [x] Matrix does not prove visual policy performance, policy uplift, marketplace, production, or sim-to-real.
+- [x] Spent ranges `40000-40049` and `42000-42049` remain no-reuse.
+
+Ultragoal checklist:
+
+- [x] G001 planning and branch hygiene.
+- [x] G002 profile registry and single-arm resolver gate.
+- [x] G003 profile-aware extractor/converter/contract reuse.
+- [x] G004 matrix package builder.
+- [x] G005 independent stdlib matrix verifier.
+- [x] G006 tamper/variety/regression test matrix.
+- [x] G007 documentation and handoff update.
+- [x] G007 full regression and frozen verifier gate.
+- [x] G007 ai-slop-cleaner gate.
+- [x] G007 first independent review issues reproduced and fixed.
+- [x] G007 independent code-reviewer + architect gate.
+- [x] G007 ultragoal complete checkpoint.
+
+Current verification:
+
+```text
+focused_matrix_pytest=23 passed
+matrix_verifier=VERDICT: VERIFIED
+matrix_deep_hdf5=VERDICT: VERIFIED
+matrix_refetch_public_source=VERDICT: VERIFIED
+matrix_reextract_public_source=VERDICT: VERIFIED
+full_regression=1001 passed, 6 skipped
+frozen_verifiers=LeRobot ALOHA/external-ingest/MVP-2/MVP-3A/MVP-3B/MVP-3C all VERIFIED
+ruff_touched_matrix_files=passed
+compileall_touched_matrix_files=passed
+git_diff_check=passed
+hdf5_git_add_dry_run=both profile dataset.hdf5 files addable
+unsafe_clean_target_check=/tmp --clean rejected as expected
+review_hardening=strict clause-scoped prose scanner, safe --clean guard, HDF5 gitignore exception, narrowed ALOHA/SO-100 claim wording
+code_reviewer_re_review=APPROVE, no findings
+architect_re_review=APPROVE/CLEAR, no blockers or WATCH items
+final_precommit_code_review=APPROVE after mypy narrowing fixes
+final_precommit_mypy=Success, no issues found in 2 source files
+```
+
+Next valid step:
+
+```text
+User-approved Lore protocol commit, push, and PR if requested.
+```
+
 ## Current MVP-3C Isaac Sim Embodiment Source Spec - 2026-06-22 KST
 
 Goal: MVP-3C를 `isaac_sim_embodiment_source` slice로 정의해 Franka + Universal

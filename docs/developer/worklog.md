@@ -20228,3 +20228,242 @@ find . -path './storage' -prune -o -path './.venv' -prune -o -path './.omx' -pru
 - G001에서 external source eligibility validator를 구현한다.
 - Canonical proof package는 `external_source_included=false`로 contract-ready 상태만 닫아야 한다.
 - 실제 external/public source가 나중에 제공되면 별도 run에서 `external_data_evaluated`로 승격한다.
+
+## 2026-06-24 KST - LeRobot public dataset matrix semantic parity ultragoal
+
+### 작업 내용
+
+승인된 SPEC/RALPLAN을 기준으로 `$ultragoal`을 실행해 LeRobot public ALOHA 단일
+audited slice를 2-profile matrix proof로 확장했다.
+
+새 matrix profile:
+
+```text
+lerobot_aloha_static_coffee
+  repo_id=lerobot/aloha_static_coffee
+  resolved_revision=b144896feb1f37398a862927b22cd3abdf005a6b
+  robot_type=aloha
+  state_dim=14
+  action_dim=14
+
+lerobot_svla_so100_pickplace
+  repo_id=lerobot/svla_so100_pickplace
+  resolved_revision=3d6d687a25cdf1565cdf24550814f72d999a861d
+  robot_type=so100
+  state_dim=6
+  action_dim=6
+```
+
+구현 결과:
+
+```text
+package=docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/
+package_status=external_data_evaluated
+profile_count=2
+profile_variety.robot_types=aloha,so100
+profile_variety.state_action_dims=14x14,6x6
+full_source_verdict_claimed=false
+real_robot_readiness_claimed=false
+policy_uplift_claimed=false
+```
+
+### 판단 이유
+
+MVP-4A external/public data 방향에서 ALOHA 단일 source만 통과하면 “특정
+dataset 전용 변환”으로 오독될 수 있다. 이번 slice는 profile registry,
+single-arm resolver gate, profile-aware converter, package builder, stdlib-only
+independent verifier를 추가해 서로 다른 LeRobot public source profile 2개가 같은
+semantic parity discipline을 통과함을 증명한다.
+
+다만 이는 generic LeRobot parser나 full dataset evaluation이 아니다. Claim은
+결정적 audited slice 2개에 한정한다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/lerobot_public_slice.py
+apps/api/app/services/lerobot_state_action_contract.py
+apps/api/tests/test_lerobot_public_dataset_matrix.py
+apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+docs/developer/data_schema.md
+docs/developer/debugging_guide.md
+docs/developer/worklog.md
+docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/
+scripts/run_lerobot_public_dataset_matrix_semantic_parity.py
+scripts/verify_lerobot_public_dataset_matrix_package.py
+```
+
+### 실행한 검증 명령과 결과
+
+```bash
+uv run pytest -q apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# 23 passed
+
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uv run --with h5py --with numpy python scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json --deep-hdf5
+# VERDICT: VERIFIED
+
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json --refetch-public-source
+# VERDICT: VERIFIED
+
+uv run --with pyarrow python scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json --reextract-public-source
+# VERDICT: VERIFIED
+
+uv run pytest -q
+# 1001 passed, 6 skipped
+
+uvx ruff check apps/api/app/services/lerobot_public_slice.py \
+  apps/api/app/services/lerobot_state_action_contract.py \
+  scripts/run_lerobot_public_dataset_matrix_semantic_parity.py \
+  scripts/verify_lerobot_public_dataset_matrix_package.py \
+  apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# All checks passed
+
+python3 -m compileall apps/api/app/services/lerobot_public_slice.py \
+  apps/api/app/services/lerobot_state_action_contract.py \
+  scripts/run_lerobot_public_dataset_matrix_semantic_parity.py \
+  scripts/verify_lerobot_public_dataset_matrix_package.py \
+  apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# passed
+```
+
+G007 중 발견한 optional verifier bug:
+
+```text
+symptom:
+  matrix verifier --reextract-public-source에서 ALOHA profile만 row digest mismatch.
+
+root cause:
+  matrix reextractor가 ALOHA Parquet를 full-column으로 읽으면서 frozen ALOHA
+  audited slice가 의도적으로 제외한 observation.effort optional column을
+  source row digest에 포함했다.
+
+fix:
+  verifier가 package의 source/lerobot_feature_schema.json column projection을
+  source of truth로 읽고 pq.read_table(..., columns=...)에 전달한다.
+
+regression:
+  test_reextract_uses_recorded_feature_schema_column_projection 추가.
+```
+
+G007 independent review hardening:
+
+```text
+code-reviewer finding:
+  README/prose forbidden-claim scanner가 이전 문장의 negation으로 뒤 문장의
+  affirmative forbidden claim을 masking할 수 있었다.
+fix:
+  verifier prose scanner를 clause-scoped direct negation으로 제한했다.
+regression:
+  test_forbidden_prose_after_unrelated_negation_fails_after_hash_refresh
+
+code-reviewer finding:
+  runner가 기존 package_dir를 항상 삭제해 unsafe target에 취약했다.
+fix:
+  --clean 없이는 기존 package_dir를 거부하고, --clean target은 managed matrix
+  package dir 또는 safe temp subdir만 허용한다.
+regression:
+  test_runner_requires_clean_for_existing_package_dir
+  test_runner_rejects_unsafe_clean_target
+
+code-reviewer finding:
+  package의 verdict-critical HDF5 export가 repo-wide *.hdf5 ignore에 걸릴 수 있었다.
+fix:
+  .gitignore에 matrix proof package dataset.hdf5 예외를 추가했다.
+verification:
+  git add --dry-run docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/data/profiles/*/export/dataset.hdf5
+  # both profile dataset.hdf5 files are addable
+
+architect watch:
+  ALOHA는 frozen verified slice이고 SO-100은 신규 생성 slice이므로 "두 profile이
+  모두 같은 신규 ingest를 돌았다"는 식의 claim을 피해야 한다.
+fix:
+  README/docs wording을 frozen ALOHA + newly generated SO-100 + same matrix verifier
+  discipline으로 좁혔다.
+```
+
+### 남은 gap 또는 다음 작업
+
+- `G007` final quality gate를 완료한다.
+- `ai-slop-cleaner`는 masking fallback slop 없음으로 완료됐다.
+- 독립 `code-reviewer`/`architect` re-review가 clean이면 ultragoal을 완료 처리한다.
+- 이후 사용자 지시가 있으면 Lore protocol로 commit/push/PR을 진행한다.
+
+G007 independent re-review result:
+
+```text
+architect=APPROVE/CLEAR
+  blockers=0
+  watch_items=0
+  reran default matrix verifier, VERDICT: VERIFIED, 21 checks passed, profile_count=2
+```
+
+Final pre-commit review:
+
+```text
+architect=APPROVE/CLEAR
+code-reviewer initial=REQUEST CHANGES
+  issue_1=mypy narrowing in matrix verifier
+  issue_2=mypy narrowing in matrix runner
+fix:
+  - verifier narrows upstream files payload to dict[str, Any]
+  - verifier uses TypeGuard for numeric vectors
+  - verifier validates checked receipt paths are str before dict lookup
+  - runner validates source_file_sha is str before extraction receipt
+code-reviewer re-review=APPROVE
+```
+
+Post-review verification:
+
+```bash
+uv run mypy scripts/verify_lerobot_public_dataset_matrix_package.py \
+  scripts/run_lerobot_public_dataset_matrix_semantic_parity.py --ignore-missing-imports
+# Success: no issues found in 2 source files
+
+uv run pytest -q apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# 23 passed
+
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py \
+  docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json
+# VERDICT: VERIFIED
+
+uvx ruff check apps/api/app/services/lerobot_public_slice.py \
+  apps/api/app/services/lerobot_state_action_contract.py \
+  scripts/run_lerobot_public_dataset_matrix_semantic_parity.py \
+  scripts/verify_lerobot_public_dataset_matrix_package.py \
+  apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# All checks passed
+
+python3 -m compileall apps/api/app/services/lerobot_public_slice.py \
+  apps/api/app/services/lerobot_state_action_contract.py \
+  scripts/run_lerobot_public_dataset_matrix_semantic_parity.py \
+  scripts/verify_lerobot_public_dataset_matrix_package.py \
+  apps/api/tests/test_lerobot_public_dataset_matrix.py \
+  apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py
+# passed
+
+git diff --check
+# passed
+```
+
+G007 ultragoal checkpoint:
+
+```text
+omx ultragoal checkpoint=success
+microgoal_ledger=7/7 complete
+quality_gate=.omx/ultragoal/quality-gate-lerobot-matrix-20260624.json
+codex_goal_status=complete
+codex_goal_tokens_used=906464
+codex_goal_time_used_seconds=2184
+```

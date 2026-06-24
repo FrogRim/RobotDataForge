@@ -2022,3 +2022,80 @@ source binding, semantic conversion, generic state/action contract, HDF5 export,
 trainer smoke, verifier recomputation이다. Full LeRobot parser support, full
 dataset evaluation, real robot readiness, visual policy performance, policy uplift,
 deployable policy, marketplace, production, sim-to-real claim은 모두 false다.
+
+## LeRobot Public Dataset Matrix Semantic Parity Schema
+
+`docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/`는
+frozen verified ALOHA audited slice와 새로 생성한 SO-100 audited slice를
+같은 matrix verifier / generic state-action contract discipline으로 재검증한
+matrix package다.
+
+허용 claim:
+
+```text
+external_public_lerobot_dataset_matrix_semantic_parity
+```
+
+정확한 의미:
+
+```text
+두 개의 명시적 profile(Aloha bimanual + SO-100 single-arm)이 각각 public
+source binding, deterministic audited slice, raw-row digest, semantic conversion,
+generic state/action contract, HDF5 export, trainer smoke, verifier recomputation을
+통과했다.
+```
+
+Profile registry:
+
+```text
+lerobot_aloha_static_coffee
+  repo_id=lerobot/aloha_static_coffee
+  resolved_revision=b144896feb1f37398a862927b22cd3abdf005a6b
+  robot_type=aloha
+  observation_state_dim=14
+  action_dim=14
+
+lerobot_svla_so100_pickplace
+  repo_id=lerobot/svla_so100_pickplace
+  resolved_revision=3d6d687a25cdf1565cdf24550814f72d999a861d
+  robot_type=so100
+  observation_state_dim=6
+  action_dim=6
+```
+
+Matrix package layout:
+
+```text
+data/config.json
+data/matrix_summary.json
+data/profile_resolver_report.json
+data/non_claims_attestation.json
+data/artifact_index.json
+data/profiles/<profile_id>/
+  source/
+  conversion/
+  contracts/
+  export/
+  reports/
+```
+
+각 profile의 `source/lerobot_raw_rows.jsonl`이 semantic parity source of truth다.
+`matrix_summary.json`, `buyer_data_evaluation_report.json`,
+`package_manifest.json`은 cached/index artifact이며 verifier source of truth가 아니다.
+
+금지 claim:
+
+```text
+generic LeRobot parser support
+full LeRobot dataset evaluation
+real robot success
+physical robot readiness
+live hardware / RTDE / ROS2-DDS / Franka bridge readiness
+visual policy performance
+policy uplift / learning-proven value
+deployable policy readiness
+marketplace readiness
+production certification
+sim-to-real proof
+general robot intelligence
+```
