@@ -37,6 +37,36 @@ verify_package = _VERIFIER_MODULE.verify_package
 VERIFIER_FORBIDDEN_CLAIMS = cast(set[str], _VERIFIER_MODULE.FORBIDDEN_CLAIMS)
 VERIFIER_FORBIDDEN_POSITIVE_PHRASES = cast(tuple[str, ...], _VERIFIER_MODULE.FORBIDDEN_POSITIVE_PHRASES)
 
+RAW_RUNTIME_EVENT_SCHEMA_VERSION = "rdf_mvp5a_pre_raw_runtime_event_v0.1.0"
+RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_event_manifest_v0.1.0"
+RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_reconstruction_receipt_v0.1.0"
+RUNTIME_RECONSTRUCTION_ALGORITHM = "rdf_mvp5a_pre_runtime_events_to_canonical_trace_v0.1.0"
+RUNTIME_EVENT_REQUIRED_CHANNELS = (
+    "phase_marker",
+    "ur_joint_state",
+    "ur_tcp_state",
+    "franka_joint_state",
+    "franka_eef_state",
+    "generic_command_state",
+)
+UR_JOINT_NAMES = (
+    "shoulder_pan_joint",
+    "shoulder_lift_joint",
+    "elbow_joint",
+    "wrist_1_joint",
+    "wrist_2_joint",
+    "wrist_3_joint",
+)
+FRANKA_JOINT_NAMES = (
+    "panda_joint1",
+    "panda_joint2",
+    "panda_joint3",
+    "panda_joint4",
+    "panda_joint5",
+    "panda_joint6",
+    "panda_joint7",
+)
+
 
 def _runtime_capture_payload(trace: dict) -> dict:
     return {
@@ -80,6 +110,310 @@ def _runtime_backed_trace() -> dict:
         }
     )
     return trace
+
+
+def _runtime_labelled_fixture_trace_for_test() -> dict:
+    trace = json.loads(json.dumps(build_fixture_canonical_trace()))
+    trace.update(
+        {
+            "trace_id": "mvp5a_pre_runtime_labelled_fixture_trace_v0",
+            "source_kind": RUNTIME_BACKED_SOURCE_KIND,
+            "runtime_backed": True,
+        }
+    )
+    return trace
+
+
+def _runtime_events_from_canonical_for_test(trace: dict, *, capture_id: str) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    event_index = 0
+    for frame in trace["frames"]:
+        frame_index = int(frame["frame_index"])
+        timestamp = float(frame["timestamp"])
+        common = {
+            "schema_version": RAW_RUNTIME_EVENT_SCHEMA_VERSION,
+            "capture_id": capture_id,
+            "frame_index": frame_index,
+            "timestamp": timestamp,
+            "source_backend": "isaac_sim",
+            "source_process_kind": "isaac_sim_process",
+        }
+        channel_payloads = (
+            (
+                "phase_marker",
+                {
+                    "phase": frame["phase"],
+                },
+                {},
+            ),
+            (
+                "ur_joint_state",
+                {
+                    "joint_names": list(UR_JOINT_NAMES),
+                    "actual_q": frame["ur"]["actual_q"],
+                    "target_q": frame["ur"]["target_q"],
+                    "robot_mode": frame["ur"]["robot_mode"],
+                    "safety_status": frame["ur"]["safety_status"],
+                },
+                {"joint_position": "rad"},
+            ),
+            (
+                "ur_tcp_state",
+                {
+                    "actual_TCP_pose": frame["ur"]["actual_TCP_pose"],
+                    "target_TCP_pose": frame["ur"]["target_TCP_pose"],
+                    "actual_TCP_speed": frame["ur"]["actual_TCP_speed"],
+                },
+                {"tcp_position": "m", "tcp_rotation": "rotation_vector_rad", "tcp_speed": "m_per_s"},
+            ),
+            (
+                "franka_joint_state",
+                {
+                    "joint_names": list(FRANKA_JOINT_NAMES),
+                    "q": frame["franka"]["q"],
+                    "q_d": frame["franka"]["q_d"],
+                    "robot_mode": frame["franka"]["robot_mode"],
+                },
+                {"joint_position": "rad"},
+            ),
+            (
+                "franka_eef_state",
+                {
+                    "O_T_EE": frame["franka"]["O_T_EE"],
+                    "O_T_EE_d": frame["franka"]["O_T_EE_d"],
+                },
+                {"pose_matrix": "homogeneous_transform_row_major_m"},
+            ),
+            (
+                "generic_command_state",
+                {
+                    "state": frame["generic"]["state"],
+                    "command": frame["generic"]["command"],
+                    "command_timestamp": frame["generic"]["command_timestamp"],
+                    "state_timestamp": frame["generic"]["state_timestamp"],
+                    "action_semantics": "commanded_target_state",
+                    "state_semantics": "actual_robot_state",
+                },
+                {"state": "profile_native", "command": "profile_native"},
+            ),
+        )
+        for channel, payload, units in channel_payloads:
+            events.append({**common, "event_index": event_index, "channel": channel, "units": units, "payload": payload})
+            event_index += 1
+    return events
+
+
+def _write_runtime_event_jsonl(path: Path, events: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(
+            json.dumps(event, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+            for event in events
+        ),
+        encoding="utf-8",
+    )
+
+
+def _promote_package_with_l2_runtime_events_for_test(package_dir: Path, trace: dict) -> None:
+    capture_id = "mvp5a-pre-l2-runtime-event-test-fixture"
+    canonical = json.loads(json.dumps(trace))
+    canonical.update(
+        {
+            "trace_id": "mvp5a_pre_l2_runtime_event_test_trace_v0",
+            "source_kind": RUNTIME_BACKED_SOURCE_KIND,
+            "runtime_backed": True,
+        }
+    )
+    canonical_path = package_dir / "data" / "canonical_trace" / "canonical_trace.json"
+    _write_json(canonical_path, canonical)
+
+    runtime_dir = package_dir / "data" / "runtime_evidence"
+    event_log_path = runtime_dir / "runtime_event_log.jsonl"
+    events = _runtime_events_from_canonical_for_test(canonical, capture_id=capture_id)
+    _write_runtime_event_jsonl(event_log_path, events)
+    event_log_sha = _sha256(event_log_path)
+    canonical["runtime_event_log_sha256"] = event_log_sha
+    _write_json(canonical_path, canonical)
+    canonical_sha = _sha256(canonical_path)
+
+    _write_json(
+        runtime_dir / "runtime_event_manifest.json",
+        {
+            "schema_version": RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION,
+            "evidence_level": "L2_verifier_owned_raw_runtime_events",
+            "capture_id": capture_id,
+            "source_backend": "isaac_sim",
+            "capture_script_id": "mvp5a_pre_isaac_sim_raw_runtime_event_capture_v0",
+            "source_process_kind": "isaac_sim_process",
+            "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
+            "runtime_event_log_sha256": event_log_sha,
+            "frame_count": canonical["frame_count"],
+            "event_count": len(events),
+            "required_channels": list(RUNTIME_EVENT_REQUIRED_CHANNELS),
+            "generated_by_rdf_sim": True,
+            "external_partner_data": False,
+            "non_claims": dict(canonical["non_claims"]),
+        },
+    )
+    _write_json(
+        runtime_dir / "runtime_reconstruction_receipt.json",
+        {
+            "schema_version": RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION,
+            "reconstruction_algorithm": RUNTIME_RECONSTRUCTION_ALGORITHM,
+            "runtime_event_log_sha256": event_log_sha,
+            "reconstructed_canonical_trace_sha256": canonical_sha,
+            "included_canonical_trace_sha256": canonical_sha,
+            "matches_included_canonical_trace": True,
+            "runtime_capture_sufficient": True,
+            "ready_status_allowed": True,
+            "frame_count": canonical["frame_count"],
+            "required_channels": list(RUNTIME_EVENT_REQUIRED_CHANNELS),
+        },
+    )
+
+    preflight = _json(package_dir / "data" / "canonical_trace" / "runtime_capture_preflight.json")
+    preflight.update(
+        {
+            "runtime_capture_supplied": False,
+            "runtime_capture_sufficient": True,
+            "fresh_runtime_capture_required": False,
+            "blocked_reason": None,
+            "issues": [],
+            "observed_min_source_log_rows_emitted": canonical["frame_count"],
+            "runtime_event_log_sha256": event_log_sha,
+        }
+    )
+    _write_json(package_dir / "data" / "canonical_trace" / "runtime_capture_preflight.json", preflight)
+
+    receipt = _json(package_dir / "data" / "canonical_trace" / "runtime_capture_hash_receipt.json")
+    receipt.update(
+        {
+            "canonical_trace_sha256": canonical_sha,
+            "runtime_capture_supplied": False,
+            "runtime_capture_sufficient": True,
+            "runtime_capture_sha256": None,
+            "ready_status_allowed": True,
+            "blocked_reason": None,
+            "runtime_event_log_sha256": event_log_sha,
+        }
+    )
+    _write_json(package_dir / "data" / "canonical_trace" / "runtime_capture_hash_receipt.json", receipt)
+
+    config = _json(package_dir / "data" / "config.json")
+    config.update(
+        {
+            "status": STATUS_READY,
+            "file_drop_rehearsal_ready": True,
+            "runtime_capture_sufficient": True,
+            "blocked_reason": None,
+            "fresh_runtime_capture_required": False,
+            "runtime_evidence_level": "L2_verifier_owned_raw_runtime_events",
+            "runtime_event_log_sha256": event_log_sha,
+        }
+    )
+    _write_json(package_dir / "data" / "config.json", config)
+
+    manifest = _json(package_dir / "package_manifest.json")
+    manifest["package_status"] = STATUS_READY
+    manifest["file_drop_rehearsal_ready"] = True
+    manifest["runtime_evidence_level"] = "L2_verifier_owned_raw_runtime_events"
+    manifest["runtime_event_log_sha256"] = event_log_sha
+    _write_json(package_dir / "package_manifest.json", manifest)
+    _refresh_indexes(package_dir)
+
+
+def _runtime_events_from_package_for_test(package_dir: Path) -> list[dict[str, Any]]:
+    event_log_path = package_dir / "data" / "runtime_evidence" / "runtime_event_log.jsonl"
+    return [json.loads(line) for line in event_log_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _write_runtime_events_and_refresh_for_test(package_dir: Path, events: list[dict[str, Any]]) -> None:
+    event_log_path = package_dir / "data" / "runtime_evidence" / "runtime_event_log.jsonl"
+    _write_runtime_event_jsonl(event_log_path, events)
+    event_log_sha = _sha256(event_log_path)
+    frame_count = len({event.get("frame_index") for event in events if isinstance(event.get("frame_index"), int)})
+    manifest = _json(package_dir / "data" / "runtime_evidence" / "runtime_event_manifest.json")
+    manifest.update(
+        {
+            "runtime_event_log_sha256": event_log_sha,
+            "frame_count": frame_count,
+            "event_count": len(events),
+        }
+    )
+    _write_json(package_dir / "data" / "runtime_evidence" / "runtime_event_manifest.json", manifest)
+    receipt = _json(package_dir / "data" / "runtime_evidence" / "runtime_reconstruction_receipt.json")
+    receipt["runtime_event_log_sha256"] = event_log_sha
+    _write_json(package_dir / "data" / "runtime_evidence" / "runtime_reconstruction_receipt.json", receipt)
+    config = _json(package_dir / "data" / "config.json")
+    config["runtime_event_log_sha256"] = event_log_sha
+    _write_json(package_dir / "data" / "config.json", config)
+    package_manifest = _json(package_dir / "package_manifest.json")
+    package_manifest["runtime_event_log_sha256"] = event_log_sha
+    _write_json(package_dir / "package_manifest.json", package_manifest)
+    _refresh_indexes(package_dir)
+
+
+def _refresh_canonical_hash_receipts_for_test(package_dir: Path) -> None:
+    canonical_sha = _sha256(package_dir / "data" / "canonical_trace" / "canonical_trace.json")
+    receipt = _json(package_dir / "data" / "canonical_trace" / "runtime_capture_hash_receipt.json")
+    receipt["canonical_trace_sha256"] = canonical_sha
+    _write_json(package_dir / "data" / "canonical_trace" / "runtime_capture_hash_receipt.json", receipt)
+    runtime_receipt = _json(package_dir / "data" / "runtime_evidence" / "runtime_reconstruction_receipt.json")
+    runtime_receipt["included_canonical_trace_sha256"] = canonical_sha
+    runtime_receipt["reconstructed_canonical_trace_sha256"] = canonical_sha
+    runtime_receipt["matches_included_canonical_trace"] = True
+    _write_json(package_dir / "data" / "runtime_evidence" / "runtime_reconstruction_receipt.json", runtime_receipt)
+    _refresh_indexes(package_dir)
+
+
+def _mutate_runtime_events_for_test(package_dir: Path, mutation: str) -> None:
+    events = _runtime_events_from_package_for_test(package_dir)
+    if mutation == "event_index_gap":
+        events[1]["event_index"] = 99
+    elif mutation == "frame_index_gap":
+        for event in events:
+            if event["frame_index"] == 1:
+                event["frame_index"] = 99
+    elif mutation == "duplicate_channel":
+        events[1]["channel"] = events[0]["channel"]
+    elif mutation == "unknown_channel":
+        events[0]["channel"] = "mystery_runtime_channel"
+    elif mutation == "nan_payload":
+        events[0]["payload"]["bad_value"] = float("nan")
+    elif mutation == "ur_joint_order_swapped":
+        event = next(event for event in events if event["channel"] == "ur_joint_state")
+        event["payload"]["joint_names"] = list(reversed(event["payload"]["joint_names"]))
+    elif mutation == "ur_degrees_unit":
+        event = next(event for event in events if event["channel"] == "ur_joint_state")
+        event["units"]["joint_position"] = "deg"
+    elif mutation == "ur_tcp_mm_unit":
+        event = next(event for event in events if event["channel"] == "ur_tcp_state")
+        event["units"]["tcp_position"] = "mm"
+    elif mutation == "ur_not_running":
+        event = next(event for event in events if event["channel"] == "ur_joint_state")
+        event["payload"]["robot_mode"] = "STOPPED"
+    elif mutation == "ur_protective_stop":
+        event = next(event for event in events if event["channel"] == "ur_joint_state")
+        event["payload"]["safety_status"] = "PROTECTIVE_STOP"
+    elif mutation == "franka_wrong_dof":
+        event = next(event for event in events if event["channel"] == "franka_joint_state")
+        event["payload"]["q"] = event["payload"]["q"][:-1]
+    elif mutation == "franka_eef_wrong_length":
+        event = next(event for event in events if event["channel"] == "franka_eef_state")
+        event["payload"]["O_T_EE"] = event["payload"]["O_T_EE"][:-1]
+    elif mutation == "generic_lag_high":
+        event = next(event for event in events if event["channel"] == "generic_command_state")
+        event["payload"]["command_timestamp"] = round(float(event["payload"]["state_timestamp"]) + 1.0, 6)
+    elif mutation == "generic_state_only":
+        event = next(event for event in events if event["channel"] == "generic_command_state")
+        event["payload"].pop("action_semantics")
+        event["payload"].pop("command")
+    elif mutation == "phase_unknown":
+        event = next(event for event in events if event["channel"] == "phase_marker")
+        event["payload"]["phase"] = "teleport"
+    else:
+        raise AssertionError(f"unknown runtime event mutation: {mutation}")
+    _write_runtime_events_and_refresh_for_test(package_dir, events)
 
 
 @pytest.fixture(scope="session")
@@ -406,7 +740,7 @@ def test_runtime_shaped_capture_cannot_mint_ready_after_summary_tamper(tmp_path:
     verification = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
 
     assert verification["ok"] is False
-    assert "file_drop_rehearsal_ready requires verifier-owned runtime evidence contract" in verification["issues"]
+    assert "ready status requires data/runtime_evidence/runtime_event_log.jsonl" in verification["issues"]
 
 
 def test_fixture_canonical_trace_inside_runtime_capture_stays_contract_ready(tmp_path: Path) -> None:
@@ -491,10 +825,7 @@ def test_relabelled_fixture_canonical_trace_inside_runtime_capture_stays_contrac
     minted = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
 
     assert minted["ok"] is False
-    assert (
-        "ready runtime_capture provenance invalid: runtime_capture_matches_deterministic_fixture"
-        in minted["issues"]
-    )
+    assert "ready status requires data/runtime_evidence/runtime_event_log.jsonl" in minted["issues"]
 
 
 def test_relabelled_fixture_with_ignored_runtime_fields_stays_contract_ready(tmp_path: Path) -> None:
@@ -572,11 +903,8 @@ def test_relabelled_fixture_with_ignored_runtime_fields_stays_contract_ready(tmp
     minted = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
 
     assert minted["ok"] is False
-    assert "ready runtime_capture canonical schema invalid: runtime_capture_frame_schema_invalid" in minted["issues"]
-    assert (
-        "ready runtime_capture provenance invalid: runtime_capture_matches_deterministic_fixture"
-        in minted["issues"]
-    )
+    assert "ready status requires data/runtime_evidence/runtime_event_log.jsonl" in minted["issues"]
+    assert "canonical trace schema invalid: runtime_capture_frame_schema_invalid" in minted["issues"]
 
 
 def test_runtime_capture_missing_runtime_provenance_stays_contract_ready(tmp_path: Path) -> None:
@@ -643,6 +971,184 @@ def test_timestamp_only_runtime_capture_stays_contract_ready(tmp_path: Path) -> 
     assert "runtime_capture_frame_schema_invalid" in preflight["issues"]
 
 
+def test_l2_runtime_event_package_can_mint_ready_after_verifier_reconstruction(tmp_path: Path) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_l2_runtime_event_ready"
+    trace = _runtime_labelled_fixture_trace_for_test()
+
+    build_rehearsal_package(package_dir=package_dir, fixture_only=True, clean=True)
+    _promote_package_with_l2_runtime_events_for_test(package_dir, trace)
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is True, result["issues"]
+    assert result["status"] == STATUS_READY
+    assert result["file_drop_rehearsal_ready"] is True
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_issue"),
+    [
+        ("event_index_gap", "runtime event_index not contiguous"),
+        ("frame_index_gap", "runtime frame_index not contiguous"),
+        ("duplicate_channel", "duplicate runtime event for frame/channel"),
+        ("unknown_channel", "unknown runtime event channel"),
+        ("nan_payload", "runtime event contains non-finite number"),
+    ],
+)
+def test_runtime_event_global_tamper_fails(tmp_path: Path, mutation: str, expected_issue: str) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_runtime_event_global_{mutation}"
+    build_rehearsal_package(package_dir=package_dir, fixture_only=True, clean=True)
+    _promote_package_with_l2_runtime_events_for_test(package_dir, _runtime_labelled_fixture_trace_for_test())
+    _mutate_runtime_events_for_test(package_dir, mutation)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert expected_issue in result["issues"]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_issue"),
+    [
+        ("ur_joint_order_swapped", "UR joint_names mismatch"),
+        ("ur_degrees_unit", "UR joint_position unit mismatch"),
+        ("ur_tcp_mm_unit", "UR tcp_position unit mismatch"),
+        ("ur_not_running", "UR robot_mode must be RUNNING"),
+        ("ur_protective_stop", "UR safety_status must be NORMAL"),
+        ("franka_wrong_dof", "Franka q/q_d dimension mismatch"),
+        ("franka_eef_wrong_length", "Franka EEF matrix length mismatch"),
+        ("generic_lag_high", "generic action-state lag exceeds threshold"),
+        ("generic_state_only", "generic command/state semantics missing"),
+        ("phase_unknown", "runtime phase unknown"),
+    ],
+)
+def test_runtime_event_channel_tamper_fails(tmp_path: Path, mutation: str, expected_issue: str) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_runtime_event_channel_{mutation}"
+    build_rehearsal_package(package_dir=package_dir, fixture_only=True, clean=True)
+    _promote_package_with_l2_runtime_events_for_test(package_dir, _runtime_labelled_fixture_trace_for_test())
+    _mutate_runtime_events_for_test(package_dir, mutation)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert expected_issue in result["issues"]
+
+
+def test_runtime_event_and_canonical_hash_refresh_without_source_refresh_fails_downstream_projection(
+    tmp_path: Path,
+) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_runtime_event_canonical_drift"
+    build_rehearsal_package(package_dir=package_dir, fixture_only=True, clean=True)
+    _promote_package_with_l2_runtime_events_for_test(package_dir, _runtime_labelled_fixture_trace_for_test())
+    events = _runtime_events_from_package_for_test(package_dir)
+    generic_event = next(event for event in events if event["channel"] == "generic_command_state")
+    generic_event["payload"]["state"][0] = round(float(generic_event["payload"]["state"][0]) + 0.25, 6)
+    generic_event["payload"]["command"][0] = round(float(generic_event["payload"]["command"][0]) + 0.25, 6)
+    _write_runtime_events_and_refresh_for_test(package_dir, events)
+    canonical = _json(package_dir / "data" / "canonical_trace" / "canonical_trace.json")
+    canonical["frames"][0]["generic"]["state"] = generic_event["payload"]["state"]
+    canonical["frames"][0]["generic"]["command"] = generic_event["payload"]["command"]
+    _write_json(package_dir / "data" / "canonical_trace" / "canonical_trace.json", canonical)
+    _refresh_canonical_hash_receipts_for_test(package_dir)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert "generic_command_state_jsonl_v0 golden source rows do not match canonical projection" in result["issues"]
+
+
+def test_runtime_event_canonical_and_source_hash_refresh_without_contract_refresh_fails_export_chain(
+    tmp_path: Path,
+) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_runtime_event_source_drift"
+    build_rehearsal_package(package_dir=package_dir, fixture_only=True, clean=True)
+    _promote_package_with_l2_runtime_events_for_test(package_dir, _runtime_labelled_fixture_trace_for_test())
+    events = _runtime_events_from_package_for_test(package_dir)
+    generic_event = next(event for event in events if event["channel"] == "generic_command_state")
+    generic_event["payload"]["state"][0] = round(float(generic_event["payload"]["state"][0]) + 0.25, 6)
+    generic_event["payload"]["command"][0] = round(float(generic_event["payload"]["command"][0]) + 0.25, 6)
+    _write_runtime_events_and_refresh_for_test(package_dir, events)
+    canonical = _json(package_dir / "data" / "canonical_trace" / "canonical_trace.json")
+    canonical["frames"][0]["generic"]["state"] = generic_event["payload"]["state"]
+    canonical["frames"][0]["generic"]["command"] = generic_event["payload"]["command"]
+    _write_json(package_dir / "data" / "canonical_trace" / "canonical_trace.json", canonical)
+    _write_generic_source_rows(
+        package_dir,
+        [
+            {
+                "timestamp": frame["timestamp"],
+                "state_vector": frame["generic"]["state"],
+                "action_vector": frame["generic"]["command"],
+            }
+            for frame in canonical["frames"]
+        ],
+    )
+    _refresh_cached_golden_source_hash(package_dir, "generic_command_state_jsonl_v0")
+    _refresh_canonical_hash_receipts_for_test(package_dir)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert "generic_command_state_jsonl_v0 contract rows do not match recomputed source rows" in result["issues"]
+
+
+def test_runtime_capture_only_ready_package_fails_without_l2_runtime_event_log(tmp_path: Path) -> None:
+    trace = _runtime_labelled_fixture_trace_for_test()
+    capture = tmp_path / "runtime_capture.json"
+    _write_json(capture, _runtime_capture_payload(trace))
+    package_dir = tmp_path / f"{PACKAGE_NAME}_runtime_capture_only_ready"
+
+    build_rehearsal_package(package_dir=package_dir, runtime_capture=capture, fixture_only=False, clean=True)
+    capture_sha = _sha256(package_dir / "data" / "canonical_trace" / "runtime_capture.json")
+    canonical = {**trace, "runtime_capture_sha256": capture_sha}
+    _write_json(package_dir / "data" / "canonical_trace" / "canonical_trace.json", canonical)
+    preflight = _json(package_dir / "data" / "canonical_trace" / "runtime_capture_preflight.json")
+    preflight.update(
+        {
+            "runtime_capture_sufficient": True,
+            "runtime_capture_structurally_valid": True,
+            "fresh_runtime_capture_required": False,
+            "blocked_reason": None,
+            "issues": [],
+            "runtime_capture_sha256": capture_sha,
+        }
+    )
+    _write_json(package_dir / "data" / "canonical_trace" / "runtime_capture_preflight.json", preflight)
+    receipt = _json(package_dir / "data" / "canonical_trace" / "runtime_capture_hash_receipt.json")
+    receipt.update(
+        {
+            "canonical_trace_sha256": _sha256(package_dir / "data" / "canonical_trace" / "canonical_trace.json"),
+            "runtime_capture_supplied": True,
+            "runtime_capture_sufficient": True,
+            "runtime_capture_structurally_valid": True,
+            "runtime_capture_sha256": capture_sha,
+            "ready_status_allowed": True,
+            "blocked_reason": None,
+        }
+    )
+    _write_json(package_dir / "data" / "canonical_trace" / "runtime_capture_hash_receipt.json", receipt)
+    config = _json(package_dir / "data" / "config.json")
+    config.update(
+        {
+            "status": STATUS_READY,
+            "file_drop_rehearsal_ready": True,
+            "runtime_capture_sufficient": True,
+            "blocked_reason": None,
+            "fresh_runtime_capture_required": False,
+        }
+    )
+    _write_json(package_dir / "data" / "config.json", config)
+    manifest = _json(package_dir / "package_manifest.json")
+    manifest["package_status"] = STATUS_READY
+    manifest["file_drop_rehearsal_ready"] = True
+    _write_json(package_dir / "package_manifest.json", manifest)
+    _refresh_indexes(package_dir)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert "ready status requires data/runtime_evidence/runtime_event_log.jsonl" in result["issues"]
+
+
 def test_ready_status_cannot_be_minted_without_runtime_capture_file(fixture_package: Path, tmp_path: Path) -> None:
     package_dir = _copy_package(fixture_package, tmp_path)
     config = _json(package_dir / "data" / "config.json")
@@ -689,7 +1195,7 @@ def test_ready_status_cannot_be_minted_without_runtime_capture_file(fixture_pack
     result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False)
 
     assert result["ok"] is False
-    assert "ready status requires data/canonical_trace/runtime_capture.json" in result["issues"]
+    assert "ready status requires data/runtime_evidence/runtime_event_log.jsonl" in result["issues"]
 
 
 def test_manifest_only_ready_claim_fails_even_with_refreshed_hashes(fixture_package: Path, tmp_path: Path) -> None:
@@ -774,9 +1280,8 @@ def test_ready_status_cannot_be_minted_with_timestamp_only_runtime_capture(fixtu
     result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False)
 
     assert result["ok"] is False
-    assert "ready runtime_capture provenance invalid: runtime_capture_schema_version_mismatch" in result["issues"]
-    assert "ready runtime_capture provenance invalid: runtime_capture_provenance_missing" in result["issues"]
-    assert "ready runtime_capture canonical schema invalid: runtime_capture_frame_schema_invalid" in result["issues"]
+    assert "ready status requires data/runtime_evidence/runtime_event_log.jsonl" in result["issues"]
+    assert "canonical trace schema invalid: runtime_capture_frame_schema_invalid" in result["issues"]
 
 
 def test_hash_refreshed_golden_source_semantic_drift_fails_verifier(fixture_package: Path, tmp_path: Path) -> None:

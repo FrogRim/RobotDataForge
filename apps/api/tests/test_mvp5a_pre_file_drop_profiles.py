@@ -8,13 +8,24 @@ import pytest
 
 from app.services.mvp5a_file_drop_rehearsal import (
     MIN_CANONICAL_FRAMES,
+    RAW_RUNTIME_EVENT_SCHEMA_VERSION,
     PROFILE_IDS,
+    RUNTIME_BACKEND,
+    RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION,
+    RUNTIME_EVENT_REQUIRED_CHANNELS,
+    RUNTIME_RECONSTRUCTION_ALGORITHM,
+    RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION,
+    RUNTIME_SOURCE_PROCESS_KIND,
+    STATUS_CONTRACT_READY,
+    build_rehearsal_package,
     build_fixture_canonical_trace,
     build_profile_registry,
+    build_runtime_event_log_from_trace,
     generate_corrupt_drop,
     mutation_specs,
     runtime_capture_preflight,
     validate_profile_drop,
+    write_runtime_evidence,
     write_golden_profile_drop,
 )
 
@@ -42,6 +53,66 @@ def test_profile_registry_has_exact_required_profiles() -> None:
     assert {profile["profile_id"] for profile in registry["profiles"]} == set(PROFILE_IDS)
     assert all(profile["external_partner_data"] is False for profile in registry["profiles"])
     assert all(profile["live_runtime_support"] is False for profile in registry["profiles"])
+
+
+def test_runtime_event_log_from_trace_has_required_channels_per_frame() -> None:
+    trace = build_fixture_canonical_trace()
+    events = build_runtime_event_log_from_trace(trace, capture_id="test_capture")
+    frames = {event["frame_index"] for event in events}
+    channels_by_frame = {
+        frame: {event["channel"] for event in events if event["frame_index"] == frame}
+        for frame in frames
+    }
+
+    assert len(frames) == trace["frame_count"]
+    assert len(events) == trace["frame_count"] * len(RUNTIME_EVENT_REQUIRED_CHANNELS)
+    assert all(channels == set(RUNTIME_EVENT_REQUIRED_CHANNELS) for channels in channels_by_frame.values())
+    assert [event["event_index"] for event in events] == list(range(len(events)))
+    assert all(event["schema_version"] == RAW_RUNTIME_EVENT_SCHEMA_VERSION for event in events)
+    assert all(event["source_backend"] == RUNTIME_BACKEND for event in events)
+    assert all(event["source_process_kind"] == RUNTIME_SOURCE_PROCESS_KIND for event in events)
+
+
+def test_write_runtime_evidence_emits_manifest_and_reconstruction_receipt(tmp_path: Path) -> None:
+    package_dir = tmp_path / "runtime_evidence_package"
+    trace = build_fixture_canonical_trace()
+    (package_dir / "data" / "canonical_trace").mkdir(parents=True)
+    _write_json(package_dir / "data" / "canonical_trace" / "canonical_trace.json", trace)
+
+    report = write_runtime_evidence(package_dir, trace, capture_id="test_capture")
+    manifest = _json(package_dir / "data" / "runtime_evidence" / "runtime_event_manifest.json")
+    receipt = _json(package_dir / "data" / "runtime_evidence" / "runtime_reconstruction_receipt.json")
+    event_log = package_dir / "data" / "runtime_evidence" / "runtime_event_log.jsonl"
+
+    assert event_log.is_file()
+    assert manifest["schema_version"] == RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION
+    assert manifest["runtime_event_log_sha256"] == report["runtime_event_log_sha256"]
+    assert manifest["frame_count"] == trace["frame_count"]
+    assert manifest["event_count"] == trace["frame_count"] * len(RUNTIME_EVENT_REQUIRED_CHANNELS)
+    assert manifest["required_channels"] == list(RUNTIME_EVENT_REQUIRED_CHANNELS)
+    assert receipt["schema_version"] == RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION
+    assert receipt["reconstruction_algorithm"] == RUNTIME_RECONSTRUCTION_ALGORITHM
+    assert receipt["runtime_event_log_sha256"] == report["runtime_event_log_sha256"]
+    assert receipt["matches_included_canonical_trace"] is True
+
+
+def test_runtime_event_evidence_option_does_not_close_package(tmp_path: Path) -> None:
+    package_dir = tmp_path / "mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package"
+
+    result = build_rehearsal_package(
+        package_dir=package_dir,
+        fixture_only=True,
+        emit_runtime_event_evidence=True,
+        clean=True,
+    )
+    config = _json(package_dir / "data" / "config.json")
+    manifest = _json(package_dir / "package_manifest.json")
+
+    assert result["runtime_event_evidence_emitted"] is True
+    assert result["status"] == STATUS_CONTRACT_READY
+    assert config["file_drop_rehearsal_ready"] is False
+    assert manifest["file_drop_rehearsal_ready"] is False
+    assert (package_dir / "data" / "runtime_evidence" / "runtime_event_log.jsonl").is_file()
 
 
 def test_fixture_runtime_preflight_is_not_ready() -> None:
