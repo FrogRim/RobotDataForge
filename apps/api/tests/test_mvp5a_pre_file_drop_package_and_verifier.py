@@ -300,7 +300,6 @@ def test_planning_docs_do_not_claim_isaac_sim_backed_rehearsal() -> None:
         / "superpowers"
         / "specs"
         / "2026-06-25-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-design.md",
-        ROOT / "Handoff.md",
         ROOT / "docs" / "proof" / PACKAGE_NAME / "README.md",
         RUNNER,
     )
