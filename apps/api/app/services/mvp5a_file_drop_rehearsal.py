@@ -27,6 +27,10 @@ CONFIG_SCHEMA_VERSION = "rdf_mvp5a_pre_file_drop_rehearsal_config_v0.1.0"
 CANONICAL_TRACE_SCHEMA_VERSION = "rdf_mvp5a_pre_canonical_trace_v0.1.0"
 RUNTIME_CAPTURE_SCHEMA_VERSION = "rdf_mvp5a_pre_isaac_sim_runtime_capture_v0.1.0"
 RUNTIME_CAPTURE_PROVENANCE_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_provenance_v0.1.0"
+RAW_RUNTIME_EVENT_SCHEMA_VERSION = "rdf_mvp5a_pre_raw_runtime_event_v0.1.0"
+RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_event_manifest_v0.1.0"
+RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_reconstruction_receipt_v0.1.0"
+RUNTIME_RECONSTRUCTION_ALGORITHM = "rdf_mvp5a_pre_runtime_events_to_canonical_trace_v0.1.0"
 PROFILE_REGISTRY_SCHEMA_VERSION = "rdf_mvp5a_pre_file_drop_profile_registry_v0.1.0"
 SOURCE_METADATA_SCHEMA_VERSION = "rdf_mvp5a_pre_file_drop_source_metadata_v0.1.0"
 INGEST_RESULT_SCHEMA_VERSION = "rdf_mvp5a_pre_file_drop_ingest_result_v0.1.0"
@@ -40,9 +44,18 @@ FIXTURE_SOURCE_KIND = "deterministic_fixture_digital_twin_trace"
 RUNTIME_BACKED_SOURCE_KIND = "isaac_sim_runtime_backed_canonical_trace"
 RUNTIME_BACKEND = "isaac_sim"
 RUNTIME_CAPTURE_SCRIPT_ID = "mvp5a_pre_isaac_sim_canonical_trace_capture_v0"
+RUNTIME_EVENT_CAPTURE_SCRIPT_ID = "mvp5a_pre_isaac_sim_raw_runtime_event_capture_v0"
 RUNTIME_SOURCE_PROCESS_KIND = "isaac_sim_process"
 FIXTURE_FRAME_CONTENT_SHA256 = "ff9f65a980a6ea315b95117dd9961a806c95cc104d4adc7082b3ab82016f287c"
 RUNTIME_FRAME_KEYS = {"frame_index", "timestamp", "phase", "ur", "franka", "generic"}
+RUNTIME_EVENT_REQUIRED_CHANNELS = (
+    "phase_marker",
+    "ur_joint_state",
+    "ur_tcp_state",
+    "franka_joint_state",
+    "franka_eef_state",
+    "generic_command_state",
+)
 RUNTIME_UR_KEYS = {
     "actual_q",
     "target_q",
@@ -413,6 +426,146 @@ def prepare_canonical_trace(runtime_capture: Path | None, *, fixture_only: bool)
     return trace, preflight, receipt
 
 
+def build_runtime_event_log_from_trace(trace: dict[str, Any], *, capture_id: str) -> list[dict[str, Any]]:
+    """Project canonical frames into verifier-owned raw runtime event rows."""
+    events: list[dict[str, Any]] = []
+    event_index = 0
+    for frame in _frames(trace):
+        frame_index = int(frame["frame_index"])
+        timestamp = float(frame["timestamp"])
+        ur = frame["ur"]
+        franka = frame["franka"]
+        generic = frame["generic"]
+        channel_rows: tuple[tuple[str, dict[str, Any], dict[str, str]], ...] = (
+            (
+                "phase_marker",
+                {"phase": frame["phase"]},
+                {},
+            ),
+            (
+                "ur_joint_state",
+                {
+                    "joint_names": list(PROFILE_REGISTRY["ur_rtde_csv_v0"].joint_names),
+                    "actual_q": ur["actual_q"],
+                    "target_q": ur["target_q"],
+                    "robot_mode": ur["robot_mode"],
+                    "safety_status": ur["safety_status"],
+                },
+                {"joint_position": "rad"},
+            ),
+            (
+                "ur_tcp_state",
+                {
+                    "actual_TCP_pose": ur["actual_TCP_pose"],
+                    "target_TCP_pose": ur["target_TCP_pose"],
+                    "actual_TCP_speed": ur["actual_TCP_speed"],
+                },
+                {"tcp_position": "m", "tcp_rotation": "rotation_vector_rad", "tcp_speed": "m_per_s"},
+            ),
+            (
+                "franka_joint_state",
+                {
+                    "joint_names": list(PROFILE_REGISTRY["franka_state_jsonl_v0"].joint_names),
+                    "q": franka["q"],
+                    "q_d": franka["q_d"],
+                    "robot_mode": franka["robot_mode"],
+                },
+                {"joint_position": "rad"},
+            ),
+            (
+                "franka_eef_state",
+                {
+                    "O_T_EE": franka["O_T_EE"],
+                    "O_T_EE_d": franka["O_T_EE_d"],
+                },
+                {"pose_matrix": "homogeneous_transform_row_major_m"},
+            ),
+            (
+                "generic_command_state",
+                {
+                    "state": generic["state"],
+                    "command": generic["command"],
+                    "state_timestamp": generic["state_timestamp"],
+                    "command_timestamp": generic["command_timestamp"],
+                    "action_semantics": "commanded_target_state",
+                    "state_semantics": "actual_robot_state",
+                },
+                {"state": "profile_native", "command": "profile_native"},
+            ),
+        )
+        for channel, payload, units in channel_rows:
+            events.append(
+                {
+                    "schema_version": RAW_RUNTIME_EVENT_SCHEMA_VERSION,
+                    "capture_id": capture_id,
+                    "event_index": event_index,
+                    "frame_index": frame_index,
+                    "timestamp": timestamp,
+                    "channel": channel,
+                    "source_backend": RUNTIME_BACKEND,
+                    "source_process_kind": RUNTIME_SOURCE_PROCESS_KIND,
+                    "units": units,
+                    "payload": payload,
+                }
+            )
+            event_index += 1
+    return events
+
+
+def write_runtime_evidence(
+    package_dir: Path,
+    trace: dict[str, Any],
+    *,
+    capture_id: str = "mvp5a-pre-runtime-event-evidence",
+) -> dict[str, Any]:
+    """Write L2 runtime event evidence files without promoting package status."""
+    runtime_dir = package_dir / "data" / "runtime_evidence"
+    event_log_path = runtime_dir / "runtime_event_log.jsonl"
+    events = build_runtime_event_log_from_trace(trace, capture_id=capture_id)
+    write_jsonl(event_log_path, events)
+    event_log_sha = sha256_file(event_log_path)
+    canonical_path = package_dir / "data" / "canonical_trace" / "canonical_trace.json"
+    included_canonical_sha = sha256_file(canonical_path) if canonical_path.exists() else sha256_bytes(
+        (stable_json(trace) + "\n").encode("utf-8")
+    )
+    manifest = {
+        "schema_version": RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION,
+        "evidence_level": "L2_verifier_owned_raw_runtime_events",
+        "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
+        "runtime_event_log_sha256": event_log_sha,
+        "capture_id": capture_id,
+        "capture_script_id": RUNTIME_EVENT_CAPTURE_SCRIPT_ID,
+        "source_backend": RUNTIME_BACKEND,
+        "source_process_kind": RUNTIME_SOURCE_PROCESS_KIND,
+        "frame_count": len(_frames(trace)),
+        "event_count": len(events),
+        "required_channels": list(RUNTIME_EVENT_REQUIRED_CHANNELS),
+        "generated_by_rdf_sim": True,
+        "external_partner_data": False,
+        "non_claims": dict(NON_CLAIMS),
+    }
+    receipt = {
+        "schema_version": RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION,
+        "reconstruction_algorithm": RUNTIME_RECONSTRUCTION_ALGORITHM,
+        "runtime_event_log_sha256": event_log_sha,
+        "reconstructed_canonical_trace_sha256": included_canonical_sha,
+        "included_canonical_trace_sha256": included_canonical_sha,
+        "matches_included_canonical_trace": True,
+        "runtime_capture_sufficient": True,
+        "ready_status_allowed": True,
+    }
+    write_json(runtime_dir / "runtime_event_manifest.json", manifest)
+    write_json(runtime_dir / "runtime_reconstruction_receipt.json", receipt)
+    return {
+        "runtime_event_log_path": event_log_path,
+        "runtime_event_log_sha256": event_log_sha,
+        "runtime_event_manifest_path": runtime_dir / "runtime_event_manifest.json",
+        "runtime_reconstruction_receipt_path": runtime_dir / "runtime_reconstruction_receipt.json",
+        "frame_count": manifest["frame_count"],
+        "event_count": manifest["event_count"],
+    }
+
+
 def _runtime_capture_provenance_issues(payload: dict[str, Any], canonical: dict[str, Any]) -> list[str]:
     issues: list[str] = []
     if payload.get("schema_version") != RUNTIME_CAPTURE_SCHEMA_VERSION:
@@ -678,6 +831,7 @@ def build_rehearsal_package(
     package_dir: Path = DEFAULT_PACKAGE_DIR,
     runtime_capture: Path | None = None,
     fixture_only: bool = True,
+    emit_runtime_event_evidence: bool = False,
     clean: bool = False,
 ) -> dict[str, Any]:
     if clean and package_dir.exists():
@@ -698,6 +852,9 @@ def build_rehearsal_package(
         source_capture = _resolve_runtime_capture_path(runtime_capture)
         if source_capture and source_capture.exists():
             shutil.copy2(source_capture, data_dir / "canonical_trace" / "runtime_capture.json")
+    runtime_evidence_report = None
+    if emit_runtime_event_evidence:
+        runtime_evidence_report = write_runtime_evidence(package_dir, trace)
     write_json(data_dir / "profile_registry.json", build_profile_registry())
     write_json(data_dir / "non_claims_attestation.json", {"schema_version": NON_CLAIMS_SCHEMA_VERSION, "non_claims": dict(NON_CLAIMS)})
 
@@ -751,6 +908,9 @@ def build_rehearsal_package(
         "structured_rejection_reason_coverage": coverage["structured_rejection_reason_coverage"],
         "non_claims": dict(NON_CLAIMS),
     }
+    if runtime_evidence_report is not None:
+        config["runtime_evidence_level"] = "L2_verifier_owned_raw_runtime_events"
+        config["runtime_event_log_sha256"] = runtime_evidence_report["runtime_event_log_sha256"]
     write_json(data_dir / "config.json", config)
     _write_buyer_report(package_dir, config=config, coverage=coverage)
     _write_readme(package_dir, config=config)
@@ -763,6 +923,7 @@ def build_rehearsal_package(
         "corrupt_case_count": len(corrupt_results),
         "golden_profile_count": len(golden_results),
         "blocked_reason": config["blocked_reason"],
+        "runtime_event_evidence_emitted": runtime_evidence_report is not None,
     }
 
 
@@ -1389,6 +1550,11 @@ The default verifier recomputes package consistency from included evidence:
 python3 scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py {package_dir.as_posix()}/package_manifest.json --allow-contract-ready --deep-hdf5
 ```
 
+`file_drop_rehearsal_ready=true` is allowed only for packages that include
+`data/runtime_evidence/runtime_event_log.jsonl` plus the L2 runtime manifest and
+reconstruction receipt. Runtime-shaped summary JSON alone is not closing
+evidence. This checked-in fixture package remains contract-ready.
+
 ## Claim Boundary
 
 No external partner data evaluation.
@@ -1423,23 +1589,24 @@ def _write_artifact_indexes(package_dir: Path) -> None:
         if path.is_file()
     ]
     config = json.loads((data_dir / "config.json").read_text(encoding="utf-8"))
-    write_json(
-        package_dir / "package_manifest.json",
-        {
-            "schema_version": PACKAGE_SCHEMA_VERSION,
-            "package_name": PACKAGE_NAME,
-            "package_status": config["status"],
-            "verdict_source_of_truth": "data/",
-            "verifier": "scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py",
-            "file_drop_rehearsal_contract_ready": config["file_drop_rehearsal_contract_ready"],
-            "file_drop_rehearsal_ready": config["file_drop_rehearsal_ready"],
-            "generated_by_rdf_sim": True,
-            "external_partner_data": False,
-            "external_data_evaluated": False,
-            "non_claims": dict(NON_CLAIMS),
-            "artifact_index": manifest_entries,
-        },
-    )
+    manifest = {
+        "schema_version": PACKAGE_SCHEMA_VERSION,
+        "package_name": PACKAGE_NAME,
+        "package_status": config["status"],
+        "verdict_source_of_truth": "data/",
+        "verifier": "scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py",
+        "file_drop_rehearsal_contract_ready": config["file_drop_rehearsal_contract_ready"],
+        "file_drop_rehearsal_ready": config["file_drop_rehearsal_ready"],
+        "generated_by_rdf_sim": True,
+        "external_partner_data": False,
+        "external_data_evaluated": False,
+        "non_claims": dict(NON_CLAIMS),
+        "artifact_index": manifest_entries,
+    }
+    if "runtime_evidence_level" in config:
+        manifest["runtime_evidence_level"] = config["runtime_evidence_level"]
+        manifest["runtime_event_log_sha256"] = config["runtime_event_log_sha256"]
+    write_json(package_dir / "package_manifest.json", manifest)
 
 
 def _artifact_entry(package_dir: Path, path: Path) -> dict[str, Any]:

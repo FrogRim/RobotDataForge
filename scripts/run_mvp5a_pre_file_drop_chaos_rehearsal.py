@@ -5,8 +5,9 @@ This runner does not run Isaac Sim, ROS2, HMD/OpenXR, or robot hardware. It
 materializes deterministic recorded-log rehearsal drops. If a runtime-shaped
 capture is supplied, v0 copies and structurally checks it for diagnostics only:
 the package still emits `file_drop_rehearsal_contract_ready` with
-`file_drop_rehearsal_ready=false` until a future verifier-owned raw runtime
-evidence contract exists.
+`file_drop_rehearsal_ready=false`. The optional runtime event evidence flag
+writes the new L2 evidence contract for verifier development, but leaves the
+package status unchanged.
 """
 
 from __future__ import annotations
@@ -33,6 +34,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--package-dir", type=Path, default=DEFAULT_PACKAGE_DIR)
     parser.add_argument("--runtime-capture", type=Path)
     parser.add_argument("--fixture-only", action="store_true", help="Force deterministic fixture-only contract-ready mode.")
+    parser.add_argument(
+        "--emit-runtime-event-evidence",
+        action="store_true",
+        help="Emit data/runtime_evidence artifacts for verifier development; keeps file_drop_rehearsal_ready=false.",
+    )
     parser.add_argument("--clean", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     return parser.parse_args()
@@ -44,6 +50,7 @@ def main() -> int:
         package_dir=args.package_dir,
         runtime_capture=args.runtime_capture,
         fixture_only=args.fixture_only or args.runtime_capture is None,
+        emit_runtime_event_evidence=args.emit_runtime_event_evidence,
         clean=args.clean,
     )
     if args.pretty:

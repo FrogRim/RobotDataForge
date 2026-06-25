@@ -22,12 +22,26 @@ STATUS_CONTRACT_READY = "file_drop_rehearsal_contract_ready"
 STATUS_READY = "file_drop_rehearsal_ready"
 RUNTIME_CAPTURE_SCHEMA_VERSION = "rdf_mvp5a_pre_isaac_sim_runtime_capture_v0.1.0"
 RUNTIME_CAPTURE_PROVENANCE_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_provenance_v0.1.0"
+RAW_RUNTIME_EVENT_SCHEMA_VERSION = "rdf_mvp5a_pre_raw_runtime_event_v0.1.0"
+RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_event_manifest_v0.1.0"
+RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_reconstruction_receipt_v0.1.0"
+RUNTIME_RECONSTRUCTION_ALGORITHM = "rdf_mvp5a_pre_runtime_events_to_canonical_trace_v0.1.0"
 RUNTIME_BACKED_SOURCE_KIND = "isaac_sim_runtime_backed_canonical_trace"
 RUNTIME_BACKEND = "isaac_sim"
 RUNTIME_CAPTURE_SCRIPT_ID = "mvp5a_pre_isaac_sim_canonical_trace_capture_v0"
+RUNTIME_EVENT_CAPTURE_SCRIPT_ID = "mvp5a_pre_isaac_sim_raw_runtime_event_capture_v0"
 RUNTIME_SOURCE_PROCESS_KIND = "isaac_sim_process"
 FIXTURE_FRAME_CONTENT_SHA256 = "ff9f65a980a6ea315b95117dd9961a806c95cc104d4adc7082b3ab82016f287c"
 RUNTIME_FRAME_KEYS = {"frame_index", "timestamp", "phase", "ur", "franka", "generic"}
+RUNTIME_EVENT_REQUIRED_CHANNELS = (
+    "phase_marker",
+    "ur_joint_state",
+    "ur_tcp_state",
+    "franka_joint_state",
+    "franka_eef_state",
+    "generic_command_state",
+)
+RUNTIME_PHASES = {"approach", "align", "insert", "insert_rehearsal", "settle", "retract"}
 RUNTIME_UR_KEYS = {
     "actual_q",
     "target_q",
@@ -339,16 +353,339 @@ def _verify_status(
     if status == STATUS_CONTRACT_READY and not allow_contract_ready:
         issues.append("contract-ready package requires --allow-contract-ready")
     if status == STATUS_READY:
-        issues.append("file_drop_rehearsal_ready requires verifier-owned runtime evidence contract")
         if preflight.get("runtime_capture_sufficient") is not True:
             issues.append("ready status requires runtime_capture_sufficient=true")
         if receipt.get("ready_status_allowed") is not True:
             issues.append("ready status requires ready_status_allowed=true")
-        _verify_ready_runtime_capture(package_dir, canonical, preflight, receipt, issues)
+        _verify_ready_runtime_event_evidence(package_dir, canonical, issues)
     if config.get("generated_by_rdf_sim") is not True:
         issues.append("generated_by_rdf_sim must be true")
     if config.get("external_partner_data") is not False or config.get("external_data_evaluated") is not False:
         issues.append("external partner/evaluated claims must be false")
+
+
+def _verify_ready_runtime_event_evidence(package_dir: Path, canonical: dict[str, Any], issues: list[str]) -> None:
+    runtime_manifest = _read_json(
+        package_dir / "data" / "runtime_evidence" / "runtime_event_manifest.json",
+        issues,
+        "data/runtime_evidence/runtime_event_manifest.json",
+    )
+    reconstruction_receipt = _read_json(
+        package_dir / "data" / "runtime_evidence" / "runtime_reconstruction_receipt.json",
+        issues,
+        "data/runtime_evidence/runtime_reconstruction_receipt.json",
+    )
+    events = _load_runtime_events(package_dir, issues)
+    if not events:
+        return
+    _verify_runtime_event_manifest(package_dir, runtime_manifest, reconstruction_receipt, events, issues)
+    issues.extend(_runtime_event_global_issues(events))
+    channel_issues: list[str] = []
+    for event in events:
+        channel_issues.extend(_runtime_channel_payload_issues(event))
+    issues.extend(channel_issues)
+    if channel_issues:
+        return
+    reconstructed = _reconstruct_canonical_from_runtime_events(events)
+    if reconstructed is None:
+        issues.append("runtime events could not reconstruct canonical trace")
+        return
+    actual_canonical_sha = hashlib.sha256(
+        (json.dumps(canonical, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
+    ).hexdigest()
+    if reconstruction_receipt.get("included_canonical_trace_sha256") != actual_canonical_sha:
+        issues.append("runtime_reconstruction_receipt included_canonical_trace_sha256 mismatch")
+    if reconstruction_receipt.get("reconstructed_canonical_trace_sha256") != actual_canonical_sha:
+        issues.append("runtime_reconstruction_receipt reconstructed_canonical_trace_sha256 mismatch")
+    if reconstruction_receipt.get("matches_included_canonical_trace") is not True:
+        issues.append("runtime_reconstruction_receipt matches_included_canonical_trace must be true")
+    if _canonical_runtime_projection(reconstructed) != _canonical_runtime_projection(canonical):
+        issues.append("runtime reconstructed canonical trace does not match included canonical trace")
+
+
+def _load_runtime_events(package_dir: Path, issues: list[str]) -> list[dict[str, Any]]:
+    event_log_path = package_dir / "data" / "runtime_evidence" / "runtime_event_log.jsonl"
+    if not event_log_path.is_file():
+        issues.append("ready status requires data/runtime_evidence/runtime_event_log.jsonl")
+        return []
+    events: list[dict[str, Any]] = []
+    for line_number, line in enumerate(event_log_path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            issues.append(f"runtime event log invalid jsonl at line {line_number}")
+            continue
+        if not isinstance(event, dict):
+            issues.append(f"runtime event log row must be object at line {line_number}")
+            continue
+        events.append(event)
+    if not events:
+        issues.append("runtime event log empty")
+    return events
+
+
+def _verify_runtime_event_manifest(
+    package_dir: Path,
+    runtime_manifest: dict[str, Any],
+    reconstruction_receipt: dict[str, Any],
+    events: list[dict[str, Any]],
+    issues: list[str],
+) -> None:
+    event_log_path = package_dir / "data" / "runtime_evidence" / "runtime_event_log.jsonl"
+    event_log_sha = _sha256_file(event_log_path)
+    frame_indices = {event.get("frame_index") for event in events if isinstance(event.get("frame_index"), int)}
+    capture_ids = {event.get("capture_id") for event in events if isinstance(event.get("capture_id"), str)}
+    if runtime_manifest.get("schema_version") != RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION:
+        issues.append("runtime_event_manifest schema_version mismatch")
+    if runtime_manifest.get("evidence_level") != "L2_verifier_owned_raw_runtime_events":
+        issues.append("runtime_event_manifest evidence_level mismatch")
+    if runtime_manifest.get("runtime_event_log_path") != "data/runtime_evidence/runtime_event_log.jsonl":
+        issues.append("runtime_event_manifest runtime_event_log_path mismatch")
+    if runtime_manifest.get("runtime_event_log_sha256") != event_log_sha:
+        issues.append("runtime_event_manifest runtime_event_log_sha256 mismatch")
+    if runtime_manifest.get("capture_script_id") != RUNTIME_EVENT_CAPTURE_SCRIPT_ID:
+        issues.append("runtime_event_manifest capture_script_id mismatch")
+    if runtime_manifest.get("source_backend") != RUNTIME_BACKEND:
+        issues.append("runtime_event_manifest source_backend mismatch")
+    if runtime_manifest.get("source_process_kind") != RUNTIME_SOURCE_PROCESS_KIND:
+        issues.append("runtime_event_manifest source_process_kind mismatch")
+    if len(capture_ids) != 1 or runtime_manifest.get("capture_id") not in capture_ids:
+        issues.append("runtime_event_manifest capture_id mismatch")
+    if runtime_manifest.get("frame_count") != len(frame_indices):
+        issues.append("runtime_event_manifest frame_count mismatch")
+    if runtime_manifest.get("event_count") != len(events):
+        issues.append("runtime_event_manifest event_count mismatch")
+    if runtime_manifest.get("required_channels") != list(RUNTIME_EVENT_REQUIRED_CHANNELS):
+        issues.append("runtime_event_manifest required_channels mismatch")
+    if runtime_manifest.get("generated_by_rdf_sim") is not True:
+        issues.append("runtime_event_manifest generated_by_rdf_sim must be true")
+    if runtime_manifest.get("external_partner_data") is not False:
+        issues.append("runtime_event_manifest external_partner_data must be false")
+    if runtime_manifest.get("non_claims") != {key: False for key in FORBIDDEN_CLAIMS}:
+        issues.append("runtime_event_manifest non_claims mismatch")
+
+    if reconstruction_receipt.get("schema_version") != RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION:
+        issues.append("runtime_reconstruction_receipt schema_version mismatch")
+    if reconstruction_receipt.get("reconstruction_algorithm") != RUNTIME_RECONSTRUCTION_ALGORITHM:
+        issues.append("runtime_reconstruction_receipt algorithm mismatch")
+    if reconstruction_receipt.get("runtime_event_log_sha256") != event_log_sha:
+        issues.append("runtime_reconstruction_receipt runtime_event_log_sha256 mismatch")
+    if reconstruction_receipt.get("runtime_capture_sufficient") is not True:
+        issues.append("runtime_reconstruction_receipt runtime_capture_sufficient must be true")
+    if reconstruction_receipt.get("ready_status_allowed") is not True:
+        issues.append("runtime_reconstruction_receipt ready_status_allowed must be true")
+
+
+def _runtime_event_global_issues(events: list[dict[str, Any]]) -> list[str]:
+    issues: list[str] = []
+    if [event.get("event_index") for event in events] != list(range(len(events))):
+        issues.append("runtime event_index not contiguous")
+    previous_timestamp: float | None = None
+    frames: dict[int, set[str]] = {}
+    seen_frame_channels: set[tuple[int, str]] = set()
+    capture_ids = {event.get("capture_id") for event in events}
+    if len(capture_ids) != 1 or not all(isinstance(capture_id, str) and capture_id for capture_id in capture_ids):
+        issues.append("runtime capture_id mismatch")
+    for event in events:
+        if event.get("schema_version") != RAW_RUNTIME_EVENT_SCHEMA_VERSION:
+            issues.append("runtime event schema_version mismatch")
+        if event.get("source_backend") != RUNTIME_BACKEND:
+            issues.append("runtime event source_backend mismatch")
+        if event.get("source_process_kind") != RUNTIME_SOURCE_PROCESS_KIND:
+            issues.append("runtime event source_process_kind mismatch")
+        timestamp = event.get("timestamp")
+        if not _finite_number(timestamp):
+            issues.append("runtime timestamp invalid")
+        else:
+            current_timestamp = float(timestamp)
+            if previous_timestamp is not None and current_timestamp < previous_timestamp:
+                issues.append("runtime timestamp not monotonic")
+            previous_timestamp = current_timestamp
+        frame_index = event.get("frame_index")
+        if not isinstance(frame_index, int) or frame_index < 0:
+            issues.append("runtime frame_index invalid")
+            continue
+        channel = event.get("channel")
+        if channel not in RUNTIME_EVENT_REQUIRED_CHANNELS:
+            issues.append("unknown runtime event channel")
+            continue
+        key = (frame_index, cast(str, channel))
+        if key in seen_frame_channels:
+            issues.append("duplicate runtime event for frame/channel")
+        seen_frame_channels.add(key)
+        frames.setdefault(frame_index, set()).add(cast(str, channel))
+        if not isinstance(event.get("units"), dict):
+            issues.append("runtime event units missing")
+        payload = event.get("payload")
+        if not isinstance(payload, dict):
+            issues.append("runtime event payload missing")
+        elif _contains_non_finite_number(payload):
+            issues.append("runtime event contains non-finite number")
+    if sorted(frames) != list(range(len(frames))):
+        issues.append("runtime frame_index not contiguous")
+    for frame_index, channels in frames.items():
+        if channels != set(RUNTIME_EVENT_REQUIRED_CHANNELS):
+            issues.append(f"runtime frame {frame_index} required channel set mismatch")
+    return _dedupe(issues)
+
+
+def _runtime_channel_payload_issues(event: dict[str, Any]) -> list[str]:
+    channel = event.get("channel")
+    units = event.get("units")
+    payload = event.get("payload")
+    if not isinstance(units, dict) or not isinstance(payload, dict):
+        return []
+    issues: list[str] = []
+    if channel == "phase_marker":
+        if payload.get("phase") not in RUNTIME_PHASES:
+            issues.append("runtime phase unknown")
+    elif channel == "ur_joint_state":
+        if units.get("joint_position") != "rad":
+            issues.append("UR joint_position unit mismatch")
+        if payload.get("joint_names") != PROFILE_JOINT_NAMES["ur_rtde_csv_v0"]:
+            issues.append("UR joint_names mismatch")
+        if not _numeric_vector(payload.get("actual_q"), 6) or not _numeric_vector(payload.get("target_q"), 6):
+            issues.append("UR actual_q/target_q dimension mismatch")
+        if payload.get("robot_mode") != "RUNNING":
+            issues.append("UR robot_mode must be RUNNING")
+        if payload.get("safety_status") != "NORMAL":
+            issues.append("UR safety_status must be NORMAL")
+    elif channel == "ur_tcp_state":
+        if units.get("tcp_position") != "m":
+            issues.append("UR tcp_position unit mismatch")
+        if units.get("tcp_rotation") != "rotation_vector_rad":
+            issues.append("UR tcp_rotation unit mismatch")
+        if units.get("tcp_speed") != "m_per_s":
+            issues.append("UR tcp_speed unit mismatch")
+        if (
+            not _numeric_vector(payload.get("actual_TCP_pose"), 6)
+            or not _numeric_vector(payload.get("target_TCP_pose"), 6)
+            or not _numeric_vector(payload.get("actual_TCP_speed"), 6)
+        ):
+            issues.append("UR TCP vector dimension mismatch")
+    elif channel == "franka_joint_state":
+        if units.get("joint_position") != "rad":
+            issues.append("Franka joint_position unit mismatch")
+        if payload.get("joint_names") != PROFILE_JOINT_NAMES["franka_state_jsonl_v0"]:
+            issues.append("Franka joint_names mismatch")
+        if not _numeric_vector(payload.get("q"), 7) or not _numeric_vector(payload.get("q_d"), 7):
+            issues.append("Franka q/q_d dimension mismatch")
+        if payload.get("robot_mode") != "move":
+            issues.append("Franka robot_mode must be move")
+    elif channel == "franka_eef_state":
+        if units.get("pose_matrix") != "homogeneous_transform_row_major_m":
+            issues.append("Franka EEF pose unit mismatch")
+        if not _numeric_vector(payload.get("O_T_EE"), 16) or not _numeric_vector(payload.get("O_T_EE_d"), 16):
+            issues.append("Franka EEF matrix length mismatch")
+        elif not _rigid_transform(payload["O_T_EE"]):
+            issues.append("Franka EEF matrix implausible")
+    elif channel == "generic_command_state":
+        if (
+            payload.get("action_semantics") != "commanded_target_state"
+            or payload.get("state_semantics") != "actual_robot_state"
+            or "command" not in payload
+            or "state" not in payload
+        ):
+            issues.append("generic command/state semantics missing")
+        if not _numeric_vector(payload.get("state"), 6) or not _numeric_vector(payload.get("command"), 6):
+            issues.append("generic state/command dimension mismatch")
+        if not _finite_number(payload.get("command_timestamp")) or not _finite_number(payload.get("state_timestamp")):
+            issues.append("generic command/state timestamp invalid")
+        elif abs(float(payload["command_timestamp"]) - float(payload["state_timestamp"])) > MAX_ACTION_STATE_LAG:
+            issues.append("generic action-state lag exceeds threshold")
+    return issues
+
+
+def _reconstruct_canonical_from_runtime_events(events: list[dict[str, Any]]) -> dict[str, Any] | None:
+    grouped: dict[int, dict[str, dict[str, Any]]] = {}
+    for event in events:
+        frame_index = event.get("frame_index")
+        channel = event.get("channel")
+        payload = event.get("payload")
+        if not isinstance(frame_index, int) or channel not in RUNTIME_EVENT_REQUIRED_CHANNELS or not isinstance(payload, dict):
+            return None
+        grouped.setdefault(frame_index, {})[cast(str, channel)] = payload
+    if sorted(grouped) != list(range(len(grouped))):
+        return None
+    frames: list[dict[str, Any]] = []
+    for frame_index in sorted(grouped):
+        channels = grouped[frame_index]
+        if set(channels) != set(RUNTIME_EVENT_REQUIRED_CHANNELS):
+            return None
+        phase = channels["phase_marker"]
+        ur_joint = channels["ur_joint_state"]
+        ur_tcp = channels["ur_tcp_state"]
+        franka_joint = channels["franka_joint_state"]
+        franka_eef = channels["franka_eef_state"]
+        generic = channels["generic_command_state"]
+        timestamp = events[frame_index * len(RUNTIME_EVENT_REQUIRED_CHANNELS)]["timestamp"]
+        frames.append(
+            {
+                "frame_index": frame_index,
+                "timestamp": timestamp,
+                "phase": phase["phase"],
+                "ur": {
+                    "actual_q": ur_joint["actual_q"],
+                    "target_q": ur_joint["target_q"],
+                    "actual_TCP_pose": ur_tcp["actual_TCP_pose"],
+                    "target_TCP_pose": ur_tcp["target_TCP_pose"],
+                    "actual_TCP_speed": ur_tcp["actual_TCP_speed"],
+                    "robot_mode": ur_joint["robot_mode"],
+                    "safety_status": ur_joint["safety_status"],
+                },
+                "franka": {
+                    "q": franka_joint["q"],
+                    "q_d": franka_joint["q_d"],
+                    "O_T_EE": franka_eef["O_T_EE"],
+                    "O_T_EE_d": franka_eef["O_T_EE_d"],
+                    "robot_mode": franka_joint["robot_mode"],
+                },
+                "generic": {
+                    "state": generic["state"],
+                    "command": generic["command"],
+                    "command_timestamp": generic["command_timestamp"],
+                    "state_timestamp": generic["state_timestamp"],
+                },
+            }
+        )
+    return {
+        "schema_version": CANONICAL_TRACE_SCHEMA_VERSION,
+        "trace_id": "mvp5a_pre_l2_runtime_event_reconstructed_trace_v0",
+        "source_kind": RUNTIME_BACKED_SOURCE_KIND,
+        "runtime_backed": True,
+        "generated_by_rdf_sim": True,
+        "external_partner_data": False,
+        "frame_count": len(frames),
+        "frames": frames,
+        "non_claims": {key: False for key in FORBIDDEN_CLAIMS},
+    }
+
+
+def _canonical_runtime_projection(canonical: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": canonical.get("schema_version"),
+        "source_kind": canonical.get("source_kind"),
+        "runtime_backed": canonical.get("runtime_backed"),
+        "generated_by_rdf_sim": canonical.get("generated_by_rdf_sim"),
+        "external_partner_data": canonical.get("external_partner_data"),
+        "frame_count": canonical.get("frame_count"),
+        "frames": canonical.get("frames"),
+        "non_claims": canonical.get("non_claims"),
+    }
+
+
+def _contains_non_finite_number(value: Any) -> bool:
+    if isinstance(value, bool) or value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return not math.isfinite(float(value))
+    if isinstance(value, list):
+        return any(_contains_non_finite_number(item) for item in value)
+    if isinstance(value, dict):
+        return any(_contains_non_finite_number(item) for item in value.values())
+    return False
 
 
 def _verify_ready_runtime_capture(
