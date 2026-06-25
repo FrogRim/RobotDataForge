@@ -20923,3 +20923,1119 @@ real robot / hardware / live runtime readiness 아님
 full Croissant compliance 아님
 partner file-drop evaluation 아님
 ```
+
+## 2026-06-25 - MVP-5A-pre Digital Twin File-Drop Chaos Rehearsal spec
+
+### 작업 내용
+
+- 새 feature branch를 생성했다:
+  `codex/mvp5a-pre-file-drop-chaos-rehearsal`.
+- MVP-5A-pre spec을 작성했다:
+  `docs/superpowers/specs/2026-06-25-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-design.md`.
+- 설계 방향을 `Digital Twin File-Drop Chaos Rehearsal`로 고정했다.
+- v0 required file-drop profile을 4개로 잡았다.
+
+```text
+ur_rtde_csv_v0
+franka_state_jsonl_v0
+ros2_channel_bundle_jsonl_v0
+generic_command_state_jsonl_v0
+```
+
+- corruption matrix minimum을 50개 이상으로 잡고, defined corrupt case의
+  silent-pass rate를 0으로 요구했다.
+- `file_drop_rehearsal_ready=true`는 Isaac Sim runtime-backed canonical trace
+  hash binding이 있을 때만 허용하도록 명시했다.
+- deterministic fixture만 있는 경우는 `file_drop_rehearsal_contract_ready=true`,
+  `file_drop_rehearsal_ready=false`로 제한했다.
+
+### 판단 이유
+
+- 실제 외부 partner file-drop에서 터질 가능성이 큰 문제는 예쁜 demo보다
+  schema, timestamp, unit, frame, action-state semantic drift다.
+- 기존 `external_robot_data_ingest`는 contract-ready와 evaluated claim을
+  잘 분리하지만, 실제 partner 전에는 digital-twin/generated rehearsal로
+  bad log를 많이 깨보는 단계가 필요하다.
+- 기존 MVP-3C는 Isaac runtime-backed source evidence를 제공하고, MVP-4B는
+  TrustPack/verifier/report 패턴을 제공하므로 이번 spec은 이 둘을 결합하되
+  external partner claim으로 승격하지 않는다.
+
+### 변경 파일
+
+```text
+docs/superpowers/specs/2026-06-25-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-design.md
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+```
+
+### 검증
+
+```text
+branch_created=codex/mvp5a-pre-file-drop-chaos-rehearsal
+spec_self_review=placeholder/contradiction scan clean except intentional placeholder mutation names
+repo_context_read=Handoff.md, docs/developer/project_instructions.md, external ingest, MVP-3C, TrustPack files
+official_reference_check=UR RTDE guide, MCAP docs, libfranka RobotState docs
+```
+
+### 남은 gap 또는 다음 작업
+
+- Spec review 후 `$ralplan --deliberate`로 구현 계획을 작성한다.
+- 구현은 아직 시작하지 않았다.
+- `file_drop_rehearsal_ready=true`를 닫으려면 Isaac Sim runtime capture를 실제로
+  생성하거나 기존 runtime-backed evidence를 spec 계약에 맞춰 hash-bound해야 한다.
+
+## 2026-06-25 - MVP-5A-pre ralplan deliberate consensus
+
+### 작업 내용
+
+- MVP-5A-pre spec을 기준으로 `$ralplan --deliberate` 계획 산출물을 작성했다.
+- 생성/갱신한 planning artifact:
+
+```text
+.omx/context/mvp5a-pre-file-drop-chaos-rehearsal-20260624T180233Z.md
+.omx/plans/prd-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md
+.omx/plans/test-spec-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md
+.omx/plans/ralplan-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md
+.omx/plans/ralplan-architect-review-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-iteration1.md
+.omx/plans/ralplan-architect-review-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-iteration2.md
+.omx/plans/ralplan-critic-review-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-iteration1.md
+.omx/plans/ralplan-consensus-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md
+```
+
+- Architect iteration 1은 `ITERATE`였다. 주요 blocker:
+
+```text
+runtime capture sufficiency가 first-class preflight가 아님
+profile-specific semantic gate가 category-level에 머묾
+claim scan에서 JSONL 누락
+verifier independence가 prose-level임
+HDF5/trainer smoke가 profile semantics를 지우지 않았다는 receipt가 없음
+```
+
+- 위 blocker를 PRD/test-spec/ralplan/spec에 반영했다.
+- Architect iteration 2는 `APPROVE for Critic review`.
+- Critic iteration 1은 `APPROVE`.
+- durable consensus handoff를 작성하고
+  `ralplan_consensus_gate.complete=true`로 기록했다.
+
+### 판단 이유
+
+- 이번 slice는 실제 partner file-drop 전 단계라서, 예쁜 demo보다
+  schema/timestamp/unit/frame/action-state semantic 오류를 얼마나 fail-closed로
+  막는지가 중요하다.
+- `file_drop_rehearsal_ready=true`가 fixture theater로 닫히면 MVP-3A에서
+  발견했던 self-attestation 문제가 반복된다.
+- 따라서 runtime-backed ready와 fixture-only contract-ready를 execution gate로
+  분리하고, verifier/import guard/hash-refreshed tamper/semantic-preservation
+  receipt를 초기에 요구하도록 계획을 강화했다.
+
+### 변경 파일
+
+```text
+docs/superpowers/specs/2026-06-25-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-design.md
+.omx/context/mvp5a-pre-file-drop-chaos-rehearsal-20260624T180233Z.md
+.omx/plans/prd-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md
+.omx/plans/test-spec-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md
+.omx/plans/ralplan-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md
+.omx/plans/ralplan-architect-review-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-iteration1.md
+.omx/plans/ralplan-architect-review-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-iteration2.md
+.omx/plans/ralplan-critic-review-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-iteration1.md
+.omx/plans/ralplan-consensus-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+```
+
+### 검증
+
+```text
+planner_result=received
+architect_iteration1=ITERATE
+architect_iteration2=APPROVE for Critic review
+critic_iteration1=APPROVE
+ralplan_consensus_gate.complete=true
+implementation_started=false
+```
+
+### 남은 gap 또는 다음 작업
+
+- 다음 단계는 `$ultragoal .omx/plans/ralplan-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md`.
+- G001에서 runtime-capture sufficiency preflight와 verifier evidence contract를
+  먼저 구현해야 한다.
+- 현재 MVP-3C runtime package는 12-frame canonical trace contract를 만족하지
+  않을 가능성이 높으므로, full `file_drop_rehearsal_ready=true` 대신
+  contract-ready + blocked reason으로 떨어질 수 있음을 유지한다.
+
+## 2026-06-25 - MVP-5A-pre Digital Twin File-Drop Chaos Rehearsal implementation + hardening
+
+### 작업 내용
+
+- `$ultragoal` 기준 G001-G007을 완료하고 G008 최종 검증 단계에 진입했다.
+- 4개 explicit file-drop profile을 구현했다.
+
+```text
+ur_rtde_csv_v0
+franka_state_jsonl_v0
+ros2_channel_bundle_jsonl_v0
+generic_command_state_jsonl_v0
+```
+
+- deterministic canonical trace를 각 profile의 recorded-log file-drop 형태로
+  projection한다.
+- 52개 deterministic corrupt case를 생성하고 expected rejection reason으로
+  fail-closed되는지 검증한다.
+- 정상 golden drops는 parse -> normalize -> validate -> HDF5 export ->
+  trainer smoke -> semantic preservation receipt를 통과한다.
+- fixture-only package는 `file_drop_rehearsal_contract_ready`로만 닫고,
+  `file_drop_rehearsal_ready=false`를 유지한다.
+- 독립 verifier는 포함 evidence에서 golden/corrupt result, artifact hash,
+  non-claim, buyer report claim scan, symlink/path safety, HDF5 hash/optional
+  payload drift를 재계산한다.
+- official package를 생성했다.
+
+```text
+docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/
+```
+
+### 판단 이유
+
+- 실제 partner file-drop 전에는 demo 성공보다 schema/timestamp/unit/frame/
+  action-state semantic 오류를 많이 깨보는 편이 리스크를 줄인다.
+- fixture/generated evidence만으로 `file_drop_rehearsal_ready=true`를 닫으면
+  external self-attestation 문제가 반복된다.
+- 따라서 fixture-only는 contract-ready로 fail-closed하고, ready 상태는
+  runtime-backed canonical trace hash binding이 있을 때만 허용한다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/mvp5a_file_drop_rehearsal.py
+scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+apps/api/tests/test_mvp5a_pre_file_drop_profiles.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/
+docs/developer/debugging_guide.md
+docs/developer/data_schema.md
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 88 passed
+
+uv run pytest -q apps/api/tests/test_external_robot_data_ingest_eval_v0.py apps/api/tests/test_lerobot_public_slice_semantic_parity.py apps/api/tests/test_verify_lerobot_public_slice_package.py apps/api/tests/test_lerobot_public_dataset_matrix.py apps/api/tests/test_verify_lerobot_public_dataset_matrix_package.py apps/api/tests/test_rdf_public_dataset_trustpack_generator.py apps/api/tests/test_mvp3a_proof_infrastructure.py apps/api/tests/test_mvp3b_source_adapter_infrastructure.py apps/api/tests/test_verify_mvp3b_source_adapter_package.py apps/api/tests/test_mvp3c_isaac_sim_embodiment_source.py apps/api/tests/test_mvp3c_isaac_sim_source_ingress_profiles.py apps/api/tests/test_verify_mvp3c_isaac_sim_embodiment_source_package.py
+  -> 165 passed
+
+python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready
+  -> VERDICT: VERIFIED
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED
+
+python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json
+  -> VERDICT: FAILED, contract-ready package requires --allow-contract-ready
+```
+
+### 남은 gap 또는 다음 작업
+
+- G008 final gate가 아직 남았다: compileall, ruff, diff-check, final review,
+  ultraqa 또는 명시 skip 조건 기록.
+- `file_drop_rehearsal_ready=true`는 아직 닫히지 않았다. fresh Isaac Sim
+  runtime-backed canonical trace가 필요하다.
+- 이 package는 external partner data evaluation, real robot log evaluation,
+  live hardware/runtime support, policy uplift, production readiness를 증명하지 않는다.
+
+## 2026-06-25 - MVP-5A-pre Final Review Blocker Hardening
+
+### 작업 내용
+
+- G008 independent review에서 나온 blocker를 G009로 분리해 수정했다.
+- `file_drop_rehearsal_ready=true`가 config/preflight/receipt boolean만으로
+  mint되지 않도록 verifier가 included `runtime_capture.json`을 요구하게 했다.
+- producer `runtime_capture_preflight()`에서 embodiment row count fallback을
+  제거하고, `mvp5a_canonical_trace.frames`가 없으면
+  `runtime_capture_canonical_trace_missing`으로 contract-ready에 머물게 했다.
+- verifier가 source drop을 다시 parse해 normalized rows를 만들고, contract,
+  semantic preservation receipt, HDF5 inspection, optional deep HDF5 payload를
+  source rows 기준으로 비교하게 했다.
+- HDF5 semantic receipt에 timestamp hash binding을 추가하고, deep HDF5 mode가
+  `timestamps` dataset drift도 잡게 했다.
+- package clean guard의 string-prefix check를 `Path.relative_to()` 기반
+  containment check로 교체했다.
+- spec의 stale/draft file contract를 shipped v0 contract와 맞췄다.
+
+### 판단 이유
+
+- reviewer가 입증한 self-attestation 경로는 실제 partner file-drop 전 반드시
+  닫아야 하는 trust boundary 문제였다.
+- summary/config/contract/HDF5를 함께 고치는 hash-refresh tamper는 package
+  verifier가 source evidence에서 재계산하지 않으면 조용히 통과할 수 있다.
+- ready status는 runtime-backed canonical trace 원본이 package 안에 포함되고
+  hash-bound될 때만 허용해야 한다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/mvp5a_file_drop_rehearsal.py
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+apps/api/tests/test_mvp5a_pre_file_drop_profiles.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/
+docs/superpowers/specs/2026-06-25-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-design.md
+docs/developer/debugging_guide.md
+docs/developer/data_schema.md
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 20 passed
+
+uv run python scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py --fixture-only --clean --pretty
+  -> status=file_drop_rehearsal_contract_ready, corrupt_case_count=52
+
+python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready
+  -> VERDICT: VERIFIED
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED
+
+python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json
+  -> VERDICT: FAILED, contract-ready package requires --allow-contract-ready
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 93 passed
+
+uv run pytest -q
+  -> 1103 passed, 6 skipped
+```
+
+### 남은 gap 또는 다음 작업
+
+- 최종 gate는 아직 남았다: compileall, ruff, diff-check, ai-slop-cleaner
+  재확인, independent code-reviewer + architect review, ultraqa/skip 결정.
+- `file_drop_rehearsal_ready=true`는 여전히 닫히지 않았다. fresh Isaac Sim
+  runtime capture with `mvp5a_canonical_trace.frames >= 12`가 필요하다.
+- 이 slice는 digital-twin rehearsal이며 external partner data evaluation,
+  real robot readiness, live UR/Franka/ROS2 support, policy uplift를 증명하지 않는다.
+
+## 2026-06-25 - MVP-5A-pre G009 Second Review Hardening
+
+### 작업 내용
+
+- Independent code-reviewer가 재현한 3개 HIGH와 architect가 지적한 spec drift를
+  같은 G009 루프에서 닫았다.
+- runtime capture preflight와 verifier ready gate가 timestamp-only canonical
+  trace를 충분한 runtime evidence로 보지 않도록 frame schema 검증을 추가했다.
+- verifier가 golden source rows를 `canonical_trace.json`에서 profile별로
+  재유도한 expected rows와 비교하도록 했다.
+- profile registry를 verifier-owned exact contract로 강화해 schema_version,
+  profile_count, source_file_names, robot family/model, action/state semantics drift를
+  hash-refresh 후에도 잡게 했다.
+- spec의 verifier path, optional `runtime_capture.json`, nonexistent
+  `verifier_summary.json` 항목을 shipped contract와 맞췄다.
+
+### 판단 이유
+
+- `file_drop_rehearsal_ready=true`는 frame count가 아니라 runtime-backed source
+  semantics가 충분할 때만 열려야 한다.
+- canonical trace가 projection truth라면 source/contract/HDF5를 모두 같이
+  바꾼 hash-refresh tamper도 canonical projection과 비교해 잡아야 한다.
+- profile registry가 느슨하면 UR/Franka/ROS2-style profile semantics가 drift되어도
+  package가 VERIFIED될 수 있다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/mvp5a_file_drop_rehearsal.py
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+docs/superpowers/specs/2026-06-25-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-design.md
+docs/developer/debugging_guide.md
+docs/developer/data_schema.md
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 24 passed
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 97 passed
+
+python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready
+  -> VERDICT: VERIFIED
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED
+```
+
+### 남은 gap 또는 다음 작업
+
+- 전체 회귀, compileall, ruff, diff-check, ai-slop-cleaner, independent review
+  re-run, ultraqa/skip 결정이 아직 남았다.
+- 이 package는 여전히 contract-ready package이며, ready status는 fresh runtime
+  capture evidence가 들어오기 전까지 열리지 않는다.
+
+## 2026-06-25 - MVP-5A-pre G009 Type Gate and Regression Closure
+
+### 작업 내용
+
+- Independent code-reviewer가 최종 blocker로 남긴 `mypy`/`pyright` type gate
+  실패를 닫았다.
+- HDF5 tamper 테스트의 `h5py` untyped dataset 접근을 명시적으로 `Any` cast 처리해
+  런타임 의미를 바꾸지 않고 타입 검증만 통과하도록 했다.
+- verifier/producer의 optional JSON field와 canonical runtime frame parsing을
+  타입 검사 가능한 narrowing 구조로 정리했다.
+- 기존 proof verifier와 MVP-5A-pre verifier를 재실행해 frozen package 회귀가
+  없음을 확인했다.
+
+### 판단 이유
+
+- 의미 검증은 이미 통과했지만, final review gate가 type-check 실패를 clean
+  completion blocker로 판단했으므로 같은 G009 루프에서 해결해야 했다.
+- 테스트 하드닝의 목적은 verifier gate를 약화하는 것이 아니라, semantic tamper
+  테스트와 정적 검사를 동시에 통과하는 구현 상태를 만드는 것이다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/mvp5a_file_drop_rehearsal.py
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+```
+
+### 검증
+
+```text
+uv run mypy apps/api/app/services/mvp5a_file_drop_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> Success: no issues found in 5 source files
+
+uv run --with pyright pyright apps/api/app/services/mvp5a_file_drop_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 0 errors, 0 warnings, 0 informations
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 24 passed
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 97 passed
+
+uv run pytest -q
+  -> 1107 passed, 6 skipped
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready
+  -> VERDICT: VERIFIED
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json
+  -> VERDICT: FAILED, contract-ready package requires --allow-contract-ready
+
+python scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+  -> VERDICT: VERIFIED
+
+python scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+  -> VERDICT: VERIFIED
+
+python scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+  -> VERDICT: VERIFIED
+
+python scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+  -> VERDICT: VERIFIED
+
+python scripts/verify_external_robot_data_ingest_package.py docs/proof/external_robot_data_ingest_eval_v0_proof_package/package_manifest.json
+  -> VERDICT: VERIFIED
+
+uv run python scripts/verify_lerobot_public_slice_package.py docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json --deep-hdf5
+  -> VERDICT: VERIFIED
+
+uv run python scripts/verify_lerobot_public_dataset_matrix_package.py docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json --deep-hdf5
+  -> VERDICT: VERIFIED
+
+uv run python scripts/verify_lerobot_public_dataset_matrix_package.py docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/package_manifest.json --deep-hdf5
+  -> VERDICT: VERIFIED
+
+python scripts/scan_rdf_trustpack_html_claims.py --package-dir docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package
+  -> buyer_report_html_claim_scan=PASS
+
+python scripts/compare_rdf_public_dataset_trustpack_regeneration.py --baseline-package-dir docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package --generated-package-dir docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package
+  -> regeneration_comparison=PASS
+
+python -m compileall apps/api/app/services/mvp5a_file_drop_rehearsal.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> passed
+
+uv run --with ruff ruff check apps/api/app/services/mvp5a_file_drop_rehearsal.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> All checks passed
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- Independent code-reviewer + architect re-review와 UltraQA 기록을 마쳐 final
+  ultragoal checkpoint를 닫아야 한다.
+- `file_drop_rehearsal_ready=true`는 여전히 닫히지 않았다. fresh Isaac Sim
+  runtime-backed canonical trace가 들어오기 전까지 현재 패키지는
+  `file_drop_rehearsal_contract_ready` 상태다.
+
+## 2026-06-25 - MVP-5A-pre G009 Final Review Hardening
+
+### 작업 내용
+
+- Independent architect/code-reviewer가 마지막으로 지적한 3개 blocker를 같은
+  G009 루프에서 닫았다.
+- `file_drop_rehearsal_ready=true`가 manifest top-level claim만으로 mint되지
+  않도록 manifest/config status consistency를 hard-check로 추가했다.
+- ready status가 deterministic fixture를 `runtime_capture.json`에 넣어 통과하지
+  못하도록 runtime provenance schema와 known fixture frame digest guard를 추가했다.
+  Runtime-backed capture는 이제
+  `isaac_sim`, capture script id, source process receipt, runtime version,
+  command metadata를 포함해야 한다.
+- profile registry가 duplicate/missing profile을 숨기지 못하도록 verifier-owned
+  exact profile id list와 profile count를 강제했다.
+- HDF5 export가 있는 package는 default verifier에서 fail-closed하고, final
+  HDF5 semantic payload verification은 `--deep-hdf5`를 요구하도록 했다.
+- producer는 fixture trace를 runtime-backed trace로 overwrite하지 않고, runtime
+  capture payload 자체가 runtime-backed source kind를 증명해야 ready로 승격한다.
+- verifier가 source drop을 canonical trace와 비교할 때 normalized train vectors만
+  보지 않고 UR TCP pose/speed, Franka EEF transform, ROS2 `/tf` frame/translation
+  같은 source-native fields까지 profile-specific projection으로 비교하도록 했다.
+
+### 판단 이유
+
+- MVP-5A-pre의 현재 산출물은 contract-ready package이며, runtime-backed Isaac Sim
+  canonical trace가 없으면 ready claim을 열면 안 된다.
+- Hash refresh 후에도 source/contract/HDF5/manifest가 함께 drift되는 경우를 막으려면
+  cached summary가 아니라 included evidence와 verifier-owned contract를 기준으로
+  재계산해야 한다.
+- HDF5 payload는 해시와 inspection summary만으로는 충분하지 않으므로, HDF5 포함
+  package의 최종 VERIFIED 경로는 deep payload check를 명시적으로 요구해야 한다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/mvp5a_file_drop_rehearsal.py
+scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+apps/api/tests/test_mvp5a_pre_file_drop_profiles.py
+apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/
+docs/superpowers/specs/2026-06-25-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-design.md
+docs/developer/data_schema.md
+docs/developer/debugging_guide.md
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 33 passed
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 106 passed
+
+uv run pytest -q
+  -> 1116 passed, 6 skipped
+
+uv run mypy apps/api/app/services/mvp5a_file_drop_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> Success: no issues found in 5 source files
+
+uv run --with pyright pyright apps/api/app/services/mvp5a_file_drop_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 0 errors, 0 warnings, 0 informations
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready
+  -> VERDICT: FAILED, hdf5 payload verification requires --deep-hdf5
+
+python scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+python scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+python scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+python scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+python scripts/verify_external_robot_data_ingest_package.py docs/proof/external_robot_data_ingest_eval_v0_proof_package/package_manifest.json
+uv run python scripts/verify_lerobot_public_slice_package.py docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json --deep-hdf5
+uv run python scripts/verify_lerobot_public_dataset_matrix_package.py docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json --deep-hdf5
+uv run python scripts/verify_lerobot_public_dataset_matrix_package.py docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/package_manifest.json --deep-hdf5
+  -> all VERDICT: VERIFIED
+
+python -m compileall apps/api/app/services/mvp5a_file_drop_rehearsal.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> passed
+
+uv run --with ruff ruff check apps/api/app/services/mvp5a_file_drop_rehearsal.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> All checks passed
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- Fresh runtime-backed Isaac Sim canonical trace를 아직 포함하지 않았으므로
+  `file_drop_rehearsal_ready=true`는 의도적으로 닫히지 않았다.
+- 다음 단계는 final independent code-reviewer/architect re-review와 UltraQA/quality
+  gate 기록 후 G009 ultragoal checkpoint를 닫는 것이다.
+
+## 2026-06-25 - MVP-5A-pre G009 Runtime Schema Exactness Hardening
+
+### 작업 내용
+
+- Independent code-reviewer가 추가로 발견한 runtime capture fixture 우회 경로를
+  닫았다.
+- 기존 digest guard는 deterministic fixture frame 전체를 hash했기 때문에, 각
+  frame에 producer/verifier가 사용하지 않는 extra field를 추가하면 fixture digest가
+  달라지고 runtime-backed label을 붙여 ready 승격을 시도할 수 있었다.
+- producer와 verifier 모두 runtime frame top-level key와 `ur`/`franka`/`generic`
+  nested key set을 exact contract로 강제하도록 바꿨다.
+- fixture digest는 required runtime projection 기준으로 계산하되, unknown key는
+  별도로 `runtime_capture_frame_schema_invalid`로 fail-closed한다.
+- 회귀 테스트는 relabeled deterministic fixture에 ignored top-level/nested fields를
+  추가한 뒤, producer preflight와 verifier mint 방어가 모두 동작하는지 검증한다.
+
+### 판단 이유
+
+- MVP-5A-pre의 ready status는 future fresh Isaac Sim runtime capture evidence가
+  들어오기 전까지 열리면 안 된다.
+- Hash guard만으로는 충분하지 않고, runtime capture schema 자체가 closed-world
+  contract여야 한다. 그래야 "검증에 쓰이지 않는 attestation noise"로 evidence
+  identity를 바꾸는 self-attestation 우회를 막을 수 있다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/mvp5a_file_drop_rehearsal.py
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py -k 'relabelled_fixture or tcp_pose_drift or eef_pose_drift or tf_translation_drift'
+  -> 5 passed, 29 deselected
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 34 passed
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 73 passed
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 43 passed
+
+uv run pytest -q
+  -> 1117 passed, 6 skipped
+
+uv run mypy apps/api/app/services/mvp5a_file_drop_rehearsal.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+  -> Success: no issues found in 6 source files
+
+PYTHONPATH=apps/api uv run --with pyright pyright apps/api/app/services/mvp5a_file_drop_rehearsal.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+  -> 0 errors, 0 warnings, 0 informations
+
+uv run --with ruff ruff check apps/api/app/services/mvp5a_file_drop_rehearsal.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+  -> All checks passed
+
+python -m compileall -q apps/api/app/services/mvp5a_file_drop_rehearsal.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+  -> passed
+
+uv run python scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py --package-dir docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package --fixture-only --clean --pretty
+  -> status=file_drop_rehearsal_contract_ready, file_drop_rehearsal_ready=false, corrupt_case_count=52
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready
+  -> VERDICT: FAILED, hdf5 payload verification requires --deep-hdf5
+
+frozen verifier regressions:
+  MVP-2, MVP-3A, MVP-3B, MVP-3C, external-ingest, LeRobot slice,
+  LeRobot matrix, RDF TrustPack -> all VERDICT: VERIFIED
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- Fresh runtime-backed Isaac Sim canonical trace는 아직 포함하지 않았으므로
+  `file_drop_rehearsal_ready=true`는 계속 닫혀 있다.
+- G009 final gate를 닫으려면 independent code-reviewer/architect re-review,
+  UltraQA/skip evidence, quality-gate JSON, Codex goal update, ultragoal
+  checkpoint가 남아 있다.
+
+## 2026-06-25 - MVP-5A-pre G009 Ready Tier Self-Attestation Closure
+
+### 작업 내용
+
+- Independent code-reviewer가 추가로 재현한 ready tier self-attestation blocker를
+  닫았다.
+- 기존 positive ready test는 `build_fixture_canonical_trace()`에 작은 delta를
+  준 JSON payload와 self-declared Isaac provenance만으로 `file_drop_rehearsal_ready`
+  를 열고 있었다.
+- v0에서는 어떤 runtime-shaped JSON도 ready를 열지 않도록 변경했다. 구조적으로
+  유효한 capture는 `runtime_capture_structurally_valid=true`로 기록하되,
+  `runtime_capture_sufficient=false`,
+  `blocked_reason=runtime_capture_unverified_source_process`,
+  `ready_status_allowed=false`로 contract-ready에 머문다.
+- verifier는 `file_drop_rehearsal_ready` status 자체를
+  `file_drop_rehearsal_ready requires verifier-owned runtime evidence contract`
+  로 fail-closed한다.
+- 회귀 테스트는 runtime-shaped fixture-derived payload가 contract-ready에 머무는지,
+  그리고 adversary가 canonical/preflight/receipt/config/manifest를 ready로 tamper하고
+  hash를 refresh해도 verifier가 실패하는지 검증한다.
+
+### 판단 이유
+
+- Self-declared provenance 문자열과 JSON shape는 실제 Isaac Sim process origin을
+  독립 증명하지 못한다.
+- MVP-5A-pre는 external file-drop 전 chaos rehearsal이며, ready tier는 향후
+  verifier-owned raw runtime evidence contract가 생길 때 열어야 한다.
+- 이 변경은 proof를 약하게 만드는 것이 아니라, 과장 가능한 ready claim을 닫아
+  current artifact의 정직한 범위를 `file_drop_rehearsal_contract_ready`로 고정한다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/mvp5a_file_drop_rehearsal.py
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/
+docs/developer/data_schema.md
+docs/developer/debugging_guide.md
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py -k 'runtime_shaped_capture or relabelled_fixture'
+  -> 4 passed, 31 deselected
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 35 passed
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 108 passed
+
+uv run pytest -q
+  -> 1118 passed, 6 skipped
+
+uv run mypy apps/api/app/services/mvp5a_file_drop_rehearsal.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+  -> Success: no issues found in 6 source files
+
+PYTHONPATH=apps/api uv run --with pyright pyright apps/api/app/services/mvp5a_file_drop_rehearsal.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+  -> 0 errors, 0 warnings, 0 informations
+
+uv run --with ruff ruff check apps/api/app/services/mvp5a_file_drop_rehearsal.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+  -> All checks passed
+
+python -m compileall -q apps/api/app/services/mvp5a_file_drop_rehearsal.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+  -> passed
+
+uv run python scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py --package-dir docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package --fixture-only --clean --pretty
+  -> status=file_drop_rehearsal_contract_ready, file_drop_rehearsal_ready=false, corrupt_case_count=52
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready
+  -> VERDICT: FAILED, hdf5 payload verification requires --deep-hdf5
+
+frozen verifier regressions:
+  MVP-2, MVP-3A, MVP-3B, MVP-3C, external-ingest, LeRobot slice,
+  LeRobot matrix, RDF TrustPack -> all VERDICT: VERIFIED
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- `file_drop_rehearsal_ready=true`는 v0에서 의도적으로 닫혀 있다. 다음에 ready
+  tier를 열려면 Isaac Sim capture script가 남긴 raw runtime evidence를 verifier가
+  독립 재계산할 수 있는 contract가 필요하다.
+- Independent code-reviewer/architect re-review를 다시 실행하고, clean이면
+  quality gate/ultragoal checkpoint를 닫아야 한다.
+
+## 2026-06-25 - MVP-5A-pre G009 Package Self-Containment and Claim-Set Closure
+
+### 작업 내용
+
+- Fresh architect/code-review gate가 잡은 마지막 drift를 닫았다.
+- `.gitignore`가 전역 `*.hdf5`를 무시해 MVP-5A-pre package manifest가 요구하는
+  4개 HDF5 payload가 clean clone에서 빠질 수 있던 문제를 수정했다.
+- MVP-5A-pre `data/export/*/dataset.hdf5` 예외를 추가했고, 각 HDF5는 12K로
+  작아 verifier-critical evidence로 git tracking 가능하다.
+- Spec의 더 넓은 forbidden claim set을 producer, verifier, package
+  `non_claims_attestation.json`, `config.json`, canonical/source metadata,
+  manifest, `docs/developer/data_schema.md`에 맞췄다.
+- Runner help/docstring이 runtime capture로 ready promotion이 가능하다는
+  stale 문구를 노출하던 문제를 수정했고, `--help` regression을 추가했다.
+
+### 판단 이유
+
+- Package verifier가 `--deep-hdf5`에서 HDF5 payload를 source of truth로 읽는
+  이상, HDF5는 ignored local artifact가 아니라 self-contained package evidence여야 한다.
+- Forbidden claim set은 spec보다 구현이 좁으면 buyer-facing text 또는 metadata에
+  `generic_file_drop_support`, `generic_robot_log_parser`, `learning_proven_value`
+  같은 과장 claim이 새어도 verifier가 놓칠 수 있다.
+- CLI help도 reviewer-facing interface이므로, v0 ready boundary와 동일한
+  non-claim discipline을 가져야 한다.
+
+### 변경 파일
+
+```text
+.gitignore
+apps/api/app/services/mvp5a_file_drop_rehearsal.py
+scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/
+docs/developer/data_schema.md
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py -k 'runner_help or forbidden or non_claim or buyer_report'
+  -> 3 passed, 33 deselected
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 109 passed
+
+uv run pytest -q
+  -> 1119 passed, 6 skipped
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED, status=file_drop_rehearsal_contract_ready, ready=false, golden=4, corrupt=52
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready
+  -> VERDICT: FAILED, hdf5 payload verification requires --deep-hdf5
+
+uv run mypy <touched MVP-5A-pre producer/verifier/tests>
+  -> Success: no issues found in 6 source files
+
+PYTHONPATH=apps/api uv run --with pyright pyright <touched MVP-5A-pre producer/verifier/tests>
+  -> 0 errors, 0 warnings, 0 informations
+
+uv run --with ruff ruff check <touched MVP-5A-pre producer/verifier/tests>
+  -> All checks passed
+
+python -m compileall -q <touched MVP-5A-pre producer/verifier/tests>
+  -> passed
+
+git diff --check
+  -> passed
+
+du -h docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/data/export/*/dataset.hdf5
+  -> 4 files, 12K each
+
+git status --short --ignored docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/data/export .gitignore
+  -> no ignored HDF5 entries; export directory is trackable
+```
+
+### 남은 gap 또는 다음 작업
+
+- Fresh independent code-reviewer/architect re-review 결과가 clean이면 G009 quality
+  gate JSON, Codex goal complete update, ultragoal checkpoint를 닫는다.
+- `file_drop_rehearsal_ready=true`는 계속 의도적으로 닫혀 있다. 다음 ready path는
+  verifier-owned raw runtime evidence contract가 생긴 뒤 별도 slice로 열어야 한다.
+
+## 2026-06-25 - MVP-5A-pre G009 Forbidden Prose Claim Scanner Closure
+
+### 작업 내용
+
+- Fresh code-reviewer가 재현한 forbidden positive prose claim gap을 닫았다.
+- 기존 verifier는 key-level `FORBIDDEN_CLAIMS`는 넓어졌지만,
+  `FORBIDDEN_POSITIVE_PHRASES`가 수동 alias list라 `external_partner_data`,
+  `physical_robot_readiness`, `hardware_integration`, `hardware_readiness`,
+  `marketplace_readiness` 같은 normalized phrase를 모두 스캔하지 못했다.
+- verifier가 모든 `FORBIDDEN_CLAIMS` key를 underscore-to-space로 normalize해
+  positive phrase set을 자동 생성하고, 필요한 alias만 추가하도록 변경했다.
+- README, `data/reports/buyer_report.html`, JSON string value에 모든 forbidden
+  phrase를 주입한 뒤 hash/index를 refresh해도 verifier가 실패하는
+  parametrized tamper test를 추가했다.
+- Spec status line을 `READY CLOSED IN V0; FUTURE VERIFIER-OWNED RAW RUNTIME
+  CONTRACT REQUIRED`로 정정하고, spec forbidden claim list에
+  `external_partner_data`, `hardware_readiness`를 추가해 verifier contract와
+  일치시켰다.
+
+### 판단 이유
+
+- Buyer-facing text는 JSON boolean non-claim과 같은 claim boundary surface다.
+- Hash refresh 이후에도 positive prose claim이 통과하면 package가 self-contained
+  hash integrity는 유지하면서 claim boundary를 깨뜨릴 수 있다.
+- Phrase set을 canonical key set에서 파생해야 spec/service/verifier/docs drift가
+  다시 생길 가능성이 줄어든다.
+
+### 변경 파일
+
+```text
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+docs/superpowers/specs/2026-06-25-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-design.md
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+.omx/reports/ai-slop-cleaner-mvp5a-pre-file-drop-chaos-rehearsal.md
+.omx/reports/ultraqa-mvp5a-pre-file-drop-chaos-rehearsal.md
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py -k 'forbidden_positive_phrase or spec_forbidden or buyer_report_positive or runner_help'
+  -> 81 passed, 34 deselected
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 115 passed
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 188 passed
+
+uv run pytest -q
+  -> 1198 passed, 6 skipped
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED, status=file_drop_rehearsal_contract_ready, ready=false, golden=4, corrupt=52
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready
+  -> VERDICT: FAILED, hdf5 payload verification requires --deep-hdf5
+
+uv run mypy <touched MVP-5A-pre producer/verifier/tests>
+  -> Success: no issues found in 6 source files
+
+PYTHONPATH=apps/api uv run --with pyright pyright <touched MVP-5A-pre producer/verifier/tests>
+  -> 0 errors, 0 warnings, 0 informations
+
+uv run --with ruff ruff check <touched MVP-5A-pre producer/verifier/tests>
+  -> All checks passed
+
+python -m compileall -q <touched MVP-5A-pre producer/verifier/tests>
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- Fresh independent code-reviewer/architect re-review를 다시 실행하고 clean이면
+  quality gate/ultragoal checkpoint를 닫는다.
+
+## 2026-06-25 - MVP-5A-pre G009 Stale Planning Overclaim Closure
+
+### 작업 내용
+
+- Independent architect가 지적한 stale Isaac runtime-backed/Isaac-based
+  wording을 spec과 handoff에서 제거했다.
+- MVP-5A-pre v0는 실제 Isaac Sim runtime receipt가 아니라 deterministic/
+  generated digital-twin contract-ready evidence라는 boundary를 문서에 맞췄다.
+- planning docs와 handoff에 stale wording이 재유입되면 실패하는 regression
+  test를 추가했다.
+
+### 판단 이유
+
+- Buyer/reviewer-facing planning text도 claim surface다.
+- v0 package를 Isaac Sim-backed로 표현하면 verifier-owned runtime evidence
+  contract가 아직 없다는 핵심 stop condition과 충돌한다.
+- 이 slice는 실제 외부 file-drop 전 chaos rehearsal이며, ready/Isaac runtime
+  proof는 future raw runtime evidence contract가 생긴 뒤 별도 slice에서 열어야
+  한다.
+
+### 변경 파일
+
+```text
+docs/superpowers/specs/2026-06-25-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-design.md
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+.omx/reports/ai-slop-cleaner-mvp5a-pre-file-drop-chaos-rehearsal.md
+.omx/reports/ultraqa-mvp5a-pre-file-drop-chaos-rehearsal.md
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py -k 'planning_docs or spec_forbidden or forbidden_positive_phrase'
+  -> 80 passed, 36 deselected
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 116 passed
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 189 passed
+
+uv run pytest -q
+  -> 1199 passed, 6 skipped
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED, status=file_drop_rehearsal_contract_ready, ready=false, golden=4, corrupt=52
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready
+  -> VERDICT: FAILED, hdf5 payload verification requires --deep-hdf5
+
+uv run mypy <touched MVP-5A-pre producer/verifier/tests>
+  -> Success: no issues found in 6 source files
+
+PYTHONPATH=apps/api uv run --with pyright pyright <touched MVP-5A-pre producer/verifier/tests>
+  -> 0 errors, 0 warnings, 0 informations
+
+uv run --with ruff ruff check <touched MVP-5A-pre producer/verifier/tests>
+  -> All checks passed
+
+python -m compileall -q <touched MVP-5A-pre producer/verifier/tests>
+  -> passed
+
+git diff --check
+  -> passed
+
+rg -n "Isaac-Sim-backed|Isaac Sim backed|Isaac-backed|Isaac Sim based|Isaac Sim 기반" docs/superpowers/specs/2026-06-25-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-design.md Handoff.md docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package README.md
+  -> no matches
+```
+
+### 남은 gap 또는 다음 작업
+
+- Fresh independent code-reviewer/architect re-review를 다시 실행하고 clean이면
+  quality gate JSON, Codex goal complete update, ultragoal checkpoint를 닫는다.
+
+## 2026-06-25 - MVP-5A-pre G009 Deep-HDF5 Exactness Closure
+
+### 작업 내용
+
+- Fresh code-reviewer가 재현한 deep HDF5 verifier bypass를 닫았다.
+- 기존 `_verify_deep_hdf5()`는 `np.allclose()`를 사용해 HDF5 payload가
+  아주 작은 sub-tolerance 값으로 바뀌고 `hdf5_sha256`/artifact index가 refresh되면
+  통과할 수 있었다.
+- verifier를 exact `np.array_equal()` 비교와 실제 HDF5 payload hash 비교로
+  바꿨다.
+- HDF5 `states[0,0]`를 `1e-9`만큼 drift시키고 HDF5 file hash/index를 refresh해도
+  verifier가 실패하는 regression test를 추가했다.
+
+### 판단 이유
+
+- HDF5는 training/export artifact이므로 semantic-preservation gate는 tolerance-based
+  numerical similarity가 아니라 byte/exact-value preservation을 강제해야 한다.
+- Cached `hdf5_sha256`와 manifest hash를 refresh한 tamper도 included source rows와
+  contract/receipt hash에 대해 다시 계산되어야 한다.
+
+### 변경 파일
+
+```text
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+.omx/reports/ai-slop-cleaner-mvp5a-pre-file-drop-chaos-rehearsal.md
+.omx/reports/ultraqa-mvp5a-pre-file-drop-chaos-rehearsal.md
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py -k 'sub_tolerance_payload_drift or deep_hdf5_detects_semantic_drift or deep_hdf5_detects_timestamp_drift'
+  -> 3 passed, 114 deselected
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 117 passed
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 190 passed
+
+uv run pytest -q
+  -> 1200 passed, 6 skipped
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED, status=file_drop_rehearsal_contract_ready, ready=false, golden=4, corrupt=52
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready
+  -> VERDICT: FAILED, hdf5 payload verification requires --deep-hdf5
+
+uv run mypy <touched MVP-5A-pre producer/verifier/tests>
+  -> Success: no issues found in 6 source files
+
+PYTHONPATH=apps/api uv run --with pyright pyright <touched MVP-5A-pre producer/verifier/tests>
+  -> 0 errors, 0 warnings, 0 informations
+
+uv run --with ruff ruff check <touched MVP-5A-pre producer/verifier/tests>
+  -> All checks passed
+
+python -m compileall -q <touched MVP-5A-pre producer/verifier/tests>
+  -> passed
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- Fresh independent code-reviewer re-review를 다시 실행하고 architect CLEAR 상태와
+  함께 quality gate JSON, Codex goal complete update, ultragoal checkpoint를 닫는다.
+
+## 2026-06-25 - MVP-5A-pre G009 Quality Gate Completion
+
+### 작업 내용
+
+- Final independent code-reviewer re-review가 `APPROVE`를 반환했다.
+- Final architect re-review가 `CLEAR`를 반환했다.
+- `ai-slop-cleaner`, UltraQA, verification, code-review evidence를
+  `.omx/reports/quality-gate-mvp5a-pre-file-drop-chaos-rehearsal.json`에 묶었다.
+- Codex goal을 `complete`로 업데이트하고 snapshot을
+  `.omx/reports/codex-goal-mvp5a-g009-complete.json`에 저장했다.
+- `omx ultragoal checkpoint`로 G009 blocker-resolution story를 complete 처리했다.
+
+### 판단 이유
+
+- G008은 final review에서 blocker를 발견한 historical review-blocked story로 보존한다.
+- G009는 그 blocker를 해결한 append story이므로, G009 complete + quality gate clean이
+  현재 aggregate completion evidence다.
+
+### 변경 파일
+
+```text
+.omx/reports/quality-gate-mvp5a-pre-file-drop-chaos-rehearsal.json
+.omx/reports/codex-goal-mvp5a-g009-complete.json
+docs/developer/worklog.md
+Handoff.md
+tasks/todo.md
+```
+
+### 검증
+
+```text
+omx ultragoal checkpoint --goal-id G009-resolve-mvp-5a-pre-final-review-bloc --status complete ...
+  -> ultragoal checkpoint: G009-resolve-mvp-5a-pre-final-review-bloc -> complete
+  -> ultragoal artifact goals: complete
+
+omx ultragoal status
+  -> ultragoal artifact goals: complete
+  -> G009-resolve-mvp-5a-pre-final-review-bloc [complete]
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- 현재 작업은 커밋하지 않았다. 다음 단계는 Lore protocol에 맞춘 commit 분리,
+  push/PR, CI 확인이다.
+- `file_drop_rehearsal_ready=true`는 아직 의도적으로 미지원이다. 다음 hardening
+  slice는 verifier-owned raw runtime evidence contract 또는 실제 partner file-drop
+  intake로 열어야 한다.

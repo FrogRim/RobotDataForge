@@ -1,0 +1,1302 @@
+{
+  "artifact_index": [
+    {
+      "byte_size": 56554,
+      "data_path": "data/artifact_index.json",
+      "file_sha256": "963729b1e486bf73bc9cdfda2b0a2f7cb3876e83ab1ecab218d935517fe2f1d9",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 28088,
+      "data_path": "data/canonical_trace/canonical_trace.json",
+      "file_sha256": "c0b5a63b3924dd6e364854b40b5629b56a89bd2329f5eb33170b91ba1985248d",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 414,
+      "data_path": "data/canonical_trace/runtime_capture_hash_receipt.json",
+      "file_sha256": "885a6a9fc26f7b8e7f2f037f04f2bd955838d8a205d8823a40b5f9997d92f098",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 488,
+      "data_path": "data/canonical_trace/runtime_capture_preflight.json",
+      "file_sha256": "7d33990167475cee56012db1a758e5914eca9099eda5fad256aebed058179b75",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1645,
+      "data_path": "data/config.json",
+      "file_sha256": "216576565725acf5478740a9a4e5ed8046a493e01857b3e2844b51e842bfa058",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 8464,
+      "data_path": "data/export/franka_state_jsonl_v0/dataset.hdf5",
+      "file_sha256": "cfed95b9c564b8d145b823722391dd18197f7812bc0879c4c325178353b354fa",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 615,
+      "data_path": "data/export/franka_state_jsonl_v0/hdf5_inspection_report.json",
+      "file_sha256": "163ff49d51251c88a3c2607c8642e86c77b9fb9613596cde162cf1aa25f20672",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 843,
+      "data_path": "data/export/franka_state_jsonl_v0/semantic_preservation_receipt.json",
+      "file_sha256": "3b20d4d4576bcd4cce1d03b9efb360dcc6c7050ea6ef2a95f85a7f3c57bf38bf",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 209,
+      "data_path": "data/export/franka_state_jsonl_v0/split_manifest.json",
+      "file_sha256": "0f0da6a9c59b84b98b9f52257ffe622bf2dcf4af89c9ebd61014fb86a81dd62a",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 288,
+      "data_path": "data/export/franka_state_jsonl_v0/trainer_smoke_report.json",
+      "file_sha256": "47b8ace9e97d1311f64b20989bbfb06e9697815d6a9f1439065a2fc51faaf5cc",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 8464,
+      "data_path": "data/export/generic_command_state_jsonl_v0/dataset.hdf5",
+      "file_sha256": "8f063d5fd20a945585df75f15a71bf22e0dc00cfde1810c00fd4f1fa15af13fa",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 624,
+      "data_path": "data/export/generic_command_state_jsonl_v0/hdf5_inspection_report.json",
+      "file_sha256": "a612ef27bd8c5f411e8c9cb7f5767a6d7da9de97ded817cb73173fd8326b90b0",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 852,
+      "data_path": "data/export/generic_command_state_jsonl_v0/semantic_preservation_receipt.json",
+      "file_sha256": "e4fed0c1a21b66191696ea181f9f458fa9a651081f7780301fe2e7cb679df58c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 227,
+      "data_path": "data/export/generic_command_state_jsonl_v0/split_manifest.json",
+      "file_sha256": "bb781169817dc7d152b876b576dd119d4c92264c699b5f5cca0e7f9825729a53",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 297,
+      "data_path": "data/export/generic_command_state_jsonl_v0/trainer_smoke_report.json",
+      "file_sha256": "afad9bc83f3c5eabf67f73386199becd68d6658e7f5ea7ee5bcde21d6c4c7dc6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 8464,
+      "data_path": "data/export/ros2_channel_bundle_jsonl_v0/dataset.hdf5",
+      "file_sha256": "ec33aa1323be93b1717cd17c8a834c00c95ed3cf2a3bbee9d7b98925de229ab4",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 622,
+      "data_path": "data/export/ros2_channel_bundle_jsonl_v0/hdf5_inspection_report.json",
+      "file_sha256": "e5972f234b95622563987c600d4fe7bfdbb7c86ab77b629ab54c3e37b440d85a",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 850,
+      "data_path": "data/export/ros2_channel_bundle_jsonl_v0/semantic_preservation_receipt.json",
+      "file_sha256": "fe6ebf9008b2238fdb0ca4d6161dcb7e5b84de5f61a5019318ad18bdc3224139",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 223,
+      "data_path": "data/export/ros2_channel_bundle_jsonl_v0/split_manifest.json",
+      "file_sha256": "9ff1cee3a9a41ff897ca724fde1976f60ddf1d720aee924e501b084e14f79e0c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 295,
+      "data_path": "data/export/ros2_channel_bundle_jsonl_v0/trainer_smoke_report.json",
+      "file_sha256": "9a1c3b9fe77d191adbec81b8783f63182f5690feb44d267fe3ee7ed3d6d00c2e",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 8464,
+      "data_path": "data/export/ur_rtde_csv_v0/dataset.hdf5",
+      "file_sha256": "57bd689bc055b118278a23de1c95fca182ff772098a73b6ffbd21ebaff63e2a0",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 608,
+      "data_path": "data/export/ur_rtde_csv_v0/hdf5_inspection_report.json",
+      "file_sha256": "039e829aafaa1e2733e42d0b2498015b1472e08f8093625a8504b1c776238606",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 836,
+      "data_path": "data/export/ur_rtde_csv_v0/semantic_preservation_receipt.json",
+      "file_sha256": "ffa762622a3d1353980dcab317771454a56cd5e7f73548c5c9e9e18fa5a6857e",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 195,
+      "data_path": "data/export/ur_rtde_csv_v0/split_manifest.json",
+      "file_sha256": "ce742194e9f3b3264adbe8477a3819a9a059116598993b8ede25b37711af7dcd",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 281,
+      "data_path": "data/export/ur_rtde_csv_v0/trainer_smoke_report.json",
+      "file_sha256": "afb06c5550c8f8eb96376227b2f01f25bfa6e2539019b39d2cdfb515411437f3",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 56887,
+      "data_path": "data/ingest_results/corruption_matrix_results.json",
+      "file_sha256": "77953a28612b94f8725351b330dfc5f77d5a9ccc4c11da5f8cd2e7b40c253906",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4604,
+      "data_path": "data/ingest_results/golden_results.json",
+      "file_sha256": "e5035d195dc62b73e90783c29b6c42e3959d3acea2070a5c815709fe472740f0",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 884,
+      "data_path": "data/ingest_results/rejection_reason_coverage.json",
+      "file_sha256": "0d941d47f1cb802a396fc945f624b13a7af9da91afdd674bba3b496f86b6587e",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 850,
+      "data_path": "data/non_claims_attestation.json",
+      "file_sha256": "cd78d54ee1eb1619e1f093f7d78d88f5e0f845279198bb317b9988077c4356b5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4629,
+      "data_path": "data/normalized_contracts/franka_state_jsonl_v0_normalized_contract.json",
+      "file_sha256": "a08604e6fe5e8e22a5d698905352e8d308dc381d74c47f12fb52509c65e745e9",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4220,
+      "data_path": "data/normalized_contracts/generic_command_state_jsonl_v0_normalized_contract.json",
+      "file_sha256": "0226ba28e668d43cd81b8c874c57540eabcaf74d356ea1b6634bf884f7efeb66",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4237,
+      "data_path": "data/normalized_contracts/ros2_channel_bundle_jsonl_v0_normalized_contract.json",
+      "file_sha256": "e5773ceb0661f7e8140071cbc33a0e1b69044e89c2b385a4e1959f5709d64e91",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4190,
+      "data_path": "data/normalized_contracts/ur_rtde_csv_v0_normalized_contract.json",
+      "file_sha256": "6063daf9355ae0d04a58883d0fdb10e59d72bddb0d07789dffa01ceccda2d40b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2852,
+      "data_path": "data/profile_registry.json",
+      "file_sha256": "f294e1a99967fecc3481391c57581f5b74c13e5aa3d815cd8686a1bd2ca183ca",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1606,
+      "data_path": "data/reports/buyer_report.html",
+      "file_sha256": "f3f3029c6857b5b7df405ae00f879de771a8c448c2cf0526d1264b87495f13e0",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/action_semantics_missing/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2304,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/action_semantics_missing/franka_state.jsonl",
+      "file_sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1669,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/action_semantics_missing/metadata.json",
+      "file_sha256": "8ef9dc9506f9f945fd05d4ae751844db933300d28391b874b20a71d62ebeb108",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/command_lag_high/franka_command.jsonl",
+      "file_sha256": "64908faffe5244ab672075cf556bed992814bfd10144a5c9c2dd906218e417a2",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2304,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/command_lag_high/franka_state.jsonl",
+      "file_sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1670,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/command_lag_high/metadata.json",
+      "file_sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/external_partner_true/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2304,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/external_partner_true/franka_state.jsonl",
+      "file_sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1669,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/external_partner_true/metadata.json",
+      "file_sha256": "dde6d84af28403a9a0aa2a82f720d8641203103cf78d8820961e9df18ebd75ca",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/generated_false/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2304,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/generated_false/franka_state.jsonl",
+      "file_sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1671,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/generated_false/metadata.json",
+      "file_sha256": "06e31482bf053e837089529837cfb850c94fd17bb9fab2e217fc797b165271f7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2304,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/missing_command_file/franka_state.jsonl",
+      "file_sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1670,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/missing_command_file/metadata.json",
+      "file_sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/missing_o_t_ee/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2224,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/missing_o_t_ee/franka_state.jsonl",
+      "file_sha256": "5be7e1a84d41338b599061f1c94af72fc0f871c167f2876dd7b1f9ca46bfe09e",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1670,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/missing_o_t_ee/metadata.json",
+      "file_sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/nonfinite_q/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2255,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/nonfinite_q/franka_state.jsonl",
+      "file_sha256": "67063841ad2287f134f24cff0c5dd55869ef142654501d62626e1baf51f2987e",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1670,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/nonfinite_q/metadata.json",
+      "file_sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/robot_mode_stop/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2312,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/robot_mode_stop/franka_state.jsonl",
+      "file_sha256": "0dad1709de1c64a0fc537f2b22c21619627146c6ed45dc5885e9aebad7d80065",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1670,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/robot_mode_stop/metadata.json",
+      "file_sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/source_kind_external_partner/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2304,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/source_kind_external_partner/franka_state.jsonl",
+      "file_sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1670,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/source_kind_external_partner/metadata.json",
+      "file_sha256": "bf1da4a64f18522a7185ac6d8df5bc3c4e026de247228fc7c8431390c389ba77",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/timestamp_duplicate/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2304,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/timestamp_duplicate/franka_state.jsonl",
+      "file_sha256": "dca1fdb90a1e27d00b860292682807049b4fbbdc3aedc458355f3725323ba4f3",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1670,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/timestamp_duplicate/metadata.json",
+      "file_sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/transform_length_wrong/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2238,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/transform_length_wrong/franka_state.jsonl",
+      "file_sha256": "7cf0cdfdc23cb261a0550d52b55ad3d33e98e639944d6260f16b3f3af79bdcfb",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1670,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/transform_length_wrong/metadata.json",
+      "file_sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/transform_not_rigid/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2265,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/transform_not_rigid/franka_state.jsonl",
+      "file_sha256": "e01737db3b0bc0899654b888c86e2ffca129788472f77a1a13ddb7110c261754",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1670,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/transform_not_rigid/metadata.json",
+      "file_sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/wrong_dof/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2242,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/wrong_dof/franka_state.jsonl",
+      "file_sha256": "6ccc06471ee1f8c0a1f7e51b1459a9b0136bcf43df38b646ceb029b949520cf1",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1670,
+      "data_path": "data/source_drops/corrupt/franka_state_jsonl_v0/wrong_dof/metadata.json",
+      "file_sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3906,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/action_dim_wrong/command_state.jsonl",
+      "file_sha256": "1222e35b3d2978d31e3183dba61d4ed6d833814e44b085c80c32db94fc38dab5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/action_dim_wrong/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3959,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/fabricated_task_success/command_state.jsonl",
+      "file_sha256": "2a4cf3fa2d0ce38d26e1293edabf50d9f4e1317e21811603bda5815b71b20c9c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/fabricated_task_success/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3958,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/future_state_as_action/command_state.jsonl",
+      "file_sha256": "e6a4b2c397ef464fde9a8645155c42879752c5882868a98ff97d16a10ab9476e",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/future_state_as_action/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3959,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/metadata_units_missing/command_state.jsonl",
+      "file_sha256": "99e79995ea48a362cdf774a390aad9bed3959db665b08ae1764b04463e3dceec",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1536,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/metadata_units_missing/metadata.json",
+      "file_sha256": "d8d99d624b82bed0bac6a9f51ba5f292c9a1f742ce69c43eeb088fa04dea81fa",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3894,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/missing_command/command_state.jsonl",
+      "file_sha256": "0817fa8171bb85169bf3577711f003bba710770ca60079ce83f429a196732b7d",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/missing_command/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/missing_command_state_file/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3898,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/missing_state/command_state.jsonl",
+      "file_sha256": "14064521c5142b303e3e6842167d950cb419a3c85b03cc8959e86621fd56c1e3",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/missing_state/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3918,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/nan_state/command_state.jsonl",
+      "file_sha256": "fd1cb9536281a33a2492896b0ea35250fc195f0d91c604681251779c3c1e0531",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/nan_state/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3958,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/reset_boundary/command_state.jsonl",
+      "file_sha256": "8a098a0ed06b950e26f50c24939ed7d11c45dde407d734515a69fb8fd262cc1b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/reset_boundary/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3959,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/source_owner_placeholder/command_state.jsonl",
+      "file_sha256": "99e79995ea48a362cdf774a390aad9bed3959db665b08ae1764b04463e3dceec",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1681,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/source_owner_placeholder/metadata.json",
+      "file_sha256": "c3c4cb2d14b7b622f6f12a16d39f1dcf2652d27190583dfd62dd847d3c0320e7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3906,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/state_dim_wrong/command_state.jsonl",
+      "file_sha256": "770cd2153339e2faab572d99fe3a9939e7e5817b28471de9e8e2ac287b0557a8",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/state_dim_wrong/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3958,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/timestamp_gap_large/command_state.jsonl",
+      "file_sha256": "c9ce0a5fa48eae6009505de79a363cef35044f87d97f8a820c7c3fb716f665c3",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/timestamp_gap_large/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3948,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/wrong_action_semantics/command_state.jsonl",
+      "file_sha256": "e113d2139d4ba6859d1ee6c17750dc11c86db52afba54e54f9fc22948a3ad469",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/corrupt/generic_command_state_jsonl_v0/wrong_action_semantics/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/base_frame_drift/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/base_frame_drift/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1412,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/base_frame_drift/topics/command.jsonl",
+      "file_sha256": "872774cab900589f4672f62d3cf514f65933f3c91a36a526a7360284dde20e69",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2694,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/base_frame_drift/topics/joint_states.jsonl",
+      "file_sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/base_frame_drift/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/base_frame_drift/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/command_state_lag_high/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/command_state_lag_high/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/command_state_lag_high/topics/command.jsonl",
+      "file_sha256": "4c5706183acff0cbdc1d9743e9d8ad5a15a3a7c176fe5af780c7c444a0fab7bf",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2694,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/command_state_lag_high/topics/joint_states.jsonl",
+      "file_sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/command_state_lag_high/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/command_state_lag_high/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/frame_id_missing/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/frame_id_missing/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/frame_id_missing/topics/command.jsonl",
+      "file_sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2671,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/frame_id_missing/topics/joint_states.jsonl",
+      "file_sha256": "229604a7dfe486e57c9a27f5b9e251fb05997ed932b4d38a025cf831e69ac85e",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/frame_id_missing/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/frame_id_missing/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_dim_wrong/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_dim_wrong/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_dim_wrong/topics/command.jsonl",
+      "file_sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2643,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_dim_wrong/topics/joint_states.jsonl",
+      "file_sha256": "f1b5d8d1fbcd4e64ca24dd76f71d5945131ece2329068986c4269f47d213bdb0",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_dim_wrong/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_dim_wrong/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_names_wrong/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_names_wrong/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_names_wrong/topics/command.jsonl",
+      "file_sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2597,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_names_wrong/topics/joint_states.jsonl",
+      "file_sha256": "fc0861182f4a1e55e07ab716d3b5abf073450e1fde821d7481356f7292db8956",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_names_wrong/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/joint_names_wrong/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_command_topic/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_command_topic/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2694,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_command_topic/topics/joint_states.jsonl",
+      "file_sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_command_topic/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_command_topic/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_joint_states/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_joint_states/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_joint_states/topics/command.jsonl",
+      "file_sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_joint_states/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_joint_states/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_tf_static/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_tf_static/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_tf_static/topics/command.jsonl",
+      "file_sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2694,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_tf_static/topics/joint_states.jsonl",
+      "file_sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/missing_tf_static/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tcp_rotation_wrong_unit/metadata.json",
+      "file_sha256": "32eeaa9015e093267076b390ae5a2c539da6406006a440f6e1ac08590ce8106c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tcp_rotation_wrong_unit/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tcp_rotation_wrong_unit/topics/command.jsonl",
+      "file_sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2694,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tcp_rotation_wrong_unit/topics/joint_states.jsonl",
+      "file_sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tcp_rotation_wrong_unit/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tcp_rotation_wrong_unit/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tf_parent_cycle/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tf_parent_cycle/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tf_parent_cycle/topics/command.jsonl",
+      "file_sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2694,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tf_parent_cycle/topics/joint_states.jsonl",
+      "file_sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1700,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tf_parent_cycle/topics/tf.jsonl",
+      "file_sha256": "e291ce97224353d8a753788b2ff9fc4ed05f8ff06f05dc287203b5541b200eb9",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/tf_parent_cycle/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/timestamp_non_monotonic/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/timestamp_non_monotonic/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/timestamp_non_monotonic/topics/command.jsonl",
+      "file_sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2694,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/timestamp_non_monotonic/topics/joint_states.jsonl",
+      "file_sha256": "21c4552cb4d70d75537238f086a7c919c99c144475ead52411483ef1f46fd8bd",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/timestamp_non_monotonic/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/timestamp_non_monotonic/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/topic_skew_high/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/topic_skew_high/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/topic_skew_high/topics/command.jsonl",
+      "file_sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2694,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/topic_skew_high/topics/joint_states.jsonl",
+      "file_sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/topic_skew_high/topics/tf.jsonl",
+      "file_sha256": "24b66298d357b6401d0212cbd1a9cdf6812bfdb6b48f34fbc7b5013c7effa3e1",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/topic_skew_high/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1742,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/wrong_robot_model/metadata.json",
+      "file_sha256": "b482ebff311bc6900e7b1cb38cf2d02c05d82b9a49598c314bda1322f5c2f314",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/wrong_robot_model/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/wrong_robot_model/topics/command.jsonl",
+      "file_sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2694,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/wrong_robot_model/topics/joint_states.jsonl",
+      "file_sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/wrong_robot_model/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/corrupt/ros2_channel_bundle_jsonl_v0/wrong_robot_model/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1668,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/degrees_unit/metadata.json",
+      "file_sha256": "066953ec675afce44004eeb96dd70645db70c346a4e7151d61cb3dea964ca47d",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4589,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/degrees_unit/rtde_output.csv",
+      "file_sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1667,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/fabricated_task_success/metadata.json",
+      "file_sha256": "ddf2c093725952d16345a9953c61f54b76658d4801d4ce4b9b3ed1426f5722f7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4589,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/fabricated_task_success/rtde_output.csv",
+      "file_sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1668,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/joint_dim_wrong/metadata.json",
+      "file_sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4542,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/joint_dim_wrong/rtde_output.csv",
+      "file_sha256": "89b1b7cd51e95d35eba215c12b579027e81625cfca93cf835074efd0b745b837",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1668,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/joint_order_swapped/metadata.json",
+      "file_sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4490,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/joint_order_swapped/rtde_output.csv",
+      "file_sha256": "201af79a202fa950590dd67037dff22490a8f303e6486f55767f2942d69c9969",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1668,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/missing_actual_q/metadata.json",
+      "file_sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3884,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/missing_actual_q/rtde_output.csv",
+      "file_sha256": "166b7a521d6af279e28723ae25e26c49ab070c9686dcc2bb4de64693a70d1d78",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4589,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/missing_metadata/rtde_output.csv",
+      "file_sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1668,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/not_running/metadata.json",
+      "file_sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4593,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/not_running/rtde_output.csv",
+      "file_sha256": "16859544ed419eff9feda8beaf67f0ffccf12ed8b6387188ea892f9409d7c930",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1668,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/protective_stop/metadata.json",
+      "file_sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4598,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/protective_stop/rtde_output.csv",
+      "file_sha256": "7bb154a9fd5b798145d6da76e0aba5cf3561534cd26907138226118531c85556",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1668,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/target_actual_lag_high/metadata.json",
+      "file_sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4544,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/target_actual_lag_high/rtde_output.csv",
+      "file_sha256": "bc09421b79c61fd4304e115bc40740b4646143754e78dbddd76c3d782da6d11a",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1669,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/tcp_mm_unit/metadata.json",
+      "file_sha256": "bdff56dc7f28ac95e03dae11c26a7bf7e9af60c742a55d9e95534667aa5014f9",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4589,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/tcp_mm_unit/rtde_output.csv",
+      "file_sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1668,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/timestamp_gap_large/metadata.json",
+      "file_sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4588,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/timestamp_gap_large/rtde_output.csv",
+      "file_sha256": "f1eb4d48ffd7cdc0c28b826d1cf052d6c122440ec84336a0dfcd172839ce4c83",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1668,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/timestamp_non_monotonic/metadata.json",
+      "file_sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4590,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/timestamp_non_monotonic/rtde_output.csv",
+      "file_sha256": "230866f01028189453fd7939eab2063536b840ca9eddab1dd7e7470f2c72c7c7",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1669,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/unknown_profile/metadata.json",
+      "file_sha256": "ca0468171daf4e7ebf6c02ee29e2c374e07c72fa4e73f1ae09cceaa9080aaa37",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4589,
+      "data_path": "data/source_drops/corrupt/ur_rtde_csv_v0/unknown_profile/rtde_output.csv",
+      "file_sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2112,
+      "data_path": "data/source_drops/golden/franka_state_jsonl_v0/franka_command.jsonl",
+      "file_sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2304,
+      "data_path": "data/source_drops/golden/franka_state_jsonl_v0/franka_state.jsonl",
+      "file_sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1670,
+      "data_path": "data/source_drops/golden/franka_state_jsonl_v0/metadata.json",
+      "file_sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 3959,
+      "data_path": "data/source_drops/golden/generic_command_state_jsonl_v0/command_state.jsonl",
+      "file_sha256": "99e79995ea48a362cdf774a390aad9bed3959db665b08ae1764b04463e3dceec",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1682,
+      "data_path": "data/source_drops/golden/generic_command_state_jsonl_v0/metadata.json",
+      "file_sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1745,
+      "data_path": "data/source_drops/golden/ros2_channel_bundle_jsonl_v0/metadata.json",
+      "file_sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 196,
+      "data_path": "data/source_drops/golden/ros2_channel_bundle_jsonl_v0/topic_manifest.json",
+      "file_sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1410,
+      "data_path": "data/source_drops/golden/ros2_channel_bundle_jsonl_v0/topics/command.jsonl",
+      "file_sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 2694,
+      "data_path": "data/source_drops/golden/ros2_channel_bundle_jsonl_v0/topics/joint_states.jsonl",
+      "file_sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1704,
+      "data_path": "data/source_drops/golden/ros2_channel_bundle_jsonl_v0/topics/tf.jsonl",
+      "file_sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 57,
+      "data_path": "data/source_drops/golden/ros2_channel_bundle_jsonl_v0/topics/tf_static.jsonl",
+      "file_sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 1668,
+      "data_path": "data/source_drops/golden/ur_rtde_csv_v0/metadata.json",
+      "file_sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c",
+      "hash_convention": "file_bytes"
+    },
+    {
+      "byte_size": 4589,
+      "data_path": "data/source_drops/golden/ur_rtde_csv_v0/rtde_output.csv",
+      "file_sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633",
+      "hash_convention": "file_bytes"
+    }
+  ],
+  "external_data_evaluated": false,
+  "external_partner_data": false,
+  "file_drop_rehearsal_contract_ready": true,
+  "file_drop_rehearsal_ready": false,
+  "generated_by_rdf_sim": true,
+  "non_claims": {
+    "deployable_policy_readiness": false,
+    "external_partner_data": false,
+    "external_partner_data_evaluated": false,
+    "general_robot_intelligence": false,
+    "generic_file_drop_support": false,
+    "generic_robot_log_parser": false,
+    "hardware_integration": false,
+    "hardware_readiness": false,
+    "learning_proven_value": false,
+    "live_franka_hardware_support": false,
+    "live_ros2_dds_bridge_readiness": false,
+    "live_ur_rtde_support": false,
+    "marketplace_readiness": false,
+    "native_mcap_parser_support": false,
+    "physical_robot_readiness": false,
+    "policy_uplift": false,
+    "production_certification": false,
+    "real_robot_success": false,
+    "sim_to_real_proven": false,
+    "visual_policy_performance": false
+  },
+  "package_name": "mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package",
+  "package_status": "file_drop_rehearsal_contract_ready",
+  "schema_version": "rdf_mvp5a_pre_file_drop_rehearsal_package_v0.1.0",
+  "verdict_source_of_truth": "data/",
+  "verifier": "scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py"
+}

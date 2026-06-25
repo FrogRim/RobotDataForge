@@ -2099,3 +2099,126 @@ production certification
 sim-to-real proof
 general robot intelligence
 ```
+
+## MVP-5A-pre Digital Twin File-Drop Chaos Rehearsal Package Schema
+
+`docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/`는
+실제 partner file-drop 전의 digital-twin/generated recorded-log chaos
+rehearsal package다. source of truth는 `data/` 아래 포함 evidence이며,
+`package_manifest.json`, `data/config.json`, `buyer_report.html`은 verifier가
+재계산해야 하는 index/summary/report artifact다.
+
+Package status:
+
+```text
+file_drop_rehearsal_contract_ready
+file_drop_rehearsal_ready
+```
+
+현재 fixture-only package는 다음 상태다.
+
+```text
+status=file_drop_rehearsal_contract_ready
+file_drop_rehearsal_ready=false
+blocked_reason=runtime_capture_not_supplied
+```
+
+`file_drop_rehearsal_ready=true`는 v0 package에서 의도적으로 열리지 않는다.
+`runtime_capture.json`이 supplied되고 `MIN_CANONICAL_FRAMES=12` 이상이며 각 frame이
+UR commanded/actual joints, UR TCP pose/speed, Franka commanded/actual state,
+Franka EEF transform, generic command/state, phase, robot mode, safety status를
+모두 포함하더라도, 그 JSON은 self-attested payload일 수 있다. 따라서
+verifier-owned raw runtime evidence contract가 별도 구현되기 전까지는
+`runtime_capture_structurally_valid=true`까지만 기록하고
+`runtime_capture_sufficient=false`,
+`blocked_reason=runtime_capture_unverified_source_process`로 contract-ready에
+머문다. builder가 deterministic fixture를 runtime-backed로 덮어써 승격하면
+안 된다. Known deterministic fixture frame content digest와 동일한 trace는
+`source_kind`와 `runtime_backed`를 relabel해도 ready evidence가 아니며
+contract-ready에 머문다. timestamp-only capture, row-count-only capture,
+provenance 없는 capture도 contract-ready에 머문다.
+
+필수 profile:
+
+```text
+ur_rtde_csv_v0
+franka_state_jsonl_v0
+ros2_channel_bundle_jsonl_v0
+generic_command_state_jsonl_v0
+```
+
+Package layout:
+
+```text
+data/config.json
+data/profile_registry.json
+data/non_claims_attestation.json
+data/artifact_index.json
+data/canonical_trace/
+  canonical_trace.json
+  runtime_capture.json   # runtime capture가 supplied된 경우에만 존재
+  runtime_capture_preflight.json
+  runtime_capture_hash_receipt.json
+data/source_drops/
+  golden/<profile_id>/
+  corrupt/<profile_id>/<mutation_id>/
+data/normalized_contracts/
+data/export/<profile_id>/
+  dataset.hdf5
+  split_manifest.json
+  hdf5_inspection_report.json
+  trainer_smoke_report.json
+  semantic_preservation_receipt.json
+data/ingest_results/
+  golden_results.json
+  corruption_matrix_results.json
+  rejection_reason_coverage.json
+data/reports/buyer_report.html
+```
+
+검증 원칙:
+
+```text
+golden source drops는 profile parser/semantic gate로 재계산한다.
+golden source drops는 `canonical_trace.json`에서 profile별 deterministic
+projection으로 재유도한 normalized rows와 일치해야 한다.
+profile_registry는 verifier-owned exact contract이며 schema_version,
+profile_count, robot family/model, source_file_names, action/state semantics까지
+일치해야 한다.
+corrupt source drops는 expected rejection reason으로 fail-closed되어야 한다.
+HDF5 export는 source drop에서 재계산한 rows 기준으로 state/action/timestamp
+hash와 deep payload check를 묶는다. HDF5가 포함된 MVP-5A-pre package는
+`--deep-hdf5` 없이 final `VERDICT: VERIFIED`를 내면 안 되며, default mode는
+`hdf5 payload verification requires --deep-hdf5`로 fail-closed되어야 한다.
+buyer report와 README는 positive forbidden claim scan 대상이다.
+artifact path는 data/ 상대 경로만 허용하고 symlink escape를 금지한다.
+`file_drop_rehearsal_ready=true`는 현재 verifier에서 항상 fail-closed다. 향후
+ready path를 열려면 included `runtime_capture.json`의 `mvp5a_canonical_trace`
+뿐 아니라 verifier-owned raw runtime evidence를 함께 정의하고, package
+`canonical_trace.json`이 그 raw evidence에서 재계산되어야 한다.
+```
+
+금지 claim:
+
+```text
+external_partner_data_evaluated
+external_partner_data
+real_robot_success
+physical_robot_readiness
+hardware_integration
+hardware_readiness
+live_ur_rtde_support
+live_franka_hardware_support
+live_ros2_dds_bridge_readiness
+native_mcap_parser_support
+generic_file_drop_support
+generic_robot_log_parser
+policy_uplift
+learning_proven_value
+visual_policy_performance
+deployable_policy_readiness
+production_certification
+marketplace_readiness
+sim_to_real_proven
+general_robot_intelligence
+```

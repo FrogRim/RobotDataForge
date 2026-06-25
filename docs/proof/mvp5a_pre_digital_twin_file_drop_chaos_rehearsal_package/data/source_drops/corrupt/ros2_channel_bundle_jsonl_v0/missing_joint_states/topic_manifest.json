@@ -1,0 +1,10 @@
+{
+  "schema_version": "rdf_mvp5a_pre_ros2_channel_manifest_v0.1.0",
+  "serialization": "jsonl_channel_bundle",
+  "topics": [
+    "/joint_states",
+    "/tf",
+    "/tf_static",
+    "/command"
+  ]
+}

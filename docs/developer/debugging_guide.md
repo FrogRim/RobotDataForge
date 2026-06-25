@@ -5212,3 +5212,131 @@ missing dataset.hdf5 in git status:
 이 package는 policy uplift, real robot readiness, live hardware/runtime readiness,
 partner file-drop evaluation, 또는 full Croissant compliance를 증명하지 않는다.
 ```
+
+## MVP-5A-pre Digital Twin File-Drop Chaos Rehearsal verification
+
+MVP-5A-pre는 실제 partner file-drop 전의 digital-twin/generated recorded-log
+chaos rehearsal이다. 정상/손상 file-drop을 넓게 깨보는 것이 목적이며,
+fixture-only package는 `file_drop_rehearsal_contract_ready`까지만 닫는다.
+
+생성 대상:
+
+```text
+docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/
+```
+
+재생성:
+
+```bash
+uv run python scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py --fixture-only --clean --pretty
+```
+
+필수 검증:
+
+```bash
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py \
+  docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json \
+  --allow-contract-ready \
+  --deep-hdf5
+```
+
+의도된 fail-closed 검증:
+
+```bash
+python3 scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py \
+  docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json
+
+python3 scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py \
+  docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json \
+  --allow-contract-ready
+```
+
+`--allow-contract-ready` 없이 실행하면
+`contract-ready package requires --allow-contract-ready`로 실패해야 한다. 이건
+fixture-only evidence가 `file_drop_rehearsal_ready=true`로 승격되는 것을 막는
+정상 동작이다.
+
+`--deep-hdf5` 없이 실행하면 `hdf5 payload verification requires --deep-hdf5`로
+실패해야 한다. MVP-5A-pre package는 HDF5 payload를 포함하므로, final
+`VERDICT: VERIFIED`는 sidecar hash만이 아니라 HDF5 payload inspection까지
+수행한 mode에서만 허용한다.
+
+실패 해석:
+
+```text
+golden recomputation failed:
+  정상 file-drop source가 profile parser/semantic gate를 통과하지 못함.
+
+corrupt case silently passed:
+  손상 file-drop이 fail-closed되지 않음. 해당 mutation의 expected rejection
+  reason을 확인한다.
+
+hdf5 inspection sha256 mismatch:
+  HDF5 bytes가 inspection report와 불일치. hash-refresh tamper 또는 stale
+  export를 의심한다.
+
+deep hdf5 states/actions/timestamps mismatch:
+  HDF5 payload가 source drop에서 재계산한 row와 semantic drift를 일으킴.
+  normalized contract나 receipt를 같이 고쳐도 source evidence와 불일치하면
+  verifier가 실패해야 한다.
+
+file_drop_rehearsal_ready requires verifier-owned runtime evidence contract:
+  v0 verifier는 `file_drop_rehearsal_ready=true`를 의도적으로 fail-closed한다.
+  `runtime_capture.json`이 있어도 그 JSON만으로는 실제 Isaac Sim process에서
+  온 raw runtime evidence인지 독립 검증할 수 없다. 별도 verifier-owned raw
+  runtime evidence contract가 생기기 전까지는 contract-ready가 최대 상태다.
+
+ready status requires data/canonical_trace/runtime_capture.json:
+  `file_drop_rehearsal_ready=true`를 주장했지만 package 안에 runtime capture가
+  없음. 이 오류가 없더라도 v0에서는 위의 verifier-owned runtime evidence
+  contract 오류가 함께 발생해야 한다.
+
+ready runtime_capture canonical schema invalid:
+  runtime capture가 `mvp5a_canonical_trace.frames`를 포함하더라도 timestamp만
+  있거나 commanded/actual joints, TCP pose, Franka EEF, robot mode, safety
+  status, task phase가 빠져 있으면 ready 상태로 승격할 수 없다.
+
+ready runtime_capture provenance invalid:
+  원본 `runtime_capture.json` payload가 Isaac Sim runtime provenance를 충분히
+  담지 않는다. `runtime_backend=isaac_sim`, expected capture script id,
+  capture command, Isaac/runtime version, source process receipt, 그리고
+  capture 내부 canonical trace의 `source_kind=isaac_sim_runtime_backed_canonical_trace`,
+  `runtime_backed=true`가 필요하다. builder/verifier가 deterministic fixture를
+  runtime-backed로 덮어써 승격하면 안 된다. 단, 이 provenance가 모두 있더라도
+  v0에서는 self-attested JSON으로만 취급하며 ready 상태를 열지 않는다.
+
+ready runtime_capture provenance invalid: runtime_capture_matches_deterministic_fixture:
+  runtime capture payload의 frame content가 known deterministic fixture와 동일하다.
+  `trace_id`, `source_kind`, `runtime_backed`, provenance 문자열만 바꾼 relabel은
+  runtime-backed evidence가 아니므로 contract-ready에 머물러야 한다.
+
+golden source rows do not match canonical projection:
+  source drop, normalized contract, HDF5, receipt를 모두 hash-refresh해도
+  `canonical_trace.json`에서 profile별로 재유도한 rows와 다르면 verifier가
+  실패한다. canonical trace와 source projection drift를 의심한다.
+
+profile registry contract mismatch:
+  profile ID만 맞고 source file list, robot family/model, action/state
+  semantics, dof/joint_names, live/external claim boundary가 drift된 경우다.
+  registry는 verifier-owned exact contract로 취급한다.
+
+profile registry profile_id order/exactness mismatch / duplicate profile_id:
+  `profiles` 배열이 required profile 4개를 정확히 한 번씩 담지 않는다. profile
+  registry는 `required_profile_ids` 문자열만 믿지 않고 실제 profile row set을
+  검사한다.
+
+forbidden positive claim phrase:
+  buyer report/README/string value에 non-negated forbidden claim이 들어감.
+
+symlink escapes package:
+  artifact index의 `data/...` 경로가 symlink로 package 밖을 가리킴.
+```
+
+중요한 경계:
+
+```text
+이 package는 external_partner_data_evaluated가 아니다.
+이 package는 real robot log evaluation이 아니다.
+이 package는 live UR/RTDE, live Franka, live ROS2-DDS bridge support가 아니다.
+이 package는 policy uplift나 production readiness를 증명하지 않는다.
+```

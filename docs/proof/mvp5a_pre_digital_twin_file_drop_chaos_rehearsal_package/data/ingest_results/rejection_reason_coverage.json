@@ -1,0 +1,35 @@
+{
+  "corrupt_case_count": 52,
+  "covered_categories": [
+    "claim",
+    "frame",
+    "provenance",
+    "safety",
+    "schema",
+    "semantics",
+    "shape",
+    "timestamp",
+    "unit"
+  ],
+  "expected_rejection_reason_misses": [],
+  "observed_rejection_reasons": [
+    "action_state_semantic_mismatch",
+    "claim_boundary_violation",
+    "frame_semantic_drift",
+    "frame_tree_invalid",
+    "provenance_boundary_violation",
+    "safety_or_robot_mode_invalid",
+    "schema_missing_required_artifact",
+    "schema_missing_required_field",
+    "schema_type_mismatch",
+    "timestamp_gap_or_drift",
+    "timestamp_not_monotonic",
+    "unit_mismatch",
+    "unsupported_profile",
+    "vector_dimension_mismatch"
+  ],
+  "schema_version": "rdf_mvp5a_pre_rejection_reason_coverage_v0.1.0",
+  "silent_pass_rate": 0.0,
+  "silent_passes": [],
+  "structured_rejection_reason_coverage": true
+}
