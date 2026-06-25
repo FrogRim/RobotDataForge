@@ -3234,3 +3234,99 @@ compileall_touched_files=passed
   - [x] Review blocker fixed: regeneration comparator digest map passes mypy.
   - [x] Independent code-reviewer re-review: APPROVE.
   - [x] Independent architect re-review: CLEAR.
+
+## 2026-06-25 - MVP-5A-pre Digital Twin File-Drop Chaos Rehearsal
+
+- [x] Create feature branch:
+  `codex/mvp5a-pre-file-drop-chaos-rehearsal`.
+- [x] Read handoff/project instructions and relevant current proof surfaces.
+- [x] Run brainstorming over implementation direction.
+- [x] Select Option B:
+  digital-twin multi-profile chaos rehearsal.
+- [x] Write spec:
+  `docs/superpowers/specs/2026-06-25-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal-design.md`.
+- [x] Require 4 v0 file-drop profiles:
+  `ur_rtde_csv_v0`, `franka_state_jsonl_v0`,
+  `ros2_channel_bundle_jsonl_v0`, `generic_command_state_jsonl_v0`.
+- [x] Require at least 50 corrupt cases and zero silent pass for defined
+  mutations.
+- [x] Require verifier-owned raw runtime evidence contract before
+  `file_drop_rehearsal_ready=true`; runtime-shaped JSON alone remains
+  contract-ready.
+- [x] User/spec review.
+- [x] Run `$ralplan --deliberate` for implementation/test plan.
+  - [x] PRD:
+    `.omx/plans/prd-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md`
+  - [x] Test spec:
+    `.omx/plans/test-spec-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md`
+  - [x] Ralplan:
+    `.omx/plans/ralplan-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md`
+  - [x] Architect iteration 1: ITERATE.
+  - [x] Architect blocker fixes:
+    runtime preflight first, profile hard gates, JSONL claim scan,
+    verifier independence, semantic-preservation receipt.
+  - [x] Architect iteration 2: APPROVE for Critic.
+  - [x] Critic iteration 1: APPROVE.
+  - [x] Consensus handoff:
+    `.omx/plans/ralplan-consensus-mvp5a-pre-digital-twin-file-drop-chaos-rehearsal.md`.
+- [x] Execute approved plan with `$ultragoal`.
+  - [x] G001: status tiers, runtime preflight, verifier evidence contract.
+  - [x] G002: profile contracts/parsers and profile-level mutation tests.
+  - [x] G003: golden ingest path, normalization, HDF5 export, trainer smoke.
+  - [x] G004: 52-case corruption matrix and expected rejection reasons.
+  - [x] G005: TrustPack package, buyer report, artifact index, non-claims.
+  - [x] G006: independent verifier recomputation and tamper tests.
+  - [x] G007: broad pytest hardening and frozen verifier regressions.
+  - [x] G008: final gate reached, independent review found blockers; durable
+    blocker story created instead of completing the aggregate goal.
+  - [x] G009 blocker fixes implemented locally:
+    ready status requires included runtime capture, source rows bind contract/
+    HDF5/export receipts, HDF5 timestamps are deep-checked, clean guard uses
+    path containment, spec file contracts align with shipped v0.
+  - [x] G009 second review blockers implemented locally:
+    runtime capture frame schema required for ready, golden sources bind back to
+    canonical trace projection, profile registry exact contract enforced, and
+    spec stale verifier/runtime/report references removed.
+  - [x] G009 type gate blocker fixed:
+    `mypy` and `pyright` pass on touched MVP-5A-pre producer/verifier/tests.
+  - [x] G009 final review blocker fixes implemented:
+    manifest-only ready claim fails, relabeled deterministic fixture-in-runtime-
+    capture fails by frame digest, duplicate/missing profile registry fails, and HDF5 package final
+    verification requires `--deep-hdf5`; source-to-canonical binding now covers
+    UR TCP pose/speed, Franka EEF, and ROS2 `/tf` native fields.
+  - [x] G009 final verification rerun:
+    focused MVP-5A-pre package/verifier tests 117 passed, MVP-5A-pre regression
+    190 passed, full suite 1200 passed / 6 skipped, verifier with
+    `--allow-contract-ready --deep-hdf5` VERIFIED, verifier with
+    `--allow-contract-ready` only fail-closed, frozen verifiers VERIFIED,
+    mypy/pyright/compileall/ruff/diff-check passed.
+  - [x] G009 runtime schema exactness blocker fixed:
+    relabeled deterministic fixture with ignored top-level/nested runtime fields
+    now stays contract-ready and cannot mint ready after hash refresh; producer
+    and verifier enforce exact runtime frame key sets plus required projection
+    fixture digest.
+  - [x] G009 ready tier self-attestation blocker fixed:
+    runtime-shaped JSON, including fixture-derived traces with small deltas and
+    self-declared Isaac provenance, remains contract-ready; tampered ready
+    status fails with verifier-owned runtime evidence contract requirement.
+  - [x] G009 package self-containment and claim-set blockers fixed:
+    MVP-5A-pre HDF5 exports are no longer ignored, widened non-claim set is
+    aligned across spec/service/verifier/package/docs, and runner help now
+    states runtime-shaped capture is diagnostics-only in v0.
+  - [x] G009 positive prose claim scanner blocker fixed:
+    verifier derives positive phrase coverage from every forbidden claim key
+    plus aliases, and parametrized tamper tests inject every phrase into
+    README, HTML buyer report, and JSON string values after hash refresh.
+  - [x] G009 stale planning overclaim wording fixed:
+    docs and handoff no longer describe the v0 package as `Isaac-Sim-backed`;
+    regression test plus `rg` check keep the slice framed as deterministic/
+    generated digital-twin contract-ready evidence.
+  - [x] G009 deep-HDF5 sub-tolerance drift blocker fixed:
+    verifier now uses exact array equality and actual HDF5 payload hashes, and
+    regression test mutates HDF5 below NumPy tolerance after hash refresh.
+  - [x] G009 final gate complete:
+    ai-slop-cleaner PASS, independent code-reviewer APPROVE, architect CLEAR,
+    UltraQA PASS, quality gate JSON written, Codex goal marked complete,
+    G009 ultragoal checkpoint complete. `omx ultragoal status` now reports
+    artifact goals complete; G008 remains historical `review_blocked` and G009
+    is the completed blocker-resolution story.
