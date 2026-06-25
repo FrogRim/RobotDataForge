@@ -1,5 +1,66 @@
 # ForgeXR / RDF Data Trust Layer Reset - 2026-06-04
 
+## Current MVP-5A Runtime Evidence Contract - 2026-06-25 KST
+
+Goal: `file_drop_rehearsal_ready=true`를 runtime-shaped JSON이 아니라
+verifier-owned L2 raw runtime event evidence로만 열 수 있게 한다.
+
+Current status:
+
+```text
+branch=codex/mvp5a-runtime-evidence-contract
+spec=docs/superpowers/specs/2026-06-25-mvp5a-verifier-owned-raw-runtime-evidence-contract-design.md
+prd=.omx/plans/prd-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+test_spec=.omx/plans/test-spec-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+ralplan=.omx/plans/ralplan-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+implementation_status=G001_G006_complete_quality_gate_clean_pending_commit
+checked_in_package_status=file_drop_rehearsal_contract_ready
+checked_in_file_drop_rehearsal_ready=false
+```
+
+Checklist:
+
+- [x] Read handoff and project instructions before architecture/spec work.
+- [x] Confirm existing MVP-5A-pre package is contract-ready only and ready is blocked.
+- [x] Identify current blocker: runtime-shaped JSON cannot be closing evidence.
+- [x] Define L0/L1/L2/L3 runtime evidence levels.
+- [x] Specify L2 `runtime_event_log.jsonl` schema and required channels.
+- [x] Specify verifier reconstruction algorithm and ready criteria.
+- [x] Specify tamper matrix and non-claim boundary.
+- [x] Write deliberate implementation plan.
+- [x] Add verifier reconstruction tests before implementation.
+- [x] Implement optional producer runtime evidence artifacts:
+      `runtime_event_log.jsonl`, `runtime_event_manifest.json`,
+      `runtime_reconstruction_receipt.json`.
+- [x] Implement verifier L2 runtime event parser, manifest/receipt checks,
+      global invariants, channel semantic checks, and canonical reconstruction.
+- [x] Replace the old unconditional ready blocker with L2 evidence checks.
+- [x] Keep runtime-capture-only packages non-closing.
+- [x] Enforce reconstructed canonical trace through source projection,
+      normalized contracts, HDF5/deep payload, export receipts, and trainer smoke.
+- [x] Decide this slice remains contract-first for the checked-in package:
+      shipped evidence stays `file_drop_rehearsal_contract_ready`.
+- [x] Finish G006 final docs/regression/review gate.
+  - [x] Full suite: `1222 passed, 6 skipped`.
+  - [x] Post-cleaner focused suite: `212 passed`.
+  - [x] Checked-in package verifier: `VERDICT: VERIFIED`,
+        `file_drop_rehearsal_ready=false`.
+  - [x] `uvx ruff check` touched files: pass.
+  - [x] `compileall`: pass.
+  - [x] `git diff --check`: pass.
+  - [x] `ai-slop-cleaner`: pass/no-op on changed code scope.
+  - [x] independent code-reviewer: APPROVE.
+  - [x] independent architect: CLEAR.
+  - [x] quality gate JSON:
+        `.omx/reports/quality-gate-mvp5a-verifier-owned-runtime-evidence-contract.json`.
+
+Claim boundary:
+
+- [x] L2 can support digital-twin rehearsal ready only after verifier recomputation.
+- [x] L2 does not prove external partner data evaluation.
+- [x] L2 does not prove real robot success, hardware readiness, live UR/Franka/ROS2
+      support, policy uplift, or production readiness.
+
 ## Current LeRobot Public Dataset Matrix Semantic Parity - 2026-06-24 KST
 
 Goal: ALOHA 단일 public audited slice를 2-profile LeRobot public source matrix로

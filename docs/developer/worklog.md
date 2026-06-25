@@ -22039,3 +22039,243 @@ git diff --check
 - `file_drop_rehearsal_ready=true`는 아직 의도적으로 미지원이다. 다음 hardening
   slice는 verifier-owned raw runtime evidence contract 또는 실제 partner file-drop
   intake로 열어야 한다.
+
+## 2026-06-25 - MVP-5A verifier-owned raw runtime evidence contract spec
+
+### 작업 내용
+
+- `codex/mvp5a-runtime-evidence-contract` 브랜치에서
+  verifier-owned raw runtime evidence contract spec을 작성했다.
+- 현재 `file_drop_rehearsal_ready=true` blocker가 runtime-shaped JSON
+  self-attestation 문제임을 재확인했다.
+- L0/L1/L2/L3 evidence level을 분리했다.
+  - L0 deterministic fixture: contract-ready only.
+  - L1 runtime-shaped summary JSON: contract-ready only.
+  - L2 raw runtime event log: ready-status 최소 후보.
+  - L3 process-level provenance: future stronger evidence.
+- L2 package layout, `runtime_event_log.jsonl`, `runtime_event_manifest.json`,
+  `runtime_reconstruction_receipt.json`, required channels, reconstruction
+  algorithm, ready criteria, tamper matrix를 명세했다.
+
+### 판단 이유
+
+- `runtime_capture.json`처럼 이미 `mvp5a_canonical_trace.frames`를 담은
+  payload는 verifier가 origin을 재유도할 수 없어 closing evidence가 아니다.
+- ready를 열려면 verifier가 raw events를 직접 group/validate/reconstruct해서
+  `canonical_trace.json` 및 downstream source/HDF5/trainer artifacts와 대조해야 한다.
+- L2도 genuine Isaac process origin을 암호학적으로 증명하지는 못하므로, claim은
+  digital-twin rehearsal readiness로 제한해야 한다.
+
+### 변경 파일
+
+```text
+docs/superpowers/specs/2026-06-25-mvp5a-verifier-owned-raw-runtime-evidence-contract-design.md
+Handoff.md
+tasks/todo.md
+docs/developer/worklog.md
+```
+
+### 검증
+
+```text
+pending: git diff --check
+```
+
+### 남은 gap 또는 다음 작업
+
+- deliberate implementation plan을 작성해야 한다.
+- 추천 첫 단계는 contract-first다. 즉 verifier reconstruction support와 tamper
+  tests를 먼저 추가하고, 실제 L2 event evidence가 생기기 전에는 기존 package를
+  `file_drop_rehearsal_contract_ready` 상태로 유지한다.
+
+## 2026-06-25 - MVP-5A verifier-owned runtime evidence deliberate plan
+
+### 작업 내용
+
+- spec을 기준으로 deliberate implementation plan을 작성했다.
+- `.omx/context/`, `.omx/plans/prd-*`, `.omx/plans/test-spec-*`,
+  `.omx/plans/ralplan-*` 실행 계획을 추가했다.
+- `docs/superpowers/plans/2026-06-25-mvp5a-verifier-owned-raw-runtime-evidence-contract.md`
+  에 장기 문서용 plan pointer를 추가했다.
+
+### 판단 이유
+
+- 이번 slice는 `file_drop_rehearsal_ready=true`를 성급히 여는 작업이 아니라,
+  runtime-shaped JSON을 거부하고 verifier-owned L2 event reconstruction path를
+  여는 작업이다.
+- 따라서 plan은 contract-first를 기본으로 두고, package-close는 실제 L2 event
+  evidence가 있을 때만 수행하는 optional gate로 분리했다.
+
+### 변경 파일
+
+```text
+.omx/context/mvp5a-runtime-evidence-contract-20260625T005346Z.md
+.omx/plans/prd-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+.omx/plans/test-spec-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+.omx/plans/ralplan-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+docs/superpowers/plans/2026-06-25-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+Handoff.md
+tasks/todo.md
+docs/developer/worklog.md
+```
+
+### 검증
+
+```text
+pending: git diff --check
+```
+
+### 남은 gap 또는 다음 작업
+
+- 다음 실행 권장 명령:
+
+```text
+$ultragoal .omx/plans/ralplan-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+```
+
+- 구현 첫 태스크는 ready positive path와 runtime-capture-only fail path를 TDD로
+  먼저 추가하는 것이다.
+
+## 2026-06-25 - MVP-5A verifier-owned L2 runtime evidence contract 구현
+
+### 작업 내용
+
+- `$ultragoal .omx/plans/ralplan-mvp5a-verifier-owned-raw-runtime-evidence-contract.md`
+  기준으로 G001-G005를 구현했다.
+- `file_drop_rehearsal_ready=true`가 `runtime_capture.json` 같은
+  runtime-shaped summary JSON만으로 열리지 않도록 유지하고, 별도 L2 evidence
+  계약을 추가했다.
+- producer는 선택적으로 다음 artifact를 생성할 수 있다.
+
+```text
+data/runtime_evidence/runtime_event_log.jsonl
+data/runtime_evidence/runtime_event_manifest.json
+data/runtime_evidence/runtime_reconstruction_receipt.json
+```
+
+- verifier는 ready package에서 L2 event log를 직접 읽고 다음을 재계산한다.
+
+```text
+event_index contiguous
+frame_index contiguous
+timestamp finite/monotonic
+required channel set exactly once per frame
+unknown/duplicate channel rejection
+channel-specific units/dimensions/semantics
+canonical trace reconstruction
+source projection / normalized contract / HDF5 / trainer smoke chain
+```
+
+- required channel은 다음 6개로 고정했다.
+
+```text
+phase_marker
+ur_joint_state
+ur_tcp_state
+franka_joint_state
+franka_eef_state
+generic_command_state
+```
+
+- temp-package 테스트에서는 L2 event evidence를 포함한 package가
+  `file_drop_rehearsal_ready=true`를 열 수 있음을 확인했다.
+- checked-in MVP-5A-pre proof package는 의도적으로
+  `file_drop_rehearsal_contract_ready` 상태를 유지한다. 실제 L2 runtime event
+  evidence를 tracked package에 넣지 않았기 때문이다.
+
+### 판단 이유
+
+- 기존 blocker는 `runtime_capture.json`이 canonical trace shape를 이미 담은
+  self-attested derived artifact라는 점이었다.
+- ready를 열려면 verifier가 raw event stream을 group/validate/reconstruct해
+  downstream package chain과 대조해야 한다.
+- L2도 genuine Isaac process origin을 암호학적으로 증명하지는 못하므로 claim은
+  digital-twin rehearsal readiness로 제한한다.
+- 이 slice는 contract-first 구현이며, checked-in package를 ready로 재생성하지
+  않는다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/mvp5a_file_drop_rehearsal.py
+apps/api/tests/test_mvp5a_pre_file_drop_profiles.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+docs/developer/data_schema.md
+docs/developer/debugging_guide.md
+docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/README.md
+Handoff.md
+tasks/todo.md
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_profiles.py
+  -> 67 passed
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 136 passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G006 final gate를 완료했다.
+
+```text
+uv run pytest -q
+  -> 1222 passed, 6 skipped
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 212 passed
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED
+  -> status=file_drop_rehearsal_contract_ready
+  -> file_drop_rehearsal_ready=false
+
+uvx ruff check <touched MVP-5A-pre files>
+  -> All checks passed
+
+uv run python -m compileall <touched MVP-5A-pre Python files>
+  -> passed
+
+git diff --check
+  -> passed
+
+ai-slop-cleaner changed-file pass
+  -> passed/no-op; touched Python scope has no masking fallback slop
+
+independent code-reviewer
+  -> APPROVE
+
+independent architect
+  -> CLEAR
+
+omx ultragoal checkpoint --goal-id G006-docs-regression-and-review-gate-upda --status complete ...
+  -> ultragoal checkpoint: G006-docs-regression-and-review-gate-upda -> complete
+  -> ultragoal artifact goals: complete
+```
+
+- Review follow-up에서 spec example drift가 발견되어 final gate 전에 수정했다.
+  - allowed phase list에 `insert_rehearsal` 추가
+  - UR example을 `RUNNING` / `NORMAL`로 정정
+  - Franka EEF unit key를 `pose_matrix`로 정정
+  - L2 capture script id를
+    `mvp5a_pre_isaac_sim_raw_runtime_event_capture_v0`로 정정
+  - manifest `non_claims` example을 verifier의 exact claim set으로 확장
+- quality gate JSON:
+
+```text
+.omx/reports/quality-gate-mvp5a-verifier-owned-runtime-evidence-contract.json
+.omx/reports/codex-goal-mvp5a-runtime-evidence-contract-complete.json
+```
+
+### 남은 gap 또는 다음 작업
+
+- 현재 작업은 아직 커밋하지 않았다.
+- 다음 단계는 Lore protocol에 맞춘 commit split, push/PR, CI 확인이다.
+- checked-in package는 여전히 `file_drop_rehearsal_contract_ready`다. 실제
+  `file_drop_rehearsal_ready=true` artifact는 future capture-edge
+  `runtime_event_log.jsonl`가 package에 포함될 때 별도 slice에서 생성해야 한다.
