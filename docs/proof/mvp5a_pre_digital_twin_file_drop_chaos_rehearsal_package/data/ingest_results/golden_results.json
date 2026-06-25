@@ -1,0 +1,129 @@
+{
+  "results": [
+    {
+      "case_id": "ur_rtde_csv_v0:golden",
+      "expected_rejection_reason": null,
+      "expected_rejection_reason_observed": null,
+      "export": {
+        "hdf5_path": "data/export/ur_rtde_csv_v0/dataset.hdf5",
+        "hdf5_sha256": "57bd689bc055b118278a23de1c95fca182ff772098a73b6ffbd21ebaff63e2a0",
+        "trainer_smoke_passed": true
+      },
+      "export_eligible": true,
+      "frame_count": 12,
+      "passed": true,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1668,
+          "sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4589,
+          "sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633"
+        }
+      },
+      "trainer_smoke_eligible": true
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:golden",
+      "expected_rejection_reason": null,
+      "expected_rejection_reason_observed": null,
+      "export": {
+        "hdf5_path": "data/export/franka_state_jsonl_v0/dataset.hdf5",
+        "hdf5_sha256": "cfed95b9c564b8d145b823722391dd18197f7812bc0879c4c325178353b354fa",
+        "trainer_smoke_passed": true
+      },
+      "export_eligible": true,
+      "frame_count": 12,
+      "passed": true,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2304,
+          "sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b"
+        },
+        "metadata.json": {
+          "byte_size": 1670,
+          "sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f"
+        }
+      },
+      "trainer_smoke_eligible": true
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:golden",
+      "expected_rejection_reason": null,
+      "expected_rejection_reason_observed": null,
+      "export": {
+        "hdf5_path": "data/export/ros2_channel_bundle_jsonl_v0/dataset.hdf5",
+        "hdf5_sha256": "ec33aa1323be93b1717cd17c8a834c00c95ed3cf2a3bbee9d7b98925de229ab4",
+        "trainer_smoke_passed": true
+      },
+      "export_eligible": true,
+      "frame_count": 12,
+      "passed": true,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2694,
+          "sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": true
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:golden",
+      "expected_rejection_reason": null,
+      "expected_rejection_reason_observed": null,
+      "export": {
+        "hdf5_path": "data/export/generic_command_state_jsonl_v0/dataset.hdf5",
+        "hdf5_sha256": "8f063d5fd20a945585df75f15a71bf22e0dc00cfde1810c00fd4f1fa15af13fa",
+        "trainer_smoke_passed": true
+      },
+      "export_eligible": true,
+      "frame_count": 12,
+      "passed": true,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3959,
+          "sha256": "99e79995ea48a362cdf774a390aad9bed3959db665b08ae1764b04463e3dceec"
+        },
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": true
+    }
+  ],
+  "schema_version": "rdf_mvp5a_pre_file_drop_ingest_result_v0.1.0"
+}

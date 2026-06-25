@@ -1,0 +1,10 @@
+{
+  "frame_count": 12,
+  "profile_id": "ros2_channel_bundle_jsonl_v0",
+  "schema_version": "rdf_mvp5a_pre_split_manifest_v0.1.0",
+  "splits": {
+    "train": [
+      "ros2_channel_bundle_jsonl_v0_golden_episode"
+    ]
+  }
+}

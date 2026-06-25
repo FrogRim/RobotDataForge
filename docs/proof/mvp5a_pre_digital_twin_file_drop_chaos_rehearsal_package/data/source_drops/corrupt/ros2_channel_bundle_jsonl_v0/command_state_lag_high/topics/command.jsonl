@@ -1,0 +1,12 @@
+{"frame_id":"base_link","target_position":[0.003,0.036659,0.039372,0.008645,-0.027272,-0.035357],"timestamp":0.0}
+{"frame_id":"base_link","target_position":[0.012896,0.040959,0.034123,-0.001328,-0.0328,-0.031357],"timestamp":0.04}
+{"frame_id":"base_link","target_position":[0.022177,0.0429,0.026939,-0.011031,-0.036101,-0.025222],"timestamp":0.08}
+{"frame_id":"base_link","target_position":[0.030266,0.042359,0.018266,-0.019862,-0.036972,-0.017331],"timestamp":0.12}
+{"frame_id":"base_link","target_position":[0.036659,0.039372,0.008645,-0.027272,-0.035357,-0.008177],"timestamp":0.16}
+{"frame_id":"base_link","target_position":[0.040959,0.034123,-0.001328,-0.0328,-0.031357,0.001673],"timestamp":3.0}
+{"frame_id":"base_link","target_position":[0.0429,0.026939,-0.011031,-0.036101,-0.025222,0.011605],"timestamp":0.24}
+{"frame_id":"base_link","target_position":[0.042359,0.018266,-0.019862,-0.036972,-0.017331,0.021002],"timestamp":0.28}
+{"frame_id":"base_link","target_position":[0.039372,0.008645,-0.027272,-0.035357,-0.008177,0.029279],"timestamp":0.32}
+{"frame_id":"base_link","target_position":[0.034123,-0.001328,-0.0328,-0.031357,0.001673,0.035923],"timestamp":0.36}
+{"frame_id":"base_link","target_position":[0.026939,-0.011031,-0.036101,-0.025222,0.011605,0.04052],"timestamp":0.4}
+{"frame_id":"base_link","target_position":[0.018266,-0.019862,-0.036972,-0.017331,0.021002,0.042784],"timestamp":0.44}

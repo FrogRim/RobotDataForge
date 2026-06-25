@@ -1,0 +1,10 @@
+{
+  "blocked_reason": "runtime_capture_not_supplied",
+  "canonical_trace_sha256": "c0b5a63b3924dd6e364854b40b5629b56a89bd2329f5eb33170b91ba1985248d",
+  "ready_status_allowed": false,
+  "runtime_capture_sha256": null,
+  "runtime_capture_structurally_valid": false,
+  "runtime_capture_sufficient": false,
+  "runtime_capture_supplied": false,
+  "schema_version": "rdf_mvp5a_pre_runtime_capture_hash_receipt_v0.1.0"
+}

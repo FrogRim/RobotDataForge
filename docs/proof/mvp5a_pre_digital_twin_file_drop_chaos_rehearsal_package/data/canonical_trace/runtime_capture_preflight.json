@@ -1,0 +1,15 @@
+{
+  "blocked_reason": "runtime_capture_not_supplied",
+  "fresh_runtime_capture_required": true,
+  "issues": [
+    "runtime_capture_not_supplied"
+  ],
+  "minimum_required_frames": 12,
+  "observed_min_source_log_rows_emitted": 0,
+  "runtime_capture_path": null,
+  "runtime_capture_sha256": null,
+  "runtime_capture_structurally_valid": false,
+  "runtime_capture_sufficient": false,
+  "runtime_capture_supplied": false,
+  "schema_version": "rdf_mvp5a_pre_runtime_capture_preflight_v0.1.0"
+}

@@ -1,0 +1,1617 @@
+{
+  "results": [
+    {
+      "case_id": "ur_rtde_csv_v0:missing_metadata",
+      "category": "schema",
+      "description": "metadata removed",
+      "expected_rejection_reason": "schema_missing_required_artifact",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "missing_metadata",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "schema_missing_required_artifact",
+        "schema_missing_required_field",
+        "schema_type_mismatch",
+        "unit_mismatch",
+        "vector_dimension_mismatch",
+        "action_state_semantic_mismatch",
+        "provenance_boundary_violation",
+        "unsupported_profile"
+      ],
+      "source_file_hashes": {
+        "rtde_output.csv": {
+          "byte_size": 4589,
+          "sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:unknown_profile",
+      "category": "schema",
+      "description": "profile id changed",
+      "expected_rejection_reason": "unsupported_profile",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 0,
+      "mutation_id": "unknown_profile",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "unsupported_profile"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1669,
+          "sha256": "ca0468171daf4e7ebf6c02ee29e2c374e07c72fa4e73f1ae09cceaa9080aaa37"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4589,
+          "sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:missing_actual_q",
+      "category": "schema",
+      "description": "actual_q header removed",
+      "expected_rejection_reason": "schema_missing_required_field",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "missing_actual_q",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "schema_missing_required_field",
+        "schema_type_mismatch",
+        "vector_dimension_mismatch",
+        "action_state_semantic_mismatch"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1668,
+          "sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c"
+        },
+        "rtde_output.csv": {
+          "byte_size": 3884,
+          "sha256": "166b7a521d6af279e28723ae25e26c49ab070c9686dcc2bb4de64693a70d1d78"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:joint_dim_wrong",
+      "category": "shape",
+      "description": "actual_q shortened",
+      "expected_rejection_reason": "vector_dimension_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "joint_dim_wrong",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "vector_dimension_mismatch",
+        "action_state_semantic_mismatch"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1668,
+          "sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4542,
+          "sha256": "89b1b7cd51e95d35eba215c12b579027e81625cfca93cf835074efd0b745b837"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:timestamp_non_monotonic",
+      "category": "timestamp",
+      "description": "timestamp goes backward",
+      "expected_rejection_reason": "timestamp_not_monotonic",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "timestamp_non_monotonic",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "timestamp_not_monotonic",
+        "timestamp_gap_or_drift"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1668,
+          "sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4590,
+          "sha256": "230866f01028189453fd7939eab2063536b840ca9eddab1dd7e7470f2c72c7c7"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:timestamp_gap_large",
+      "category": "timestamp",
+      "description": "large timestamp gap",
+      "expected_rejection_reason": "timestamp_gap_or_drift",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "timestamp_gap_large",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "timestamp_not_monotonic",
+        "timestamp_gap_or_drift"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1668,
+          "sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4588,
+          "sha256": "f1eb4d48ffd7cdc0c28b826d1cf052d6c122440ec84336a0dfcd172839ce4c83"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:degrees_unit",
+      "category": "unit",
+      "description": "metadata says degrees",
+      "expected_rejection_reason": "unit_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "degrees_unit",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "unit_mismatch"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1668,
+          "sha256": "066953ec675afce44004eeb96dd70645db70c346a4e7151d61cb3dea964ca47d"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4589,
+          "sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:tcp_mm_unit",
+      "category": "unit",
+      "description": "metadata says millimeters",
+      "expected_rejection_reason": "unit_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "tcp_mm_unit",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "unit_mismatch"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1669,
+          "sha256": "bdff56dc7f28ac95e03dae11c26a7bf7e9af60c742a55d9e95534667aa5014f9"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4589,
+          "sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:target_actual_lag_high",
+      "category": "semantics",
+      "description": "target far from actual",
+      "expected_rejection_reason": "action_state_semantic_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "target_actual_lag_high",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "action_state_semantic_mismatch"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1668,
+          "sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4544,
+          "sha256": "bc09421b79c61fd4304e115bc40740b4646143754e78dbddd76c3d782da6d11a"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:protective_stop",
+      "category": "safety",
+      "description": "protective stop",
+      "expected_rejection_reason": "safety_or_robot_mode_invalid",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "protective_stop",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "safety_or_robot_mode_invalid"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1668,
+          "sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4598,
+          "sha256": "7bb154a9fd5b798145d6da76e0aba5cf3561534cd26907138226118531c85556"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:not_running",
+      "category": "safety",
+      "description": "not running",
+      "expected_rejection_reason": "safety_or_robot_mode_invalid",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "not_running",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "safety_or_robot_mode_invalid"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1668,
+          "sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4593,
+          "sha256": "16859544ed419eff9feda8beaf67f0ffccf12ed8b6387188ea892f9409d7c930"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:fabricated_task_success",
+      "category": "claim",
+      "description": "task success true",
+      "expected_rejection_reason": "claim_boundary_violation",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "fabricated_task_success",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "claim_boundary_violation"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1667,
+          "sha256": "ddf2c093725952d16345a9953c61f54b76658d4801d4ce4b9b3ed1426f5722f7"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4589,
+          "sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ur_rtde_csv_v0:joint_order_swapped",
+      "category": "frame",
+      "description": "joint names swapped",
+      "expected_rejection_reason": "frame_semantic_drift",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "joint_order_swapped",
+      "passed": false,
+      "profile_id": "ur_rtde_csv_v0",
+      "rejection_reasons": [
+        "frame_semantic_drift"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1668,
+          "sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c"
+        },
+        "rtde_output.csv": {
+          "byte_size": 4490,
+          "sha256": "201af79a202fa950590dd67037dff22490a8f303e6486f55767f2942d69c9969"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:missing_command_file",
+      "category": "schema",
+      "description": "command file removed",
+      "expected_rejection_reason": "schema_missing_required_artifact",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 0,
+      "mutation_id": "missing_command_file",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "schema_missing_required_artifact",
+        "timestamp_gap_or_drift"
+      ],
+      "source_file_hashes": {
+        "franka_state.jsonl": {
+          "byte_size": 2304,
+          "sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b"
+        },
+        "metadata.json": {
+          "byte_size": 1670,
+          "sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:missing_o_t_ee",
+      "category": "schema",
+      "description": "O_T_EE missing",
+      "expected_rejection_reason": "vector_dimension_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "missing_o_t_ee",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "vector_dimension_mismatch"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2224,
+          "sha256": "5be7e1a84d41338b599061f1c94af72fc0f871c167f2876dd7b1f9ca46bfe09e"
+        },
+        "metadata.json": {
+          "byte_size": 1670,
+          "sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:wrong_dof",
+      "category": "shape",
+      "description": "q shortened",
+      "expected_rejection_reason": "vector_dimension_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "wrong_dof",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "vector_dimension_mismatch"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2242,
+          "sha256": "6ccc06471ee1f8c0a1f7e51b1459a9b0136bcf43df38b646ceb029b949520cf1"
+        },
+        "metadata.json": {
+          "byte_size": 1670,
+          "sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:nonfinite_q",
+      "category": "shape",
+      "description": "q contains NaN",
+      "expected_rejection_reason": "vector_dimension_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "nonfinite_q",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "vector_dimension_mismatch"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2255,
+          "sha256": "67063841ad2287f134f24cff0c5dd55869ef142654501d62626e1baf51f2987e"
+        },
+        "metadata.json": {
+          "byte_size": 1670,
+          "sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:transform_length_wrong",
+      "category": "unit",
+      "description": "O_T_EE wrong length",
+      "expected_rejection_reason": "vector_dimension_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "transform_length_wrong",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "vector_dimension_mismatch"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2238,
+          "sha256": "7cf0cdfdc23cb261a0550d52b55ad3d33e98e639944d6260f16b3f3af79bdcfb"
+        },
+        "metadata.json": {
+          "byte_size": 1670,
+          "sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:transform_not_rigid",
+      "category": "frame",
+      "description": "matrix scale invalid",
+      "expected_rejection_reason": "frame_semantic_drift",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "transform_not_rigid",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "frame_semantic_drift"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2265,
+          "sha256": "e01737db3b0bc0899654b888c86e2ffca129788472f77a1a13ddb7110c261754"
+        },
+        "metadata.json": {
+          "byte_size": 1670,
+          "sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:command_lag_high",
+      "category": "semantics",
+      "description": "command timestamp lag",
+      "expected_rejection_reason": "action_state_semantic_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "command_lag_high",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "action_state_semantic_mismatch"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "64908faffe5244ab672075cf556bed992814bfd10144a5c9c2dd906218e417a2"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2304,
+          "sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b"
+        },
+        "metadata.json": {
+          "byte_size": 1670,
+          "sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:robot_mode_stop",
+      "category": "safety",
+      "description": "robot mode stop",
+      "expected_rejection_reason": "safety_or_robot_mode_invalid",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "robot_mode_stop",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "safety_or_robot_mode_invalid"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2312,
+          "sha256": "0dad1709de1c64a0fc537f2b22c21619627146c6ed45dc5885e9aebad7d80065"
+        },
+        "metadata.json": {
+          "byte_size": 1670,
+          "sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:source_kind_external_partner",
+      "category": "provenance",
+      "description": "wrong source kind",
+      "expected_rejection_reason": "provenance_boundary_violation",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "source_kind_external_partner",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "provenance_boundary_violation"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2304,
+          "sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b"
+        },
+        "metadata.json": {
+          "byte_size": 1670,
+          "sha256": "bf1da4a64f18522a7185ac6d8df5bc3c4e026de247228fc7c8431390c389ba77"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:generated_false",
+      "category": "provenance",
+      "description": "generated flag false",
+      "expected_rejection_reason": "provenance_boundary_violation",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "generated_false",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "provenance_boundary_violation"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2304,
+          "sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b"
+        },
+        "metadata.json": {
+          "byte_size": 1671,
+          "sha256": "06e31482bf053e837089529837cfb850c94fd17bb9fab2e217fc797b165271f7"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:external_partner_true",
+      "category": "claim",
+      "description": "external partner true",
+      "expected_rejection_reason": "provenance_boundary_violation",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "external_partner_true",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "provenance_boundary_violation",
+        "claim_boundary_violation"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2304,
+          "sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b"
+        },
+        "metadata.json": {
+          "byte_size": 1669,
+          "sha256": "dde6d84af28403a9a0aa2a82f720d8641203103cf78d8820961e9df18ebd75ca"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:action_semantics_missing",
+      "category": "semantics",
+      "description": "wrong semantics",
+      "expected_rejection_reason": "action_state_semantic_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "action_semantics_missing",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "action_state_semantic_mismatch"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2304,
+          "sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b"
+        },
+        "metadata.json": {
+          "byte_size": 1669,
+          "sha256": "8ef9dc9506f9f945fd05d4ae751844db933300d28391b874b20a71d62ebeb108"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "franka_state_jsonl_v0:timestamp_duplicate",
+      "category": "timestamp",
+      "description": "duplicate timestamp",
+      "expected_rejection_reason": "timestamp_not_monotonic",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "timestamp_duplicate",
+      "passed": false,
+      "profile_id": "franka_state_jsonl_v0",
+      "rejection_reasons": [
+        "timestamp_not_monotonic"
+      ],
+      "source_file_hashes": {
+        "franka_command.jsonl": {
+          "byte_size": 2112,
+          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+        },
+        "franka_state.jsonl": {
+          "byte_size": 2304,
+          "sha256": "dca1fdb90a1e27d00b860292682807049b4fbbdc3aedc458355f3725323ba4f3"
+        },
+        "metadata.json": {
+          "byte_size": 1670,
+          "sha256": "a51c52bde2c48593efe72585ce61937a37b01562debc7b464542e1da0742e48f"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:missing_joint_states",
+      "category": "schema",
+      "description": "joint_states missing",
+      "expected_rejection_reason": "schema_missing_required_artifact",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 0,
+      "mutation_id": "missing_joint_states",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "schema_missing_required_artifact",
+        "timestamp_gap_or_drift"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:missing_tf_static",
+      "category": "frame",
+      "description": "tf_static missing",
+      "expected_rejection_reason": "frame_tree_invalid",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "missing_tf_static",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "schema_missing_required_artifact",
+        "frame_tree_invalid"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2694,
+          "sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:missing_command_topic",
+      "category": "schema",
+      "description": "command missing",
+      "expected_rejection_reason": "schema_missing_required_artifact",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 0,
+      "mutation_id": "missing_command_topic",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "schema_missing_required_artifact",
+        "timestamp_gap_or_drift"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2694,
+          "sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:frame_id_missing",
+      "category": "frame",
+      "description": "frame id missing",
+      "expected_rejection_reason": "frame_tree_invalid",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "frame_id_missing",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "frame_tree_invalid"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2671,
+          "sha256": "229604a7dfe486e57c9a27f5b9e251fb05997ed932b4d38a025cf831e69ac85e"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:base_frame_drift",
+      "category": "frame",
+      "description": "base changes",
+      "expected_rejection_reason": "frame_tree_invalid",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "base_frame_drift",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "frame_tree_invalid"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1412,
+          "sha256": "872774cab900589f4672f62d3cf514f65933f3c91a36a526a7360284dde20e69"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2694,
+          "sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:tf_parent_cycle",
+      "category": "frame",
+      "description": "tf cycle",
+      "expected_rejection_reason": "frame_tree_invalid",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "tf_parent_cycle",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "frame_tree_invalid"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2694,
+          "sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1700,
+          "sha256": "e291ce97224353d8a753788b2ff9fc4ed05f8ff06f05dc287203b5541b200eb9"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:topic_skew_high",
+      "category": "timestamp",
+      "description": "tf timestamp skew",
+      "expected_rejection_reason": "timestamp_gap_or_drift",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "topic_skew_high",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "timestamp_gap_or_drift"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2694,
+          "sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "24b66298d357b6401d0212cbd1a9cdf6812bfdb6b48f34fbc7b5013c7effa3e1"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:command_state_lag_high",
+      "category": "semantics",
+      "description": "command timestamp lag",
+      "expected_rejection_reason": "action_state_semantic_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "command_state_lag_high",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "action_state_semantic_mismatch"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "4c5706183acff0cbdc1d9743e9d8ad5a15a3a7c176fe5af780c7c444a0fab7bf"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2694,
+          "sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:joint_names_wrong",
+      "category": "frame",
+      "description": "joint names wrong",
+      "expected_rejection_reason": "frame_semantic_drift",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "joint_names_wrong",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "frame_semantic_drift"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2597,
+          "sha256": "fc0861182f4a1e55e07ab716d3b5abf073450e1fde821d7481356f7292db8956"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:joint_dim_wrong",
+      "category": "shape",
+      "description": "position wrong dim",
+      "expected_rejection_reason": "vector_dimension_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "joint_dim_wrong",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "vector_dimension_mismatch"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2643,
+          "sha256": "f1b5d8d1fbcd4e64ca24dd76f71d5945131ece2329068986c4269f47d213bdb0"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:timestamp_non_monotonic",
+      "category": "timestamp",
+      "description": "joint timestamp backward",
+      "expected_rejection_reason": "timestamp_not_monotonic",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "timestamp_non_monotonic",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "timestamp_not_monotonic",
+        "timestamp_gap_or_drift",
+        "action_state_semantic_mismatch"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "b7f7a149a0b466ec67e65adb7e6f1f8a87477de1ce80af5af94a9be88dd63690"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2694,
+          "sha256": "21c4552cb4d70d75537238f086a7c919c99c144475ead52411483ef1f46fd8bd"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:wrong_robot_model",
+      "category": "provenance",
+      "description": "wrong model",
+      "expected_rejection_reason": "unsupported_profile",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "wrong_robot_model",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "unsupported_profile"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1742,
+          "sha256": "b482ebff311bc6900e7b1cb38cf2d02c05d82b9a49598c314bda1322f5c2f314"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2694,
+          "sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "ros2_channel_bundle_jsonl_v0:tcp_rotation_wrong_unit",
+      "category": "unit",
+      "description": "joint unit deg",
+      "expected_rejection_reason": "unit_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "tcp_rotation_wrong_unit",
+      "passed": false,
+      "profile_id": "ros2_channel_bundle_jsonl_v0",
+      "rejection_reasons": [
+        "unit_mismatch"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1745,
+          "sha256": "32eeaa9015e093267076b390ae5a2c539da6406006a440f6e1ac08590ce8106c"
+        },
+        "topic_manifest.json": {
+          "byte_size": 196,
+          "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
+        },
+        "topics/command.jsonl": {
+          "byte_size": 1410,
+          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+        },
+        "topics/joint_states.jsonl": {
+          "byte_size": 2694,
+          "sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044"
+        },
+        "topics/tf.jsonl": {
+          "byte_size": 1704,
+          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+        },
+        "topics/tf_static.jsonl": {
+          "byte_size": 57,
+          "sha256": "a199a74caeb11acc1a58db66180eab92f8fcb98b65b8640bcd4ed3e4c30b3490"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:missing_command_state_file",
+      "category": "schema",
+      "description": "file removed",
+      "expected_rejection_reason": "schema_missing_required_artifact",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 0,
+      "mutation_id": "missing_command_state_file",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "schema_missing_required_artifact",
+        "timestamp_gap_or_drift"
+      ],
+      "source_file_hashes": {
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:missing_command",
+      "category": "schema",
+      "description": "command missing",
+      "expected_rejection_reason": "vector_dimension_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "missing_command",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "vector_dimension_mismatch"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3894,
+          "sha256": "0817fa8171bb85169bf3577711f003bba710770ca60079ce83f429a196732b7d"
+        },
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:missing_state",
+      "category": "schema",
+      "description": "state missing",
+      "expected_rejection_reason": "vector_dimension_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "missing_state",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "vector_dimension_mismatch"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3898,
+          "sha256": "14064521c5142b303e3e6842167d950cb419a3c85b03cc8959e86621fd56c1e3"
+        },
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:wrong_action_semantics",
+      "category": "semantics",
+      "description": "wrong action semantics",
+      "expected_rejection_reason": "action_state_semantic_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "wrong_action_semantics",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "action_state_semantic_mismatch"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3948,
+          "sha256": "e113d2139d4ba6859d1ee6c17750dc11c86db52afba54e54f9fc22948a3ad469"
+        },
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:future_state_as_action",
+      "category": "semantics",
+      "description": "future command timestamp",
+      "expected_rejection_reason": "action_state_semantic_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "future_state_as_action",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "action_state_semantic_mismatch"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3958,
+          "sha256": "e6a4b2c397ef464fde9a8645155c42879752c5882868a98ff97d16a10ab9476e"
+        },
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:action_dim_wrong",
+      "category": "shape",
+      "description": "action wrong dim",
+      "expected_rejection_reason": "vector_dimension_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "action_dim_wrong",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "vector_dimension_mismatch"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3906,
+          "sha256": "1222e35b3d2978d31e3183dba61d4ed6d833814e44b085c80c32db94fc38dab5"
+        },
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:state_dim_wrong",
+      "category": "shape",
+      "description": "state wrong dim",
+      "expected_rejection_reason": "vector_dimension_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "state_dim_wrong",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "vector_dimension_mismatch"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3906,
+          "sha256": "770cd2153339e2faab572d99fe3a9939e7e5817b28471de9e8e2ac287b0557a8"
+        },
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:nan_state",
+      "category": "shape",
+      "description": "state NaN",
+      "expected_rejection_reason": "vector_dimension_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "nan_state",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "vector_dimension_mismatch"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3918,
+          "sha256": "fd1cb9536281a33a2492896b0ea35250fc195f0d91c604681251779c3c1e0531"
+        },
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:reset_boundary",
+      "category": "semantics",
+      "description": "reset inside episode",
+      "expected_rejection_reason": "action_state_semantic_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "reset_boundary",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "action_state_semantic_mismatch"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3958,
+          "sha256": "8a098a0ed06b950e26f50c24939ed7d11c45dde407d734515a69fb8fd262cc1b"
+        },
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:fabricated_task_success",
+      "category": "claim",
+      "description": "task success fabricated",
+      "expected_rejection_reason": "claim_boundary_violation",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "fabricated_task_success",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "claim_boundary_violation"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3959,
+          "sha256": "2a4cf3fa2d0ce38d26e1293edabf50d9f4e1317e21811603bda5815b71b20c9c"
+        },
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:source_owner_placeholder",
+      "category": "provenance",
+      "description": "external partner true",
+      "expected_rejection_reason": "provenance_boundary_violation",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "source_owner_placeholder",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "provenance_boundary_violation",
+        "claim_boundary_violation"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3959,
+          "sha256": "99e79995ea48a362cdf774a390aad9bed3959db665b08ae1764b04463e3dceec"
+        },
+        "metadata.json": {
+          "byte_size": 1681,
+          "sha256": "c3c4cb2d14b7b622f6f12a16d39f1dcf2652d27190583dfd62dd847d3c0320e7"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:metadata_units_missing",
+      "category": "unit",
+      "description": "units missing",
+      "expected_rejection_reason": "unit_mismatch",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "metadata_units_missing",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "schema_missing_required_field",
+        "unit_mismatch"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3959,
+          "sha256": "99e79995ea48a362cdf774a390aad9bed3959db665b08ae1764b04463e3dceec"
+        },
+        "metadata.json": {
+          "byte_size": 1536,
+          "sha256": "d8d99d624b82bed0bac6a9f51ba5f292c9a1f742ce69c43eeb088fa04dea81fa"
+        }
+      },
+      "trainer_smoke_eligible": false
+    },
+    {
+      "case_id": "generic_command_state_jsonl_v0:timestamp_gap_large",
+      "category": "timestamp",
+      "description": "large timestamp gap",
+      "expected_rejection_reason": "timestamp_gap_or_drift",
+      "expected_rejection_reason_observed": true,
+      "export_eligible": false,
+      "frame_count": 12,
+      "mutation_id": "timestamp_gap_large",
+      "passed": false,
+      "profile_id": "generic_command_state_jsonl_v0",
+      "rejection_reasons": [
+        "timestamp_not_monotonic",
+        "timestamp_gap_or_drift"
+      ],
+      "source_file_hashes": {
+        "command_state.jsonl": {
+          "byte_size": 3958,
+          "sha256": "c9ce0a5fa48eae6009505de79a363cef35044f87d97f8a820c7c3fb716f665c3"
+        },
+        "metadata.json": {
+          "byte_size": 1682,
+          "sha256": "0b272bbb115677c135d189bea3a1a8099c899e804f9fd28e7d337fc83d3a46c5"
+        }
+      },
+      "trainer_smoke_eligible": false
+    }
+  ],
+  "schema_version": "rdf_mvp5a_pre_file_drop_ingest_result_v0.1.0"
+}

@@ -1,0 +1,19 @@
+{
+  "action_array_sha256": "3e130f01c493cf02d8b92ce5266222eb10757de5454a9363c1a55e97efe57e7f",
+  "action_shape": [
+    12,
+    6
+  ],
+  "finite_values": true,
+  "hdf5_sha256": "57bd689bc055b118278a23de1c95fca182ff772098a73b6ffbd21ebaff63e2a0",
+  "passed": true,
+  "profile_id": "ur_rtde_csv_v0",
+  "schema_version": "rdf_mvp5a_pre_hdf5_inspection_v0.1.0",
+  "state_array_sha256": "432ba8c92a5ac204410cd5f4f196e789c865a926e1d7bb21d4dd8229d8466bf3",
+  "state_shape": [
+    12,
+    6
+  ],
+  "timestamp_array_sha256": "41f2badf1de05bf9f40c6d3414ef886c00fdaea346d246b14543a8dec7b5413e",
+  "timestamp_count": 12
+}
