@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from pathlib import PurePosixPath
 import sys
 
 
@@ -52,6 +53,14 @@ def _load_config(path: Path) -> dict:
     return payload
 
 
+def _portable_data_path(path: Path) -> str:
+    parts = path.as_posix().split("/")
+    if "data" not in parts:
+        return path.as_posix()
+    data_index = parts.index("data")
+    return PurePosixPath(*parts[data_index:]).as_posix()
+
+
 def main() -> int:
     args = parse_args()
     config = _load_config(args.config)
@@ -67,7 +76,7 @@ def main() -> int:
                 "capture_id": config["capture_id"],
                 "frame_count": config["frame_count"],
                 "event_count": len(events),
-                "output": args.output.as_posix(),
+                "output": _portable_data_path(args.output),
                 "external_partner_data": False,
                 "real_robot_success": False,
             }

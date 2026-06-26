@@ -1269,6 +1269,152 @@ def test_capture_edge_event_package_verifies_ready(tmp_path: Path) -> None:
     assert "does not prove the runtime was a genuine physics run" in buyer_report
 
 
+def test_forged_process_command_identity_with_refreshed_hashes_fails(tmp_path: Path) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_forged_process_command"
+    build_capture_edge_ready_rehearsal_package(package_dir=package_dir, clean=True)
+    receipt_path = package_dir / "data" / "process_provenance" / "process_provenance_receipt.json"
+    receipt = _json(receipt_path)
+    receipt["command"] = "python totally_different_helper.py --from data/canonical_trace/canonical_trace.json"
+    receipt.pop("command_argv", None)
+    receipt.pop("working_directory", None)
+    receipt.pop("git_branch", None)
+    _write_json(receipt_path, receipt)
+    _refresh_indexes(package_dir)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert "process_provenance_receipt command_argv mismatch" in result["issues"]
+
+
+def test_forged_process_stdout_summary_with_refreshed_hashes_fails(tmp_path: Path) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_forged_process_stdout"
+    build_capture_edge_ready_rehearsal_package(package_dir=package_dir, clean=True)
+    stdout_path = package_dir / "data" / "process_provenance" / "capture_edge_emitter_stdout.log"
+    stdout = json.loads(stdout_path.read_text(encoding="utf-8"))
+    stdout["capture_id"] = "forged-capture-id"
+    stdout["event_count"] = int(stdout["event_count"]) + 1
+    stdout["external_partner_data"] = True
+    stdout_path.write_text(json.dumps(stdout, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+    receipt_path = package_dir / "data" / "process_provenance" / "process_provenance_receipt.json"
+    receipt = _json(receipt_path)
+    receipt["stdout_log_sha256"] = _sha256(stdout_path)
+    _write_json(receipt_path, receipt)
+    _refresh_indexes(package_dir)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert "capture_edge_emitter_stdout summary mismatch" in result["issues"]
+
+
+def test_package_manifest_omission_from_data_tree_fails_without_regenerating_index(tmp_path: Path) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_package_manifest_omission"
+    build_capture_edge_ready_rehearsal_package(package_dir=package_dir, clean=True)
+    manifest_path = package_dir / "package_manifest.json"
+    manifest = _json(manifest_path)
+    omitted_path = "data/process_provenance/capture_edge_emitter_stdout.log"
+    manifest["artifact_index"] = [
+        entry for entry in manifest["artifact_index"] if entry.get("data_path") != omitted_path
+    ]
+    _write_json(manifest_path, manifest)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert "package_manifest artifact_index does not match data files" in result["issues"]
+
+
+def test_ready_package_runtime_capture_true_null_path_hash_fails(tmp_path: Path) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_runtime_capture_true_null"
+    build_capture_edge_ready_rehearsal_package(package_dir=package_dir, clean=True)
+    for rel_path in (
+        "data/config.json",
+        "data/canonical_trace/runtime_capture_preflight.json",
+        "data/canonical_trace/runtime_capture_hash_receipt.json",
+        "data/runtime_evidence/runtime_reconstruction_receipt.json",
+    ):
+        path = package_dir / rel_path
+        payload = _json(path)
+        payload.update(
+            {
+                "runtime_capture_supplied": True,
+                "runtime_capture_sufficient": True,
+                "runtime_capture_structurally_valid": True,
+                "runtime_capture_path": None,
+                "runtime_capture_sha256": None,
+            }
+        )
+        _write_json(path, payload)
+    _refresh_indexes(package_dir)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert "runtime_capture_supplied requires runtime_capture_path and sha256" in result["issues"]
+
+
+def test_ready_package_runtime_capture_true_fake_path_hash_fails(tmp_path: Path) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_runtime_capture_fake_path_hash"
+    build_capture_edge_ready_rehearsal_package(package_dir=package_dir, clean=True)
+    for rel_path in (
+        "data/config.json",
+        "data/canonical_trace/runtime_capture_preflight.json",
+        "data/canonical_trace/runtime_capture_hash_receipt.json",
+        "data/runtime_evidence/runtime_reconstruction_receipt.json",
+    ):
+        path = package_dir / rel_path
+        payload = _json(path)
+        payload.update(
+            {
+                "runtime_capture_supplied": True,
+                "runtime_capture_sufficient": True,
+                "runtime_capture_structurally_valid": True,
+                "runtime_capture_path": "data/canonical_trace/runtime_capture.json",
+                "runtime_capture_sha256": "0" * 64,
+            }
+        )
+        _write_json(path, payload)
+    _refresh_indexes(package_dir)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert "runtime_capture_path missing" in result["issues"]
+
+
+def test_ready_package_runtime_capture_true_invalid_capture_content_fails(tmp_path: Path) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_runtime_capture_invalid_content"
+    build_capture_edge_ready_rehearsal_package(package_dir=package_dir, clean=True)
+    capture_path = package_dir / "data" / "canonical_trace" / "runtime_capture.json"
+    _write_json(capture_path, {"not": "a runtime capture"})
+    capture_sha = _sha256(capture_path)
+    for rel_path in (
+        "data/config.json",
+        "data/canonical_trace/runtime_capture_preflight.json",
+        "data/canonical_trace/runtime_capture_hash_receipt.json",
+        "data/runtime_evidence/runtime_reconstruction_receipt.json",
+    ):
+        path = package_dir / rel_path
+        payload = _json(path)
+        payload.update(
+            {
+                "runtime_capture_supplied": True,
+                "runtime_capture_sufficient": True,
+                "runtime_capture_structurally_valid": True,
+                "runtime_capture_path": "data/canonical_trace/runtime_capture.json",
+                "runtime_capture_sha256": capture_sha,
+            }
+        )
+        _write_json(path, payload)
+    _refresh_indexes(package_dir)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert "runtime_capture canonical trace missing" in result["issues"]
+
+
 def test_process_provenance_event_hash_tamper_fails(tmp_path: Path) -> None:
     package_dir = tmp_path / f"{PACKAGE_NAME}_process_event_hash_tamper"
     build_capture_edge_ready_rehearsal_package(package_dir=package_dir, clean=True)

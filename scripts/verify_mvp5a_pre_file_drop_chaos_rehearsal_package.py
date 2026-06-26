@@ -45,6 +45,15 @@ CAPTURE_EDGE_EMITTER_SCRIPT_SNAPSHOT_PATH = "data/process_provenance/capture_edg
 CAPTURE_EDGE_EMITTER_CONFIG_PATH = "data/process_provenance/capture_edge_emitter_config.json"
 CAPTURE_EDGE_EMITTER_STDOUT_PATH = "data/process_provenance/capture_edge_emitter_stdout.log"
 CAPTURE_EDGE_EMITTER_STDERR_PATH = "data/process_provenance/capture_edge_emitter_stderr.log"
+CAPTURE_EDGE_EMITTER_STDOUT_SCHEMA_VERSION = "rdf_mvp5a_pre_capture_edge_emitter_summary_v0.1.0"
+CAPTURE_EDGE_EMITTER_COMMAND_ARGV = [
+    "python",
+    CAPTURE_EDGE_EMITTER_SCRIPT_REPO_PATH,
+    "--config",
+    CAPTURE_EDGE_EMITTER_CONFIG_PATH,
+    "--output",
+    "data/runtime_evidence/runtime_event_log.jsonl",
+]
 CAPTURE_EDGE_READY_CLOSE_ENABLED = True
 CAPTURE_EDGE_READY_CLOSE_DISABLED_ISSUE = (
     "file_drop_rehearsal_ready close is disabled for PR #12 consistency baseline"
@@ -218,6 +227,7 @@ def verify_package(manifest_path: Path, *, allow_contract_ready: bool = False, d
     manifest = _read_json(manifest_path, issues, "package_manifest")
 
     _verify_manifest_index(package_dir, manifest.get("artifact_index"), issues)
+    _verify_package_manifest_data_completeness(package_dir, manifest.get("artifact_index"), issues)
     data_index = _read_json(package_dir / "data" / "artifact_index.json", issues, "data/artifact_index.json")
     _verify_data_index(package_dir, data_index.get("artifact_index"), issues)
     _scan_all_claims(package_dir, issues)
@@ -234,6 +244,9 @@ def verify_package(manifest_path: Path, *, allow_contract_ready: bool = False, d
     coverage = _read_json(package_dir / "data" / "ingest_results" / "rejection_reason_coverage.json", issues, "data/ingest_results/rejection_reason_coverage.json")
 
     _verify_non_claims(manifest, config, non_claims, issues)
+    _verify_runtime_capture_boundary(package_dir, "config", config, canonical, issues)
+    _verify_runtime_capture_boundary(package_dir, "runtime_capture_preflight", preflight, canonical, issues)
+    _verify_runtime_capture_boundary(package_dir, "runtime_capture_hash_receipt", receipt, canonical, issues)
     _verify_status(package_dir, manifest, config, canonical, preflight, receipt, allow_contract_ready, issues)
     _verify_canonical_trace(canonical, receipt, issues)
     _verify_registry(registry, issues)
@@ -283,6 +296,19 @@ def _verify_manifest_index(package_dir: Path, artifact_index: Any, issues: list[
             issues.append(f"{data_path} missing")
             continue
         _verify_entry_hash(path, entry, data_path, issues)
+
+
+def _verify_package_manifest_data_completeness(package_dir: Path, artifact_index: Any, issues: list[str]) -> None:
+    if not isinstance(artifact_index, list):
+        return
+    indexed = {entry.get("data_path") for entry in artifact_index if isinstance(entry, dict)}
+    expected = {
+        path.relative_to(package_dir).as_posix()
+        for path in sorted((package_dir / "data").rglob("*"))
+        if path.is_file()
+    }
+    if indexed != expected:
+        issues.append("package_manifest artifact_index does not match data files")
 
 
 def _verify_data_index(package_dir: Path, artifact_index: Any, issues: list[str]) -> None:
@@ -342,6 +368,95 @@ def _verify_non_claims(manifest: dict[str, Any], config: dict[str, Any], non_cla
     _scan_forbidden_true_claims(non_claims, "non_claims_attestation", issues)
 
 
+def _verify_runtime_capture_boundary(
+    package_dir: Path,
+    label: str,
+    payload: dict[str, Any],
+    canonical: dict[str, Any],
+    issues: list[str],
+) -> None:
+    if not isinstance(payload, dict):
+        return
+    claims_runtime_capture = any(
+        payload.get(key) is True
+        for key in (
+            "runtime_capture_supplied",
+            "runtime_capture_sufficient",
+            "runtime_capture_structurally_valid",
+        )
+    )
+    if not claims_runtime_capture:
+        return
+    path = payload.get("runtime_capture_path")
+    sha256 = payload.get("runtime_capture_sha256")
+    if not isinstance(path, str) or not path or not isinstance(sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", sha256):
+        issues.append("runtime_capture_supplied requires runtime_capture_path and sha256")
+        return
+    if not _safe_data_path(path):
+        issues.append("runtime_capture_path unsafe")
+        return
+    if path != "data/canonical_trace/runtime_capture.json":
+        issues.append("runtime_capture_path must be data/canonical_trace/runtime_capture.json")
+        return
+    capture_path = package_dir / path
+    if not _is_within(capture_path, package_dir):
+        issues.append("runtime_capture_path escapes package")
+        return
+    if not capture_path.is_file():
+        issues.append("runtime_capture_path missing")
+        return
+    if sha256 != _sha256_file(capture_path):
+        issues.append("runtime_capture_sha256 mismatch")
+        return
+    validates_runtime_capture = (
+        payload.get("runtime_capture_structurally_valid") is True
+        or payload.get("runtime_capture_sufficient") is True
+    )
+    if not validates_runtime_capture:
+        return
+    capture = _read_json(capture_path, issues, path)
+    _verify_runtime_capture_artifact(
+        capture,
+        sha256,
+        canonical,
+        require_provenance=payload.get("runtime_capture_structurally_valid") is True
+        or payload.get("runtime_capture_sufficient") is True,
+        require_canonical_match=payload.get("runtime_capture_sufficient") is True,
+        issues=issues,
+    )
+
+
+def _verify_runtime_capture_artifact(
+    capture: dict[str, Any],
+    runtime_capture_sha256: str,
+    expected_canonical: dict[str, Any],
+    *,
+    require_provenance: bool,
+    require_canonical_match: bool,
+    issues: list[str],
+) -> None:
+    if not isinstance(capture.get("captured_at"), str):
+        issues.append("runtime_capture captured_at missing")
+    capture_trace = capture.get("mvp5a_canonical_trace")
+    if not isinstance(capture_trace, dict) or not isinstance(capture_trace.get("frames"), list):
+        issues.append("runtime_capture canonical trace missing")
+        return
+    if require_provenance:
+        for issue in _runtime_capture_provenance_issues(capture, capture_trace):
+            issues.append(f"runtime_capture provenance invalid: {issue}")
+    if len(capture_trace["frames"]) < MIN_CANONICAL_FRAMES:
+        issues.append("runtime_capture canonical trace frame count below minimum")
+    for issue in _runtime_canonical_trace_issues(capture_trace):
+        issues.append(f"runtime_capture canonical schema invalid: {issue}")
+    if require_canonical_match:
+        expected = {
+            **capture_trace,
+            "runtime_capture_sha256": runtime_capture_sha256,
+        }
+        if expected_canonical != expected:
+            issues.append("runtime_capture canonical trace mismatch")
+
+
 def _verify_status(
     package_dir: Path,
     manifest: dict[str, Any],
@@ -373,8 +488,8 @@ def _verify_status(
     if status == STATUS_READY:
         if not CAPTURE_EDGE_READY_CLOSE_ENABLED:
             issues.append(CAPTURE_EDGE_READY_CLOSE_DISABLED_ISSUE)
-        if preflight.get("runtime_capture_sufficient") is not True:
-            issues.append("ready status requires runtime_capture_sufficient=true")
+        if preflight.get("runtime_event_capture_sufficient") is not True:
+            issues.append("ready status requires runtime_event_capture_sufficient=true")
         if receipt.get("ready_status_allowed") is not True:
             issues.append("ready status requires ready_status_allowed=true")
         _verify_ready_runtime_event_evidence(package_dir, canonical, issues)
@@ -405,7 +520,7 @@ def _verify_ready_runtime_event_evidence(package_dir: Path, canonical: dict[str,
     events = _load_runtime_events(package_dir, issues)
     if not events:
         return
-    _verify_runtime_event_manifest(package_dir, runtime_manifest, reconstruction_receipt, events, issues)
+    _verify_runtime_event_manifest(package_dir, runtime_manifest, reconstruction_receipt, canonical, events, issues)
     _verify_capture_edge_emitter_contract(package_dir, events, issues)
     issues.extend(_runtime_event_global_issues(events))
     channel_issues: list[str] = []
@@ -474,6 +589,17 @@ def _verify_process_provenance_receipt(
         issues.append("process_provenance_receipt stdout_log_path mismatch")
     if receipt.get("stderr_log_path") != CAPTURE_EDGE_EMITTER_STDERR_PATH:
         issues.append("process_provenance_receipt stderr_log_path mismatch")
+    expected_command = " ".join(CAPTURE_EDGE_EMITTER_COMMAND_ARGV)
+    if receipt.get("command") != expected_command:
+        issues.append("process_provenance_receipt command mismatch")
+    if receipt.get("command_argv") != CAPTURE_EDGE_EMITTER_COMMAND_ARGV:
+        issues.append("process_provenance_receipt command_argv mismatch")
+    if receipt.get("command_argv_kind") != "repo_relative_normalized":
+        issues.append("process_provenance_receipt command_argv_kind mismatch")
+    if receipt.get("working_directory_kind") != "repo_root":
+        issues.append("process_provenance_receipt working_directory_kind mismatch")
+    if receipt.get("repo_relative_cwd") != ".":
+        issues.append("process_provenance_receipt repo_relative_cwd mismatch")
     if receipt.get("process_provenance_ceiling") != "declared_process_identity_only_not_physics_authenticity":
         issues.append("process_provenance_receipt provenance ceiling missing")
     for key in ("git_commit", "command", "python_version", "os_summary", "started_at", "ended_at"):
@@ -499,6 +625,40 @@ def _verify_process_provenance_receipt(
             continue
         if expected_hash != _sha256_file(artifact_path):
             issues.append(f"process_provenance_receipt {hash_key} mismatch")
+    _verify_capture_edge_stdout_summary(package_dir, receipt, issues)
+
+
+def _verify_capture_edge_stdout_summary(package_dir: Path, receipt: dict[str, Any], issues: list[str]) -> None:
+    stdout_rel = receipt.get("stdout_log_path")
+    if stdout_rel != CAPTURE_EDGE_EMITTER_STDOUT_PATH:
+        return
+    stdout_path = package_dir / CAPTURE_EDGE_EMITTER_STDOUT_PATH
+    if not stdout_path.is_file():
+        return
+    config = _read_json(package_dir / CAPTURE_EDGE_EMITTER_CONFIG_PATH, issues, CAPTURE_EDGE_EMITTER_CONFIG_PATH)
+    event_log_path = package_dir / "data" / "runtime_evidence" / "runtime_event_log.jsonl"
+    try:
+        summary = json.loads(stdout_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        issues.append("capture_edge_emitter_stdout summary mismatch")
+        return
+    if not isinstance(summary, dict):
+        issues.append("capture_edge_emitter_stdout summary mismatch")
+        return
+    event_count = 0
+    if event_log_path.is_file():
+        event_count = len([line for line in event_log_path.read_text(encoding="utf-8").splitlines() if line.strip()])
+    expected = {
+        "schema_version": CAPTURE_EDGE_EMITTER_STDOUT_SCHEMA_VERSION,
+        "capture_id": config.get("capture_id"),
+        "frame_count": config.get("frame_count"),
+        "event_count": event_count,
+        "output": "data/runtime_evidence/runtime_event_log.jsonl",
+        "external_partner_data": False,
+        "real_robot_success": False,
+    }
+    if summary != expected:
+        issues.append("capture_edge_emitter_stdout summary mismatch")
 
 
 def _load_runtime_events(package_dir: Path, issues: list[str]) -> list[dict[str, Any]]:
@@ -528,6 +688,7 @@ def _verify_runtime_event_manifest(
     package_dir: Path,
     runtime_manifest: dict[str, Any],
     reconstruction_receipt: dict[str, Any],
+    canonical: dict[str, Any],
     events: list[dict[str, Any]],
     issues: list[str],
 ) -> None:
@@ -582,8 +743,9 @@ def _verify_runtime_event_manifest(
         issues.append("runtime_reconstruction_receipt algorithm mismatch")
     if reconstruction_receipt.get("runtime_event_log_sha256") != event_log_sha:
         issues.append("runtime_reconstruction_receipt runtime_event_log_sha256 mismatch")
-    if reconstruction_receipt.get("runtime_capture_sufficient") is not True:
-        issues.append("runtime_reconstruction_receipt runtime_capture_sufficient must be true")
+    _verify_runtime_capture_boundary(package_dir, "runtime_reconstruction_receipt", reconstruction_receipt, canonical, issues)
+    if reconstruction_receipt.get("runtime_event_capture_sufficient") is not True:
+        issues.append("runtime_reconstruction_receipt runtime_event_capture_sufficient must be true")
     if reconstruction_receipt.get("ready_status_allowed") is not True:
         issues.append("runtime_reconstruction_receipt ready_status_allowed must be true")
 
@@ -947,51 +1109,6 @@ def _contains_non_finite_number(value: Any) -> bool:
     if isinstance(value, dict):
         return any(_contains_non_finite_number(item) for item in value.values())
     return False
-
-
-def _verify_ready_runtime_capture(
-    package_dir: Path,
-    canonical: dict[str, Any],
-    preflight: dict[str, Any],
-    receipt: dict[str, Any],
-    issues: list[str],
-) -> None:
-    runtime_capture_path = package_dir / "data" / "canonical_trace" / "runtime_capture.json"
-    if not runtime_capture_path.is_file():
-        issues.append("ready status requires data/canonical_trace/runtime_capture.json")
-        return
-    runtime_capture_sha256 = _sha256_file(runtime_capture_path)
-    if preflight.get("runtime_capture_sha256") != runtime_capture_sha256:
-        issues.append("ready runtime_capture preflight sha256 mismatch")
-    if receipt.get("runtime_capture_sha256") != runtime_capture_sha256:
-        issues.append("ready runtime_capture receipt sha256 mismatch")
-    if canonical.get("runtime_capture_sha256") != runtime_capture_sha256:
-        issues.append("ready canonical runtime_capture sha256 mismatch")
-
-    capture = _read_json(runtime_capture_path, issues, "data/canonical_trace/runtime_capture.json")
-    if not isinstance(capture.get("captured_at"), str):
-        issues.append("ready runtime_capture captured_at missing")
-    capture_trace = capture.get("mvp5a_canonical_trace")
-    if not isinstance(capture_trace, dict) or not isinstance(capture_trace.get("frames"), list):
-        issues.append("ready runtime_capture canonical trace missing")
-        return
-    for issue in _runtime_capture_provenance_issues(capture, capture_trace):
-        issues.append(f"ready runtime_capture provenance invalid: {issue}")
-    if len(capture_trace["frames"]) < MIN_CANONICAL_FRAMES:
-        issues.append("ready runtime_capture canonical trace frame count below minimum")
-    for issue in _runtime_canonical_trace_issues(capture_trace):
-        issues.append(f"ready runtime_capture canonical schema invalid: {issue}")
-
-    expected_canonical = {
-        **capture_trace,
-        "runtime_capture_sha256": runtime_capture_sha256,
-    }
-    if canonical != expected_canonical:
-        issues.append("ready canonical trace does not match runtime_capture canonical trace")
-    if canonical.get("runtime_backed") is not True:
-        issues.append("ready canonical trace must be runtime_backed")
-    if canonical.get("source_kind") != RUNTIME_BACKED_SOURCE_KIND:
-        issues.append("ready canonical trace source_kind mismatch")
 
 
 def _verify_canonical_trace(canonical: dict[str, Any], receipt: dict[str, Any], issues: list[str]) -> None:

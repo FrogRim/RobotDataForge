@@ -439,6 +439,7 @@ def prepare_canonical_trace(runtime_capture: Path | None, *, fixture_only: bool)
         "runtime_capture_supplied": preflight["runtime_capture_supplied"],
         "runtime_capture_sufficient": preflight["runtime_capture_sufficient"],
         "runtime_capture_structurally_valid": preflight.get("runtime_capture_structurally_valid", False),
+        "runtime_capture_path": preflight.get("runtime_capture_path"),
         "runtime_capture_sha256": preflight["runtime_capture_sha256"],
         "ready_status_allowed": False,
         "blocked_reason": preflight["blocked_reason"],
@@ -1055,13 +1056,25 @@ def _materialize_rehearsal_package(
 
     contract_ready = True
 
-    write_json(data_dir / "canonical_trace" / "canonical_trace.json", trace)
-    write_json(data_dir / "canonical_trace" / "runtime_capture_preflight.json", preflight)
-    write_json(data_dir / "canonical_trace" / "runtime_capture_hash_receipt.json", capture_receipt)
+    packaged_preflight = dict(preflight)
+    packaged_capture_receipt = dict(capture_receipt)
     if runtime_capture is not None:
         source_capture = _resolve_runtime_capture_path(runtime_capture)
         if source_capture and source_capture.exists():
-            shutil.copy2(source_capture, data_dir / "canonical_trace" / "runtime_capture.json")
+            capture_target = data_dir / "canonical_trace" / "runtime_capture.json"
+            capture_target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_capture, capture_target)
+            packaged_capture_sha = sha256_file(capture_target)
+            packaged_capture_path = "data/canonical_trace/runtime_capture.json"
+            for payload in (packaged_preflight, packaged_capture_receipt):
+                payload["runtime_capture_path"] = packaged_capture_path
+                payload["runtime_capture_sha256"] = packaged_capture_sha
+    preflight = packaged_preflight
+    capture_receipt = packaged_capture_receipt
+
+    write_json(data_dir / "canonical_trace" / "canonical_trace.json", trace)
+    write_json(data_dir / "canonical_trace" / "runtime_capture_preflight.json", preflight)
+    write_json(data_dir / "canonical_trace" / "runtime_capture_hash_receipt.json", capture_receipt)
     if emit_runtime_event_evidence and runtime_evidence_report is None:
         runtime_evidence_report = write_runtime_evidence(package_dir, trace)
     write_json(data_dir / "profile_registry.json", build_profile_registry())
@@ -1103,8 +1116,15 @@ def _materialize_rehearsal_package(
         "status": status,
         "file_drop_rehearsal_contract_ready": contract_ready,
         "file_drop_rehearsal_ready": ready,
+        "runtime_capture_supplied": preflight.get("runtime_capture_supplied", False),
         "runtime_capture_sufficient": preflight["runtime_capture_sufficient"],
         "runtime_capture_structurally_valid": preflight.get("runtime_capture_structurally_valid", False),
+        "runtime_capture_path": preflight.get("runtime_capture_path"),
+        "runtime_capture_sha256": preflight.get("runtime_capture_sha256"),
+        "runtime_event_capture_supplied": preflight.get("runtime_event_capture_supplied", False),
+        "runtime_event_capture_sufficient": preflight.get("runtime_event_capture_sufficient", False),
+        "runtime_event_capture_structurally_valid": preflight.get("runtime_event_capture_structurally_valid", False),
+        "runtime_event_log_path": preflight.get("runtime_event_log_path"),
         "blocked_reason": None if ready else preflight["blocked_reason"],
         "fresh_runtime_capture_required": not ready,
         "generated_by_rdf_sim": True,
@@ -1119,6 +1139,7 @@ def _materialize_rehearsal_package(
     }
     if runtime_evidence_report is not None:
         config["runtime_evidence_level"] = "L2_verifier_owned_raw_runtime_events"
+        config["runtime_event_log_path"] = "data/runtime_evidence/runtime_event_log.jsonl"
         config["runtime_event_log_sha256"] = runtime_evidence_report["runtime_event_log_sha256"]
         if runtime_evidence_report.get("process_provenance_receipt_sha256"):
             config["process_provenance_receipt_sha256"] = runtime_evidence_report[
@@ -1193,14 +1214,18 @@ def build_capture_edge_ready_rehearsal_package(
     )
     preflight = {
         "schema_version": "rdf_mvp5a_pre_runtime_capture_preflight_v0.1.0",
-        "runtime_capture_supplied": True,
-        "runtime_capture_sufficient": True,
-        "runtime_capture_structurally_valid": True,
+        "runtime_capture_supplied": False,
+        "runtime_capture_sufficient": False,
+        "runtime_capture_structurally_valid": False,
         "fresh_runtime_capture_required": False,
         "blocked_reason": None,
         "issues": [],
         "runtime_capture_path": None,
         "runtime_capture_sha256": None,
+        "runtime_event_capture_supplied": True,
+        "runtime_event_capture_sufficient": True,
+        "runtime_event_capture_structurally_valid": True,
+        "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
         "minimum_required_frames": MIN_CANONICAL_FRAMES,
         "observed_min_source_log_rows_emitted": len(_frames(trace)),
         "runtime_event_log_sha256": runtime_report["runtime_event_log_sha256"],
@@ -1210,10 +1235,15 @@ def build_capture_edge_ready_rehearsal_package(
     capture_receipt = {
         "schema_version": "rdf_mvp5a_pre_runtime_capture_hash_receipt_v0.1.0",
         "canonical_trace_sha256": canonical_sha,
-        "runtime_capture_supplied": True,
-        "runtime_capture_sufficient": True,
-        "runtime_capture_structurally_valid": True,
+        "runtime_capture_supplied": False,
+        "runtime_capture_sufficient": False,
+        "runtime_capture_structurally_valid": False,
+        "runtime_capture_path": None,
         "runtime_capture_sha256": None,
+        "runtime_event_capture_supplied": True,
+        "runtime_event_capture_sufficient": True,
+        "runtime_event_capture_structurally_valid": True,
+        "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
         "ready_status_allowed": True,
         "blocked_reason": None,
         "runtime_event_log_sha256": runtime_report["runtime_event_log_sha256"],
@@ -1274,6 +1304,14 @@ def _run_capture_edge_emitter(
         "--output",
         str(event_log_path),
     ]
+    normalized_command_argv = [
+        "python",
+        CAPTURE_EDGE_EMITTER_SCRIPT_REPO_PATH,
+        "--config",
+        CAPTURE_EDGE_EMITTER_CONFIG_PATH,
+        "--output",
+        "data/runtime_evidence/runtime_event_log.jsonl",
+    ]
     started_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     completed = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
     ended_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
@@ -1292,12 +1330,16 @@ def _run_capture_edge_emitter(
         "exit_code": completed.returncode,
         "git_commit": _git_value("rev-parse", "HEAD"),
         "git_branch": _git_value("rev-parse", "--abbrev-ref", "HEAD"),
-        "command": " ".join(_display_path(Path(part)) if index > 0 and part.startswith("/") else part for index, part in enumerate(command)),
+        "command": " ".join(normalized_command_argv),
+        "command_argv": normalized_command_argv,
+        "command_argv_kind": "repo_relative_normalized",
         "python_version": sys.version.split()[0],
         "os_summary": f"{platform.system()} {platform.release()}",
         "started_at": started_at,
         "ended_at": ended_at,
         "working_directory": ROOT.as_posix(),
+        "working_directory_kind": "repo_root",
+        "repo_relative_cwd": ".",
         "script_path": CAPTURE_EDGE_EMITTER_SCRIPT_SNAPSHOT_PATH,
         "script_sha256": sha256_file(script_snapshot_path),
         "script_repo_path": CAPTURE_EDGE_EMITTER_SCRIPT_REPO_PATH,
@@ -1365,7 +1407,15 @@ def _write_capture_edge_runtime_receipts(
             "reconstructed_canonical_trace_sha256": canonical_sha,
             "included_canonical_trace_sha256": canonical_sha,
             "matches_included_canonical_trace": True,
-            "runtime_capture_sufficient": True,
+            "runtime_capture_supplied": False,
+            "runtime_capture_sufficient": False,
+            "runtime_capture_structurally_valid": False,
+            "runtime_capture_path": None,
+            "runtime_capture_sha256": None,
+            "runtime_event_capture_supplied": True,
+            "runtime_event_capture_sufficient": True,
+            "runtime_event_capture_structurally_valid": True,
+            "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
             "ready_status_allowed": True,
             "frame_count": len(_frames(trace)),
             "required_channels": list(RUNTIME_EVENT_REQUIRED_CHANNELS),
@@ -1971,7 +2021,8 @@ def _write_buyer_report(package_dir: Path, *, config: dict[str, Any], coverage: 
   <p>RDF rehearses recorded-log file-drop ingestion with generated digital-twin logs. This is not external partner data evaluation.</p>
   <p>Status: <code>{config['status']}</code></p>
   <p>Contract ready: {str(config['file_drop_rehearsal_contract_ready']).lower()} | Ready: {str(config['file_drop_rehearsal_ready']).lower()}</p>
-  <p>Runtime capture sufficient: {str(config['runtime_capture_sufficient']).lower()} | Blocked reason: {config['blocked_reason']}</p>
+  <p>Runtime capture supplied: {str(config['runtime_capture_supplied']).lower()} | Runtime capture sufficient: {str(config['runtime_capture_sufficient']).lower()}</p>
+  <p>Runtime event capture supplied: {str(config['runtime_event_capture_supplied']).lower()} | Runtime event capture sufficient: {str(config['runtime_event_capture_sufficient']).lower()} | Blocked reason: {config['blocked_reason']}</p>
   <table><thead><tr><th>Profile</th><th>Golden</th><th>Corrupt matrix</th></tr></thead><tbody>{rows}</tbody></table>
   <p>Corrupt cases: {coverage['corrupt_case_count']} | silent pass rate: {coverage['silent_pass_rate']}</p>
   <h2>Proof boundary</h2>

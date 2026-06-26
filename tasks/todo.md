@@ -3596,8 +3596,31 @@ compileall/ruff/pyright/git diff --check -> passed
   - [x] docs describe helper/capture-edge/legacy taxonomy
   - [x] `.gitignore` unignores MVP-5A process provenance `.log` files
   - [x] `git add --dry-run` shows process/runtime evidence files are trackable
+  - [x] Fix PR #13 review blockers:
+  - [x] forged process command identity fails after hash refresh
+  - [x] forged stdout semantic summary fails after hash refresh
+  - [x] root `package_manifest.artifact_index` omission fails
+  - [x] `runtime_capture_* = true` with null path/hash fails
+  - [x] `runtime_capture_* = true` with fake package-relative path/hash fails
+        unless the referenced capture artifact exists inside the package and
+        matches the declared sha256
+  - [x] `runtime_capture_* = true` with matching hash but bogus
+        `runtime_capture.json` content fails when structural/sufficient capture
+        claims are true
+  - [x] normal ready package keeps `runtime_capture_* = false` and uses
+        `runtime_event_capture_* = true`
+  - [x] checked package regenerated and verifier `--deep-hdf5` returns VERIFIED
+- [x] Re-run local verification before final review:
+  - [x] package verifier `--deep-hdf5` -> VERIFIED
+  - [x] focused MVP-5A package/profile tests -> 218 passed
+  - [x] frozen verifier regressions -> 9 passed
+  - [x] full pytest -> 1237 passed, 6 skipped
+  - [x] compileall/ruff/pyright/git diff --check -> passed
 - [ ] Commit package artifacts and lifecycle docs with Lore protocol.
 - [ ] Re-run package verifier against committed HEAD package.
-- [ ] Re-run independent code-reviewer and architect.
-- [ ] If clean: write final quality-gate JSON, update Codex goal complete,
-  checkpoint G008, push branch and open PR.
+- [x] Re-run independent code-reviewer and architect:
+  - [x] code-reviewer -> APPROVE
+  - [x] architect -> CLEAR
+- [x] Write final quality-gate JSON:
+  `.omx/ultragoal/quality-gate-mvp5a-pr13-review-blocker-closure.json`
+- [ ] If clean: update Codex goal complete, checkpoint G006, push branch and open PR.

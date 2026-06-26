@@ -7,21 +7,21 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 776,
+      "byte_size": 1026,
       "data_path": "data/canonical_trace/runtime_capture_hash_receipt.json",
-      "file_sha256": "4df8e8ec61a2b33f5e474aaed52afdecbb437d47a85b96305aa63c26d57d3a86",
+      "file_sha256": "5e818692bbb69167a6da97b760ffed1237285cb1ede92195f57ec2875ab9693a",
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 724,
+      "byte_size": 942,
       "data_path": "data/canonical_trace/runtime_capture_preflight.json",
-      "file_sha256": "1269a2ed13cc6ef59097cd201d168c3010a157f4e8a630fa15d1e636849685b3",
+      "file_sha256": "608c116a59bad9e9e25157eff5c3ab529c16ff3f6ea52ea967bda5e5ed6f7473",
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 1881,
+      "byte_size": 2201,
       "data_path": "data/config.json",
-      "file_sha256": "da3a683994ede6f5ac7b82e4008f443b59605def5324e7748841728a19c64cce",
+      "file_sha256": "0a6fe5f1a7806984b268862a9693766e41aea9021e08612b49b1adf3f44b11ce",
       "hash_convention": "file_bytes"
     },
     {
@@ -199,9 +199,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2758,
+      "byte_size": 3040,
       "data_path": "data/process_provenance/capture_edge_emitter_script_snapshot.py",
-      "file_sha256": "b44ac19b63854b9ba4fb77d95662456e3baea0d4ea47fe9aad6ac52007bba7b9",
+      "file_sha256": "e8c99ae10bd3eee5ee518a4b26280e4710beb62b70e20d2b6cd35927ac362c8c",
       "hash_convention": "file_bytes"
     },
     {
@@ -211,15 +211,15 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 408,
+      "byte_size": 309,
       "data_path": "data/process_provenance/capture_edge_emitter_stdout.log",
-      "file_sha256": "004239d7c3a02c4e1a2377abe7a9d74016bdc9ea158fe278e65b55bd896677fc",
+      "file_sha256": "7fd4618a2047fef75b490edb9d6ea342765a4c5f994ba0b39b44562a275476b4",
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 2866,
+      "byte_size": 3053,
       "data_path": "data/process_provenance/process_provenance_receipt.json",
-      "file_sha256": "f841faf2d5c9fd13af42f27f53864edb862f29b9c265debf6c3d7a14b53a9f90",
+      "file_sha256": "14b93ade07e80588f803b92c0dd664c7e69cfb96da17de749a727af2b7918837",
       "hash_convention": "file_bytes"
     },
     {
@@ -229,9 +229,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 1756,
+      "byte_size": 1878,
       "data_path": "data/reports/buyer_report.html",
-      "file_sha256": "2aa4c6476dae77317b468ed144547265075594dcbe41e254d42536b132f792ef",
+      "file_sha256": "2329ca0a388056a08544b6c370ddce454fd9ccec68340c0699562b9c4b7b38a0",
       "hash_convention": "file_bytes"
     },
     {
@@ -247,9 +247,9 @@
       "hash_convention": "file_bytes"
     },
     {
-      "byte_size": 784,
+      "byte_size": 1150,
       "data_path": "data/runtime_evidence/runtime_reconstruction_receipt.json",
-      "file_sha256": "108191ca64907e27d7e689e1ae6031e2599963b17c30bde174b94e970c17559e",
+      "file_sha256": "c47c29ff80e9dbc618bb7981b83215824536f7072ecd29a6c33132e96b0cdebb",
       "hash_convention": "file_bytes"
     },
     {
