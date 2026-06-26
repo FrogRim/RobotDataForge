@@ -3616,11 +3616,15 @@ compileall/ruff/pyright/git diff --check -> passed
   - [x] frozen verifier regressions -> 9 passed
   - [x] full pytest -> 1237 passed, 6 skipped
   - [x] compileall/ruff/pyright/git diff --check -> passed
-- [ ] Commit package artifacts and lifecycle docs with Lore protocol.
-- [ ] Re-run package verifier against committed HEAD package.
+- [x] Commit package artifacts and lifecycle docs with Lore protocol:
+  `12eca4a Preserve MVP-5A readiness against forged runtime evidence`.
+- [x] Re-run package verifier against committed HEAD package:
+  `VERDICT: VERIFIED`.
 - [x] Re-run independent code-reviewer and architect:
   - [x] code-reviewer -> APPROVE
   - [x] architect -> CLEAR
 - [x] Write final quality-gate JSON:
   `.omx/ultragoal/quality-gate-mvp5a-pr13-review-blocker-closure.json`
-- [ ] If clean: update Codex goal complete, checkpoint G006, push branch and open PR.
+- [x] Push branch and update PR #13:
+  `codex/mvp5a-l2-l3-capture-edge-close -> origin`.
+- [ ] If clean: update Codex goal complete and checkpoint G006.
