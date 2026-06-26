@@ -6,7 +6,7 @@
       "expected_rejection_reason_observed": null,
       "export": {
         "hdf5_path": "data/export/ur_rtde_csv_v0/dataset.hdf5",
-        "hdf5_sha256": "57bd689bc055b118278a23de1c95fca182ff772098a73b6ffbd21ebaff63e2a0",
+        "hdf5_sha256": "3c6df4f2d9118bf55cc47c2d10378fe46e7760465aad409c2f0b8a31dc0bbead",
         "trainer_smoke_passed": true
       },
       "export_eligible": true,
@@ -20,8 +20,8 @@
           "sha256": "b2cea3665acafe0e572c7bc0cc9b8d9af7120546ce0d736af0e4cb9169df0e6c"
         },
         "rtde_output.csv": {
-          "byte_size": 4589,
-          "sha256": "04a18e1a9adf9d7a910b4577a63e47b8bbbc9b48b6f65960931c1ce8fbe48633"
+          "byte_size": 4596,
+          "sha256": "8b53851ba462f53c31bc01b74d7670aeac8970b231c0c941e959067340bfcdaf"
         }
       },
       "trainer_smoke_eligible": true
@@ -32,7 +32,7 @@
       "expected_rejection_reason_observed": null,
       "export": {
         "hdf5_path": "data/export/franka_state_jsonl_v0/dataset.hdf5",
-        "hdf5_sha256": "cfed95b9c564b8d145b823722391dd18197f7812bc0879c4c325178353b354fa",
+        "hdf5_sha256": "ff58b627e8a498d2eca70b5ba0181c26acff695b28ccc51376556c6d2a77a14b",
         "trainer_smoke_passed": true
       },
       "export_eligible": true,
@@ -42,12 +42,12 @@
       "rejection_reasons": [],
       "source_file_hashes": {
         "franka_command.jsonl": {
-          "byte_size": 2112,
-          "sha256": "547115be9c7af9a648b5bcbf3ccb2542031b8a3e99860eb1e92aa65e9be237d6"
+          "byte_size": 2117,
+          "sha256": "e6f5475d1a8935f459f64cca8f2abddf55570f2f85a1b6ebd53914a533b6d203"
         },
         "franka_state.jsonl": {
-          "byte_size": 2304,
-          "sha256": "1cc2d4beec784d4fbc5da5d552e10bb657b41497f25c97fab26628c350a6644b"
+          "byte_size": 2312,
+          "sha256": "1ddeb570380eb5f656282ed455b9fdd285d78fb0c6bc1912ea0769b64b36f10a"
         },
         "metadata.json": {
           "byte_size": 1670,
@@ -62,7 +62,7 @@
       "expected_rejection_reason_observed": null,
       "export": {
         "hdf5_path": "data/export/ros2_channel_bundle_jsonl_v0/dataset.hdf5",
-        "hdf5_sha256": "ec33aa1323be93b1717cd17c8a834c00c95ed3cf2a3bbee9d7b98925de229ab4",
+        "hdf5_sha256": "bcd4049671226d02a8d0b715d0887946a44320c1ddb48e8f8ff8dddcda870bb4",
         "trainer_smoke_passed": true
       },
       "export_eligible": true,
@@ -80,16 +80,16 @@
           "sha256": "01505eb0fdeae895afcb526fcf826e8a2d0a542be8f8be09f4a76efac8512f79"
         },
         "topics/command.jsonl": {
-          "byte_size": 1410,
-          "sha256": "46c84574c0a2e9db12393d825d6e4afd9db3e556bb923f0fbfa296f06a1bcb41"
+          "byte_size": 1406,
+          "sha256": "9b05ac244b92c8dd1e47076d7f5de94c764914d8067a6e5cf753faf03be52cb3"
         },
         "topics/joint_states.jsonl": {
-          "byte_size": 2694,
-          "sha256": "04dcb10123f0145f5eb110210aef7373dfa2a337be26ab0779c697fa2e3a6044"
+          "byte_size": 2693,
+          "sha256": "043fc7faa23bee83dec960ab9a3897e0f2454c92110a650bf930648d50f75f0b"
         },
         "topics/tf.jsonl": {
-          "byte_size": 1704,
-          "sha256": "ec5f0b81f2c4bda3bfa3d7d5a3cb53abf1d973843c1386fc917667b5c67f5eef"
+          "byte_size": 1717,
+          "sha256": "eba509fd4a0eae92247e15d0aa277cb315f2bf77ad8881ae385ec5c1d6ef64d1"
         },
         "topics/tf_static.jsonl": {
           "byte_size": 57,
@@ -104,7 +104,7 @@
       "expected_rejection_reason_observed": null,
       "export": {
         "hdf5_path": "data/export/generic_command_state_jsonl_v0/dataset.hdf5",
-        "hdf5_sha256": "8f063d5fd20a945585df75f15a71bf22e0dc00cfde1810c00fd4f1fa15af13fa",
+        "hdf5_sha256": "14f133273ddb3a16618c3ab29cd08ecee66798aa2ff5b4ca0141e7b52bc32684",
         "trainer_smoke_passed": true
       },
       "export_eligible": true,
@@ -114,8 +114,8 @@
       "rejection_reasons": [],
       "source_file_hashes": {
         "command_state.jsonl": {
-          "byte_size": 3959,
-          "sha256": "99e79995ea48a362cdf774a390aad9bed3959db665b08ae1764b04463e3dceec"
+          "byte_size": 3954,
+          "sha256": "864864f41f018000a806e211d161ef803d5fcd44a68d4ac2d88bc86888403bec"
         },
         "metadata.json": {
           "byte_size": 1682,

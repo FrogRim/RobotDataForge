@@ -1,0 +1,10 @@
+{
+  "capture_id": "mvp5a-pre-capture-edge-runtime-event-close-v0",
+  "external_partner_data": false,
+  "frame_count": 12,
+  "generated_by_rdf_sim": true,
+  "real_robot_success": false,
+  "schema_version": "rdf_mvp5a_pre_capture_edge_emitter_config_v0.1.0",
+  "source_backend": "isaac_sim",
+  "source_process_kind": "digital_twin_capture_edge_emitter"
+}

@@ -1,5 +1,74 @@
 # ForgeXR / RDF Data Trust Layer Reset - 2026-06-04
 
+## Current MVP-5A L2/L3 Capture-Edge Evidence Close Implementation - 2026-06-26 KST
+
+Goal: `docs/superpowers/specs/2026-06-26-mvp5a-l2-l3-capture-edge-evidence-close-design.md`
+를 구현해 MVP-5A-pre checked proof package를 `file_drop_rehearsal_ready=true`
+상태로 닫는다. 단, claim은 digital-twin file-drop rehearsal readiness로 제한한다.
+
+Current status:
+
+```text
+branch=codex/mvp5a-l2-l3-capture-edge-close
+code_commit=40824e8badd6942a3a39044c4c20109a811501f1
+package_status=file_drop_rehearsal_ready
+file_drop_rehearsal_ready=true
+final_gate=pending independent review / package-doc commit / push / PR
+```
+
+Checklist:
+
+- [x] Implement direct capture-edge runtime event emitter.
+  - [x] `scripts/capture_mvp5a_pre_raw_runtime_event_log.py`
+  - [x] emitter does not accept canonical trace input.
+  - [x] emitter declares no live Isaac/ROS/HMD/robot hardware claim.
+- [x] Add event-first canonical reconstruction path.
+  - [x] `reconstruct_canonical_trace_from_runtime_events()`
+  - [x] ready package uses reconstructed trace, not canonical trace projection.
+- [x] Add process provenance receipt.
+  - [x] command/config/script/stdout/stderr/event log hash binding.
+  - [x] repo script sha256 checked by verifier.
+  - [x] script snapshot sha256 checked by verifier.
+  - [x] process provenance ceiling recorded.
+- [x] Enable ready close verifier path.
+  - [x] `CAPTURE_EDGE_READY_CLOSE_ENABLED=True`.
+  - [x] ready requires capture-edge origin and producer kind.
+  - [x] helper-derived evidence remains unable to mint ready.
+- [x] Regenerate checked proof package.
+  - [x] `package_status=file_drop_rehearsal_ready`.
+  - [x] `file_drop_rehearsal_ready=true`.
+  - [x] `golden_profile_count=4`.
+  - [x] `corrupt_case_count=52`.
+  - [x] process provenance `git_commit` points to code commit `40824e8`.
+- [x] Verification.
+  - [x] package verifier with `--deep-hdf5` -> VERIFIED.
+  - [x] focused MVP-5A package/profile tests -> 211 passed.
+  - [x] frozen verifier regressions -> 9 passed.
+  - [x] full pytest -> 1230 passed, 6 skipped.
+  - [x] compileall -> passed.
+  - [x] ruff -> passed.
+  - [x] pyright -> 0 errors.
+  - [x] git diff --check -> passed.
+- [ ] Final quality gate.
+  - [x] ai-slop-cleaner scoped pass -> no code edits, no masking fallback found.
+  - [ ] independent code-reviewer lane.
+  - [ ] independent architect lane.
+  - [ ] Lore protocol package/docs commit.
+  - [ ] push branch.
+  - [ ] open PR.
+
+Claim boundary:
+
+- [x] This closes digital-twin file-drop rehearsal readiness.
+- [x] This does not claim external partner data evaluated.
+- [x] This does not claim real robot data evaluated.
+- [x] This does not prove genuine physics authenticity.
+- [x] This does not claim live ROS2/DDS bridge readiness.
+- [x] This does not claim live UR/Franka hardware support.
+- [x] This does not claim policy uplift or production readiness.
+
+---
+
 ## Current MVP-5A L2/L3 Capture-Edge Evidence Close Spec - 2026-06-26 KST
 
 Goal: PR #12의 L2 runtime evidence contract를 consistency baseline으로
@@ -3468,9 +3537,94 @@ compileall_touched_files=passed
   - [x] G009 deep-HDF5 sub-tolerance drift blocker fixed:
     verifier now uses exact array equality and actual HDF5 payload hashes, and
     regression test mutates HDF5 below NumPy tolerance after hash refresh.
-  - [x] G009 final gate complete:
+- [x] G009 final gate complete:
     ai-slop-cleaner PASS, independent code-reviewer APPROVE, architect CLEAR,
     UltraQA PASS, quality gate JSON written, Codex goal marked complete,
     G009 ultragoal checkpoint complete. `omx ultragoal status` now reports
     artifact goals complete; G008 remains historical `review_blocked` and G009
     is the completed blocker-resolution story.
+
+## 2026-06-26 - MVP-5A L2/L3 capture-edge evidence close
+
+- [x] Create/continue branch:
+  `codex/mvp5a-l2-l3-capture-edge-close`.
+- [x] Execute `$ultragoal` against:
+  `docs/superpowers/specs/2026-06-26-mvp5a-l2-l3-capture-edge-evidence-close-design.md`.
+- [x] Implement capture-edge ready close path.
+  - [x] `scripts/capture_mvp5a_pre_raw_runtime_event_log.py`
+  - [x] `--capture-edge-ready-close`
+  - [x] `data/process_provenance/process_provenance_receipt.json`
+  - [x] `data/runtime_evidence/runtime_event_log.jsonl`
+  - [x] `data/runtime_evidence/runtime_event_manifest.json`
+  - [x] `data/runtime_evidence/runtime_reconstruction_receipt.json`
+- [x] Add verifier-owned expected event contract.
+  - [x] Config-derived expected runtime event log recomputation
+  - [x] Parsed event equality check
+  - [x] JSONL byte equality check
+  - [x] Helper-derived relabel forge regression
+- [x] Normalize source process taxonomy.
+  - [x] `canonical_trace_projection_helper`: non-closing helper
+  - [x] `digital_twin_capture_edge_emitter`: ready close evidence
+  - [x] `isaac_sim_process`: legacy/runtime provenance label only
+- [x] Regenerate official package as ready:
+
+```text
+status=file_drop_rehearsal_ready
+file_drop_rehearsal_ready=true
+golden_profile_count=4
+corrupt_case_count=52
+```
+
+- [x] Verification passed locally:
+
+```text
+package verifier --deep-hdf5 -> VERDICT: VERIFIED
+focused MVP-5A tests -> 212 passed
+frozen verifier regressions -> 9 passed
+full pytest -> 1231 passed, 6 skipped
+compileall/ruff/pyright/git diff --check -> passed
+```
+
+- [x] Independent code-reviewer first pass:
+  semantic APPROVE but merge blocker because regenerated ready package was not
+  committed in HEAD.
+- [x] Independent architect first pass:
+  semantics OK, then WATCH/BLOCK on helper taxonomy and ignored `.log` package
+  artifacts.
+- [x] Fix architect blockers:
+  - [x] helper metadata uses `canonical_trace_projection_helper`
+  - [x] docs describe helper/capture-edge/legacy taxonomy
+  - [x] `.gitignore` unignores MVP-5A process provenance `.log` files
+  - [x] `git add --dry-run` shows process/runtime evidence files are trackable
+  - [x] Fix PR #13 review blockers:
+  - [x] forged process command identity fails after hash refresh
+  - [x] forged stdout semantic summary fails after hash refresh
+  - [x] root `package_manifest.artifact_index` omission fails
+  - [x] `runtime_capture_* = true` with null path/hash fails
+  - [x] `runtime_capture_* = true` with fake package-relative path/hash fails
+        unless the referenced capture artifact exists inside the package and
+        matches the declared sha256
+  - [x] `runtime_capture_* = true` with matching hash but bogus
+        `runtime_capture.json` content fails when structural/sufficient capture
+        claims are true
+  - [x] normal ready package keeps `runtime_capture_* = false` and uses
+        `runtime_event_capture_* = true`
+  - [x] checked package regenerated and verifier `--deep-hdf5` returns VERIFIED
+- [x] Re-run local verification before final review:
+  - [x] package verifier `--deep-hdf5` -> VERIFIED
+  - [x] focused MVP-5A package/profile tests -> 218 passed
+  - [x] frozen verifier regressions -> 9 passed
+  - [x] full pytest -> 1237 passed, 6 skipped
+  - [x] compileall/ruff/pyright/git diff --check -> passed
+- [x] Commit package artifacts and lifecycle docs with Lore protocol:
+  `12eca4a Preserve MVP-5A readiness against forged runtime evidence`.
+- [x] Re-run package verifier against committed HEAD package:
+  `VERDICT: VERIFIED`.
+- [x] Re-run independent code-reviewer and architect:
+  - [x] code-reviewer -> APPROVE
+  - [x] architect -> CLEAR
+- [x] Write final quality-gate JSON:
+  `.omx/ultragoal/quality-gate-mvp5a-pr13-review-blocker-closure.json`
+- [x] Push branch and update PR #13:
+  `codex/mvp5a-l2-l3-capture-edge-close -> origin`.
+- [ ] If clean: update Codex goal complete and checkpoint G006.

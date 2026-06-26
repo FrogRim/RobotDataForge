@@ -1,15 +1,15 @@
 {
-  "hdf5_action_sha256": "afd309296c552561b43e89ca422133f26b716a628ef76390aba6f3f6521da7ab",
+  "hdf5_action_sha256": "5db922764032d4c86c3da87a19de099e182120bca29aeb103c36f218a6685f38",
   "hdf5_frame_count": 12,
-  "hdf5_state_sha256": "0e0116cda69bfbd3b62805b371ca332c74fd3110fb3901d6da75c6b7c13f5bf5",
+  "hdf5_state_sha256": "8a554464f121ad7678f6a77460c030e65ad04880af5d7fcc3d2e7613cdc80234",
   "hdf5_timestamp_sha256": "41f2badf1de05bf9f40c6d3414ef886c00fdaea346d246b14543a8dec7b5413e",
   "normalized_contract_frame_count": 12,
   "profile_id": "franka_state_jsonl_v0",
   "profile_semantics_preserved": true,
   "schema_version": "rdf_mvp5a_pre_semantic_preservation_receipt_v0.1.0",
-  "source_action_sha256": "afd309296c552561b43e89ca422133f26b716a628ef76390aba6f3f6521da7ab",
+  "source_action_sha256": "5db922764032d4c86c3da87a19de099e182120bca29aeb103c36f218a6685f38",
   "source_frame_count": 12,
-  "source_state_sha256": "0e0116cda69bfbd3b62805b371ca332c74fd3110fb3901d6da75c6b7c13f5bf5",
+  "source_state_sha256": "8a554464f121ad7678f6a77460c030e65ad04880af5d7fcc3d2e7613cdc80234",
   "source_timestamp_sha256": "41f2badf1de05bf9f40c6d3414ef886c00fdaea346d246b14543a8dec7b5413e",
   "trainer_frame_count": 12
 }

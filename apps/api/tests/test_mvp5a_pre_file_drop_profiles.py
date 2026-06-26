@@ -11,11 +11,11 @@ from app.services.mvp5a_file_drop_rehearsal import (
     RAW_RUNTIME_EVENT_SCHEMA_VERSION,
     PROFILE_IDS,
     RUNTIME_BACKEND,
+    RUNTIME_EVENT_HELPER_SOURCE_PROCESS_KIND,
     RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION,
     RUNTIME_EVENT_REQUIRED_CHANNELS,
     RUNTIME_RECONSTRUCTION_ALGORITHM,
     RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION,
-    RUNTIME_SOURCE_PROCESS_KIND,
     STATUS_CONTRACT_READY,
     build_rehearsal_package,
     build_fixture_canonical_trace,
@@ -70,7 +70,7 @@ def test_runtime_event_log_from_trace_has_required_channels_per_frame() -> None:
     assert [event["event_index"] for event in events] == list(range(len(events)))
     assert all(event["schema_version"] == RAW_RUNTIME_EVENT_SCHEMA_VERSION for event in events)
     assert all(event["source_backend"] == RUNTIME_BACKEND for event in events)
-    assert all(event["source_process_kind"] == RUNTIME_SOURCE_PROCESS_KIND for event in events)
+    assert all(event["source_process_kind"] == RUNTIME_EVENT_HELPER_SOURCE_PROCESS_KIND for event in events)
 
 
 def test_write_runtime_evidence_emits_manifest_and_reconstruction_receipt(tmp_path: Path) -> None:
@@ -87,6 +87,7 @@ def test_write_runtime_evidence_emits_manifest_and_reconstruction_receipt(tmp_pa
     assert event_log.is_file()
     assert manifest["schema_version"] == RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION
     assert manifest["runtime_event_log_sha256"] == report["runtime_event_log_sha256"]
+    assert manifest["source_process_kind"] == RUNTIME_EVENT_HELPER_SOURCE_PROCESS_KIND
     assert manifest["frame_count"] == trace["frame_count"]
     assert manifest["event_count"] == trace["frame_count"] * len(RUNTIME_EVENT_REQUIRED_CHANNELS)
     assert manifest["required_channels"] == list(RUNTIME_EVENT_REQUIRED_CHANNELS)

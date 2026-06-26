@@ -2115,16 +2115,17 @@ file_drop_rehearsal_contract_ready
 file_drop_rehearsal_ready
 ```
 
-현재 fixture-only package는 다음 상태다.
+현재 checked package는 L2/L3 capture-edge path로 다음 상태다.
 
 ```text
-status=file_drop_rehearsal_contract_ready
-file_drop_rehearsal_ready=false
-blocked_reason=runtime_capture_not_supplied
+status=file_drop_rehearsal_ready
+file_drop_rehearsal_ready=true
+blocked_reason=null
 ```
 
-Checked-in fixture-only package는 `file_drop_rehearsal_ready=true`를 열지 않는다.
-`runtime_capture.json`이 supplied되고 `MIN_CANONICAL_FRAMES=12` 이상이며 각 frame이
+Checked-in ready package는 `runtime_capture.json`이 아니라 L2 raw runtime event
+evidence와 L3 process provenance로 닫힌다. `runtime_capture.json`이 supplied되고
+`MIN_CANONICAL_FRAMES=12` 이상이며 각 frame이
 UR commanded/actual joints, UR TCP pose/speed, Franka commanded/actual state,
 Franka EEF transform, generic command/state, phase, robot mode, safety status를
 모두 포함하더라도, 그 JSON은 self-attested summary payload일 수 있다. 따라서
@@ -2133,6 +2134,20 @@ runtime events를 verifier가 직접 group/validate/reconstruct할 때만 허용
 builder가 deterministic fixture를 runtime-backed로 덮어써 승격하면 안 된다.
 timestamp-only capture, row-count-only capture, provenance 없는 capture도
 contract-ready에 머문다.
+
+Ready package의 runtime evidence claim은 두 필드군으로 분리한다.
+
+```text
+runtime_capture_*:
+  data/canonical_trace/runtime_capture.json 같은 raw runtime capture artifact가
+  실제 path와 sha256으로 포함된 경우에만 true가 될 수 있다.
+  path/hash가 null이면 verifier가 hard-fail한다.
+
+runtime_event_capture_*:
+  data/runtime_evidence/runtime_event_log.jsonl + process provenance +
+  reconstruction receipt가 포함되어 verifier가 canonical trace와 package verdict를
+  재계산할 수 있을 때 true가 된다.
+```
 
 필수 profile:
 
@@ -2155,7 +2170,7 @@ data/canonical_trace/
   runtime_capture.json   # runtime capture가 supplied된 경우에만 존재
   runtime_capture_preflight.json
   runtime_capture_hash_receipt.json
-data/runtime_evidence/  # optional L2 evidence; checked-in fixture package에는 없음
+data/runtime_evidence/
   runtime_event_log.jsonl
   runtime_event_manifest.json
   runtime_reconstruction_receipt.json
@@ -2221,8 +2236,25 @@ exactly one event per required channel per frame
 no unknown closing channel
 no non-finite numeric payload
 source_backend=isaac_sim
-source_process_kind=isaac_sim_process
 external_partner_data=false
+```
+
+`source_process_kind`는 evidence role별로 분리한다.
+
+```text
+canonical_trace_projection_helper:
+  non-closing helper evidence.
+  build_runtime_event_log_from_trace가 canonical trace에서 projection한 consistency fixture다.
+  file_drop_rehearsal_ready=true를 열 수 없다.
+
+digital_twin_capture_edge_emitter:
+  closing L2/L3 capture-edge evidence.
+  capture_mvp5a_pre_raw_runtime_event_log.py가 raw runtime event log를 먼저 emit하고,
+  verifier가 그 event log에서 canonical trace와 package verdict를 재계산한다.
+
+isaac_sim_process:
+  legacy/runtime-capture provenance label.
+  이 라벨만으로는 capture-edge ready close를 열 수 없다.
 ```
 
 금지 claim:

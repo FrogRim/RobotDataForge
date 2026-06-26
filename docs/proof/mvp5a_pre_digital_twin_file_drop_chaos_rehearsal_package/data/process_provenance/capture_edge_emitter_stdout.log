@@ -1,0 +1,9 @@
+{
+  "capture_id": "mvp5a-pre-capture-edge-runtime-event-close-v0",
+  "event_count": 72,
+  "external_partner_data": false,
+  "frame_count": 12,
+  "output": "data/runtime_evidence/runtime_event_log.jsonl",
+  "real_robot_success": false,
+  "schema_version": "rdf_mvp5a_pre_capture_edge_emitter_summary_v0.1.0"
+}

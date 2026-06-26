@@ -11,11 +11,15 @@ from __future__ import annotations
 
 import csv
 from dataclasses import dataclass
+from datetime import UTC, datetime
 import hashlib
 import json
 import math
+import platform
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 from typing import Any, Callable
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -31,6 +35,8 @@ RAW_RUNTIME_EVENT_SCHEMA_VERSION = "rdf_mvp5a_pre_raw_runtime_event_v0.1.0"
 RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_event_manifest_v0.1.0"
 RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_reconstruction_receipt_v0.1.0"
 RUNTIME_RECONSTRUCTION_ALGORITHM = "rdf_mvp5a_pre_runtime_events_to_canonical_trace_v0.1.0"
+PROCESS_PROVENANCE_RECEIPT_SCHEMA_VERSION = "rdf_mvp5a_pre_process_provenance_receipt_v0.1.0"
+CAPTURE_EDGE_EMITTER_CONFIG_SCHEMA_VERSION = "rdf_mvp5a_pre_capture_edge_emitter_config_v0.1.0"
 PROFILE_REGISTRY_SCHEMA_VERSION = "rdf_mvp5a_pre_file_drop_profile_registry_v0.1.0"
 SOURCE_METADATA_SCHEMA_VERSION = "rdf_mvp5a_pre_file_drop_source_metadata_v0.1.0"
 INGEST_RESULT_SCHEMA_VERSION = "rdf_mvp5a_pre_file_drop_ingest_result_v0.1.0"
@@ -48,8 +54,18 @@ RUNTIME_EVENT_CAPTURE_SCRIPT_ID = "mvp5a_pre_isaac_sim_raw_runtime_event_capture
 RUNTIME_EVENT_HELPER_SCRIPT_ID = "mvp5a_pre_canonical_trace_projection_helper_v0"
 RUNTIME_EVENT_HELPER_EVIDENCE_ORIGIN = "canonical_trace_projection_helper"
 RUNTIME_EVENT_HELPER_PRODUCER_KIND = "dev_fixture_helper"
+RUNTIME_EVENT_HELPER_SOURCE_PROCESS_KIND = "canonical_trace_projection_helper"
 RUNTIME_EVENT_HELPER_SOURCE_FUNCTION = "build_runtime_event_log_from_trace"
+RUNTIME_EVENT_CAPTURE_EDGE_EVIDENCE_ORIGIN = "capture_edge_runtime_event_emitter"
+RUNTIME_EVENT_CAPTURE_EDGE_PRODUCER_KIND = "capture_edge_emitter"
+CAPTURE_EDGE_EMITTER_SCRIPT_REPO_PATH = "scripts/capture_mvp5a_pre_raw_runtime_event_log.py"
+CAPTURE_EDGE_EMITTER_SCRIPT_SNAPSHOT_PATH = "data/process_provenance/capture_edge_emitter_script_snapshot.py"
+CAPTURE_EDGE_EMITTER_CONFIG_PATH = "data/process_provenance/capture_edge_emitter_config.json"
+CAPTURE_EDGE_EMITTER_STDOUT_PATH = "data/process_provenance/capture_edge_emitter_stdout.log"
+CAPTURE_EDGE_EMITTER_STDERR_PATH = "data/process_provenance/capture_edge_emitter_stderr.log"
+CAPTURE_EDGE_PROCESS_PROVENANCE_RECEIPT_PATH = "data/process_provenance/process_provenance_receipt.json"
 RUNTIME_SOURCE_PROCESS_KIND = "isaac_sim_process"
+CAPTURE_EDGE_SOURCE_PROCESS_KIND = "digital_twin_capture_edge_emitter"
 FIXTURE_FRAME_CONTENT_SHA256 = "ff9f65a980a6ea315b95117dd9961a806c95cc104d4adc7082b3ab82016f287c"
 RUNTIME_FRAME_KEYS = {"frame_index", "timestamp", "phase", "ur", "franka", "generic"}
 RUNTIME_EVENT_REQUIRED_CHANNELS = (
@@ -423,6 +439,7 @@ def prepare_canonical_trace(runtime_capture: Path | None, *, fixture_only: bool)
         "runtime_capture_supplied": preflight["runtime_capture_supplied"],
         "runtime_capture_sufficient": preflight["runtime_capture_sufficient"],
         "runtime_capture_structurally_valid": preflight.get("runtime_capture_structurally_valid", False),
+        "runtime_capture_path": preflight.get("runtime_capture_path"),
         "runtime_capture_sha256": preflight["runtime_capture_sha256"],
         "ready_status_allowed": False,
         "blocked_reason": preflight["blocked_reason"],
@@ -511,13 +528,196 @@ def build_runtime_event_log_from_trace(trace: dict[str, Any], *, capture_id: str
                     "timestamp": timestamp,
                     "channel": channel,
                     "source_backend": RUNTIME_BACKEND,
-                    "source_process_kind": RUNTIME_SOURCE_PROCESS_KIND,
+                    "source_process_kind": RUNTIME_EVENT_HELPER_SOURCE_PROCESS_KIND,
                     "units": units,
                     "payload": payload,
                 }
             )
             event_index += 1
     return events
+
+
+def build_capture_edge_runtime_event_log(
+    *,
+    capture_id: str,
+    frame_count: int = MIN_CANONICAL_FRAMES,
+) -> list[dict[str, Any]]:
+    """Emit raw runtime events directly from the rehearsal capture edge.
+
+    This function intentionally does not accept a canonical trace. The canonical
+    trace for a ready package must be reconstructed from these event rows.
+    """
+    events: list[dict[str, Any]] = []
+    event_index = 0
+    for index in range(frame_count):
+        timestamp = round(index * 0.04, 6)
+        delta = round(0.0007 * (index + 1), 6)
+        ur_actual = [round(0.04 * math.sin(index / 4 + joint) + delta, 6) for joint in range(6)]
+        ur_target = [round(value + 0.003, 6) for value in ur_actual]
+        franka_actual = [round(0.03 * math.cos(index / 5 + joint) + delta, 6) for joint in range(7)]
+        franka_target = [round(value + 0.002, 6) for value in franka_actual]
+        tcp_position = [
+            round(0.42 + 0.001 * index + delta, 6),
+            -0.015,
+            round(0.16 - 0.0015 * index, 6),
+        ]
+        tcp_rotation = [0.0, 3.14159, 0.0]
+        channel_rows: tuple[tuple[str, dict[str, Any], dict[str, str]], ...] = (
+            ("phase_marker", {"phase": "approach" if index < frame_count - 3 else "insert_rehearsal"}, {}),
+            (
+                "ur_joint_state",
+                {
+                    "joint_names": list(PROFILE_REGISTRY["ur_rtde_csv_v0"].joint_names),
+                    "actual_q": ur_actual,
+                    "target_q": ur_target,
+                    "robot_mode": "RUNNING",
+                    "safety_status": "NORMAL",
+                },
+                {"joint_position": "rad"},
+            ),
+            (
+                "ur_tcp_state",
+                {
+                    "actual_TCP_pose": [*tcp_position, *tcp_rotation],
+                    "target_TCP_pose": [tcp_position[0] + 0.001, tcp_position[1], tcp_position[2], *tcp_rotation],
+                    "actual_TCP_speed": [0.025, 0.0, -0.018, 0.0, 0.0, 0.0],
+                },
+                {"tcp_position": "m", "tcp_rotation": "rotation_vector_rad", "tcp_speed": "m_per_s"},
+            ),
+            (
+                "franka_joint_state",
+                {
+                    "joint_names": list(PROFILE_REGISTRY["franka_state_jsonl_v0"].joint_names),
+                    "q": franka_actual,
+                    "q_d": franka_target,
+                    "robot_mode": "move",
+                },
+                {"joint_position": "rad"},
+            ),
+            (
+                "franka_eef_state",
+                {
+                    "O_T_EE": _pose_matrix(x=tcp_position[0], y=tcp_position[1], z=tcp_position[2]),
+                    "O_T_EE_d": _pose_matrix(x=tcp_position[0] + 0.001, y=tcp_position[1], z=tcp_position[2]),
+                },
+                {"pose_matrix": "homogeneous_transform_row_major_m"},
+            ),
+            (
+                "generic_command_state",
+                {
+                    "state": ur_actual,
+                    "command": ur_target,
+                    "state_timestamp": timestamp,
+                    "command_timestamp": round(max(timestamp - 0.01, 0.0), 6),
+                    "action_semantics": "commanded_target_state",
+                    "state_semantics": "actual_robot_state",
+                },
+                {"state": "profile_native", "command": "profile_native"},
+            ),
+        )
+        for channel, payload, units in channel_rows:
+            events.append(
+                {
+                    "schema_version": RAW_RUNTIME_EVENT_SCHEMA_VERSION,
+                    "capture_id": capture_id,
+                    "event_index": event_index,
+                    "frame_index": index,
+                    "timestamp": timestamp,
+                    "channel": channel,
+                    "source_backend": RUNTIME_BACKEND,
+                    "source_process_kind": CAPTURE_EDGE_SOURCE_PROCESS_KIND,
+                    "units": units,
+                    "payload": payload,
+                }
+            )
+            event_index += 1
+    return events
+
+
+def reconstruct_canonical_trace_from_runtime_events(
+    events: list[dict[str, Any]],
+    *,
+    trace_id: str = "mvp5a_pre_l2_l3_capture_edge_reconstructed_trace_v0",
+) -> dict[str, Any]:
+    grouped: dict[int, dict[str, dict[str, Any]]] = {}
+    timestamps: dict[int, float] = {}
+    for event in events:
+        frame_index = event.get("frame_index")
+        channel = event.get("channel")
+        payload = event.get("payload")
+        timestamp = event.get("timestamp")
+        if not isinstance(frame_index, int) or not isinstance(channel, str) or not isinstance(payload, dict):
+            raise ValueError("runtime event row cannot reconstruct canonical trace")
+        if not isinstance(timestamp, (int, float)) or isinstance(timestamp, bool) or not math.isfinite(float(timestamp)):
+            raise ValueError("runtime event timestamp cannot reconstruct canonical trace")
+        grouped.setdefault(frame_index, {})[channel] = payload
+        timestamps.setdefault(frame_index, float(timestamp))
+    if sorted(grouped) != list(range(len(grouped))):
+        raise ValueError("runtime event frames are not contiguous")
+
+    frames: list[dict[str, Any]] = []
+    for frame_index in sorted(grouped):
+        channels = grouped[frame_index]
+        if set(channels) != set(RUNTIME_EVENT_REQUIRED_CHANNELS):
+            raise ValueError("runtime event channel set cannot reconstruct canonical trace")
+        phase = channels["phase_marker"]
+        ur_joint = channels["ur_joint_state"]
+        ur_tcp = channels["ur_tcp_state"]
+        franka_joint = channels["franka_joint_state"]
+        franka_eef = channels["franka_eef_state"]
+        generic = channels["generic_command_state"]
+        frames.append(
+            {
+                "frame_index": frame_index,
+                "timestamp": round(timestamps[frame_index], 6),
+                "phase": phase["phase"],
+                "ur": {
+                    "actual_q": ur_joint["actual_q"],
+                    "target_q": ur_joint["target_q"],
+                    "actual_TCP_pose": ur_tcp["actual_TCP_pose"],
+                    "target_TCP_pose": ur_tcp["target_TCP_pose"],
+                    "actual_TCP_speed": ur_tcp["actual_TCP_speed"],
+                    "robot_mode": ur_joint["robot_mode"],
+                    "safety_status": ur_joint["safety_status"],
+                },
+                "franka": {
+                    "q": franka_joint["q"],
+                    "q_d": franka_joint["q_d"],
+                    "O_T_EE": franka_eef["O_T_EE"],
+                    "O_T_EE_d": franka_eef["O_T_EE_d"],
+                    "robot_mode": franka_joint["robot_mode"],
+                },
+                "generic": {
+                    "state": generic["state"],
+                    "command": generic["command"],
+                    "command_timestamp": generic["command_timestamp"],
+                    "state_timestamp": generic["state_timestamp"],
+                },
+            }
+        )
+    return {
+        "schema_version": CANONICAL_TRACE_SCHEMA_VERSION,
+        "trace_id": trace_id,
+        "source_kind": RUNTIME_BACKED_SOURCE_KIND,
+        "runtime_backed": True,
+        "generated_by_rdf_sim": True,
+        "external_partner_data": False,
+        "frame_count": len(frames),
+        "frames": frames,
+        "non_claims": dict(NON_CLAIMS),
+    }
+
+
+def read_runtime_event_log(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if not isinstance(row, dict):
+            raise ValueError("runtime event log row must be an object")
+        rows.append(row)
+    return rows
 
 
 def write_runtime_evidence(
@@ -548,7 +748,7 @@ def write_runtime_evidence(
         "helper_source_function": RUNTIME_EVENT_HELPER_SOURCE_FUNCTION,
         "closing_evidence": False,
         "source_backend": RUNTIME_BACKEND,
-        "source_process_kind": RUNTIME_SOURCE_PROCESS_KIND,
+        "source_process_kind": RUNTIME_EVENT_HELPER_SOURCE_PROCESS_KIND,
         "frame_count": len(_frames(trace)),
         "event_count": len(events),
         "required_channels": list(RUNTIME_EVENT_REQUIRED_CHANNELS),
@@ -839,34 +1039,43 @@ def export_profile_hdf5(profile_id: str, rows: tuple[dict[str, Any], ...], expor
     }
 
 
-def build_rehearsal_package(
+def _materialize_rehearsal_package(
     *,
-    package_dir: Path = DEFAULT_PACKAGE_DIR,
-    runtime_capture: Path | None = None,
-    fixture_only: bool = True,
+    package_dir: Path,
+    trace: dict[str, Any],
+    preflight: dict[str, Any],
+    capture_receipt: dict[str, Any],
+    status: str,
+    ready: bool,
     emit_runtime_event_evidence: bool = False,
-    clean: bool = False,
+    runtime_evidence_report: dict[str, Any] | None = None,
+    runtime_capture: Path | None = None,
 ) -> dict[str, Any]:
-    if clean and package_dir.exists():
-        _assert_managed_package_dir(package_dir)
-        shutil.rmtree(package_dir)
     data_dir = package_dir / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    trace, preflight, capture_receipt = prepare_canonical_trace(runtime_capture, fixture_only=fixture_only)
-    status = STATUS_CONTRACT_READY
-    ready = False
     contract_ready = True
+
+    packaged_preflight = dict(preflight)
+    packaged_capture_receipt = dict(capture_receipt)
+    if runtime_capture is not None:
+        source_capture = _resolve_runtime_capture_path(runtime_capture)
+        if source_capture and source_capture.exists():
+            capture_target = data_dir / "canonical_trace" / "runtime_capture.json"
+            capture_target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_capture, capture_target)
+            packaged_capture_sha = sha256_file(capture_target)
+            packaged_capture_path = "data/canonical_trace/runtime_capture.json"
+            for payload in (packaged_preflight, packaged_capture_receipt):
+                payload["runtime_capture_path"] = packaged_capture_path
+                payload["runtime_capture_sha256"] = packaged_capture_sha
+    preflight = packaged_preflight
+    capture_receipt = packaged_capture_receipt
 
     write_json(data_dir / "canonical_trace" / "canonical_trace.json", trace)
     write_json(data_dir / "canonical_trace" / "runtime_capture_preflight.json", preflight)
     write_json(data_dir / "canonical_trace" / "runtime_capture_hash_receipt.json", capture_receipt)
-    if runtime_capture is not None:
-        source_capture = _resolve_runtime_capture_path(runtime_capture)
-        if source_capture and source_capture.exists():
-            shutil.copy2(source_capture, data_dir / "canonical_trace" / "runtime_capture.json")
-    runtime_evidence_report = None
-    if emit_runtime_event_evidence:
+    if emit_runtime_event_evidence and runtime_evidence_report is None:
         runtime_evidence_report = write_runtime_evidence(package_dir, trace)
     write_json(data_dir / "profile_registry.json", build_profile_registry())
     write_json(data_dir / "non_claims_attestation.json", {"schema_version": NON_CLAIMS_SCHEMA_VERSION, "non_claims": dict(NON_CLAIMS)})
@@ -907,8 +1116,15 @@ def build_rehearsal_package(
         "status": status,
         "file_drop_rehearsal_contract_ready": contract_ready,
         "file_drop_rehearsal_ready": ready,
+        "runtime_capture_supplied": preflight.get("runtime_capture_supplied", False),
         "runtime_capture_sufficient": preflight["runtime_capture_sufficient"],
         "runtime_capture_structurally_valid": preflight.get("runtime_capture_structurally_valid", False),
+        "runtime_capture_path": preflight.get("runtime_capture_path"),
+        "runtime_capture_sha256": preflight.get("runtime_capture_sha256"),
+        "runtime_event_capture_supplied": preflight.get("runtime_event_capture_supplied", False),
+        "runtime_event_capture_sufficient": preflight.get("runtime_event_capture_sufficient", False),
+        "runtime_event_capture_structurally_valid": preflight.get("runtime_event_capture_structurally_valid", False),
+        "runtime_event_log_path": preflight.get("runtime_event_log_path"),
         "blocked_reason": None if ready else preflight["blocked_reason"],
         "fresh_runtime_capture_required": not ready,
         "generated_by_rdf_sim": True,
@@ -923,7 +1139,12 @@ def build_rehearsal_package(
     }
     if runtime_evidence_report is not None:
         config["runtime_evidence_level"] = "L2_verifier_owned_raw_runtime_events"
+        config["runtime_event_log_path"] = "data/runtime_evidence/runtime_event_log.jsonl"
         config["runtime_event_log_sha256"] = runtime_evidence_report["runtime_event_log_sha256"]
+        if runtime_evidence_report.get("process_provenance_receipt_sha256"):
+            config["process_provenance_receipt_sha256"] = runtime_evidence_report[
+                "process_provenance_receipt_sha256"
+            ]
     write_json(data_dir / "config.json", config)
     _write_buyer_report(package_dir, config=config, coverage=coverage)
     _write_readme(package_dir, config=config)
@@ -938,6 +1159,282 @@ def build_rehearsal_package(
         "blocked_reason": config["blocked_reason"],
         "runtime_event_evidence_emitted": runtime_evidence_report is not None,
     }
+
+
+def build_rehearsal_package(
+    *,
+    package_dir: Path = DEFAULT_PACKAGE_DIR,
+    runtime_capture: Path | None = None,
+    fixture_only: bool = True,
+    emit_runtime_event_evidence: bool = False,
+    clean: bool = False,
+) -> dict[str, Any]:
+    if clean and package_dir.exists():
+        _assert_managed_package_dir(package_dir)
+        shutil.rmtree(package_dir)
+    trace, preflight, capture_receipt = prepare_canonical_trace(runtime_capture, fixture_only=fixture_only)
+    return _materialize_rehearsal_package(
+        package_dir=package_dir,
+        trace=trace,
+        preflight=preflight,
+        capture_receipt=capture_receipt,
+        status=STATUS_CONTRACT_READY,
+        ready=False,
+        emit_runtime_event_evidence=emit_runtime_event_evidence,
+        runtime_capture=runtime_capture,
+    )
+
+
+def build_capture_edge_ready_rehearsal_package(
+    *,
+    package_dir: Path = DEFAULT_PACKAGE_DIR,
+    clean: bool = False,
+    frame_count: int = MIN_CANONICAL_FRAMES,
+    capture_id: str = "mvp5a-pre-capture-edge-runtime-event-close-v0",
+) -> dict[str, Any]:
+    if clean and package_dir.exists():
+        _assert_managed_package_dir(package_dir)
+        shutil.rmtree(package_dir)
+    data_dir = package_dir / "data"
+    (data_dir / "runtime_evidence").mkdir(parents=True, exist_ok=True)
+    (data_dir / "process_provenance").mkdir(parents=True, exist_ok=True)
+
+    runtime_report = _run_capture_edge_emitter(
+        package_dir=package_dir,
+        capture_id=capture_id,
+        frame_count=frame_count,
+    )
+    events = read_runtime_event_log(Path(runtime_report["runtime_event_log_path"]))
+    trace = reconstruct_canonical_trace_from_runtime_events(events)
+    canonical_sha = sha256_bytes((stable_json(trace) + "\n").encode("utf-8"))
+    _write_capture_edge_runtime_receipts(
+        package_dir=package_dir,
+        trace=trace,
+        runtime_report=runtime_report,
+    )
+    preflight = {
+        "schema_version": "rdf_mvp5a_pre_runtime_capture_preflight_v0.1.0",
+        "runtime_capture_supplied": False,
+        "runtime_capture_sufficient": False,
+        "runtime_capture_structurally_valid": False,
+        "fresh_runtime_capture_required": False,
+        "blocked_reason": None,
+        "issues": [],
+        "runtime_capture_path": None,
+        "runtime_capture_sha256": None,
+        "runtime_event_capture_supplied": True,
+        "runtime_event_capture_sufficient": True,
+        "runtime_event_capture_structurally_valid": True,
+        "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
+        "minimum_required_frames": MIN_CANONICAL_FRAMES,
+        "observed_min_source_log_rows_emitted": len(_frames(trace)),
+        "runtime_event_log_sha256": runtime_report["runtime_event_log_sha256"],
+        "process_provenance_receipt_path": CAPTURE_EDGE_PROCESS_PROVENANCE_RECEIPT_PATH,
+        "process_provenance_receipt_sha256": runtime_report["process_provenance_receipt_sha256"],
+    }
+    capture_receipt = {
+        "schema_version": "rdf_mvp5a_pre_runtime_capture_hash_receipt_v0.1.0",
+        "canonical_trace_sha256": canonical_sha,
+        "runtime_capture_supplied": False,
+        "runtime_capture_sufficient": False,
+        "runtime_capture_structurally_valid": False,
+        "runtime_capture_path": None,
+        "runtime_capture_sha256": None,
+        "runtime_event_capture_supplied": True,
+        "runtime_event_capture_sufficient": True,
+        "runtime_event_capture_structurally_valid": True,
+        "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
+        "ready_status_allowed": True,
+        "blocked_reason": None,
+        "runtime_event_log_sha256": runtime_report["runtime_event_log_sha256"],
+        "process_provenance_receipt_path": CAPTURE_EDGE_PROCESS_PROVENANCE_RECEIPT_PATH,
+        "process_provenance_receipt_sha256": runtime_report["process_provenance_receipt_sha256"],
+        "process_provenance_ceiling": "declared_process_identity_only_not_physics_authenticity",
+    }
+    result = _materialize_rehearsal_package(
+        package_dir=package_dir,
+        trace=trace,
+        preflight=preflight,
+        capture_receipt=capture_receipt,
+        status=STATUS_READY,
+        ready=True,
+        runtime_evidence_report=runtime_report,
+    )
+    result["process_provenance_receipt"] = str(package_dir / CAPTURE_EDGE_PROCESS_PROVENANCE_RECEIPT_PATH)
+    return result
+
+
+def _run_capture_edge_emitter(
+    *,
+    package_dir: Path,
+    capture_id: str,
+    frame_count: int,
+) -> dict[str, Any]:
+    process_dir = package_dir / "data" / "process_provenance"
+    runtime_dir = package_dir / "data" / "runtime_evidence"
+    process_dir.mkdir(parents=True, exist_ok=True)
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+
+    script_repo_path = ROOT / CAPTURE_EDGE_EMITTER_SCRIPT_REPO_PATH
+    script_snapshot_path = package_dir / CAPTURE_EDGE_EMITTER_SCRIPT_SNAPSHOT_PATH
+    config_path = package_dir / CAPTURE_EDGE_EMITTER_CONFIG_PATH
+    stdout_path = package_dir / CAPTURE_EDGE_EMITTER_STDOUT_PATH
+    stderr_path = package_dir / CAPTURE_EDGE_EMITTER_STDERR_PATH
+    event_log_path = package_dir / "data" / "runtime_evidence" / "runtime_event_log.jsonl"
+
+    config = {
+        "schema_version": CAPTURE_EDGE_EMITTER_CONFIG_SCHEMA_VERSION,
+        "capture_id": capture_id,
+        "frame_count": frame_count,
+        "source_backend": RUNTIME_BACKEND,
+        "source_process_kind": CAPTURE_EDGE_SOURCE_PROCESS_KIND,
+        "generated_by_rdf_sim": True,
+        "external_partner_data": False,
+        "real_robot_success": False,
+    }
+    write_json(config_path, config)
+    script_snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(script_repo_path, script_snapshot_path)
+
+    command = [
+        sys.executable,
+        str(script_repo_path),
+        "--config",
+        str(config_path),
+        "--output",
+        str(event_log_path),
+    ]
+    normalized_command_argv = [
+        "python",
+        CAPTURE_EDGE_EMITTER_SCRIPT_REPO_PATH,
+        "--config",
+        CAPTURE_EDGE_EMITTER_CONFIG_PATH,
+        "--output",
+        "data/runtime_evidence/runtime_event_log.jsonl",
+    ]
+    started_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    completed = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
+    ended_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    stdout_path.write_text(completed.stdout, encoding="utf-8")
+    stderr_path.write_text(completed.stderr, encoding="utf-8")
+    if completed.returncode != 0:
+        raise RuntimeError(f"capture-edge emitter failed with exit code {completed.returncode}: {completed.stderr}")
+    event_log_sha = sha256_file(event_log_path)
+    receipt = {
+        "schema_version": PROCESS_PROVENANCE_RECEIPT_SCHEMA_VERSION,
+        "capture_script_id": RUNTIME_EVENT_CAPTURE_SCRIPT_ID,
+        "source_backend": RUNTIME_BACKEND,
+        "source_process_kind": CAPTURE_EDGE_SOURCE_PROCESS_KIND,
+        "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
+        "runtime_event_log_sha256": event_log_sha,
+        "exit_code": completed.returncode,
+        "git_commit": _git_value("rev-parse", "HEAD"),
+        "git_branch": _git_value("rev-parse", "--abbrev-ref", "HEAD"),
+        "command": " ".join(normalized_command_argv),
+        "command_argv": normalized_command_argv,
+        "command_argv_kind": "repo_relative_normalized",
+        "python_version": sys.version.split()[0],
+        "os_summary": f"{platform.system()} {platform.release()}",
+        "started_at": started_at,
+        "ended_at": ended_at,
+        "working_directory": ROOT.as_posix(),
+        "working_directory_kind": "repo_root",
+        "repo_relative_cwd": ".",
+        "script_path": CAPTURE_EDGE_EMITTER_SCRIPT_SNAPSHOT_PATH,
+        "script_sha256": sha256_file(script_snapshot_path),
+        "script_repo_path": CAPTURE_EDGE_EMITTER_SCRIPT_REPO_PATH,
+        "script_repo_sha256": sha256_file(script_repo_path),
+        "config_path": CAPTURE_EDGE_EMITTER_CONFIG_PATH,
+        "config_sha256": sha256_file(config_path),
+        "stdout_log_path": CAPTURE_EDGE_EMITTER_STDOUT_PATH,
+        "stdout_log_sha256": sha256_file(stdout_path),
+        "stderr_log_path": CAPTURE_EDGE_EMITTER_STDERR_PATH,
+        "stderr_log_sha256": sha256_file(stderr_path),
+        "process_provenance_ceiling": "declared_process_identity_only_not_physics_authenticity",
+        "non_claims": dict(NON_CLAIMS),
+    }
+    receipt_path = package_dir / CAPTURE_EDGE_PROCESS_PROVENANCE_RECEIPT_PATH
+    write_json(receipt_path, receipt)
+    return {
+        "runtime_event_log_path": event_log_path,
+        "runtime_event_log_sha256": event_log_sha,
+        "process_provenance_receipt_path": receipt_path,
+        "process_provenance_receipt_sha256": sha256_file(receipt_path),
+        "script_repo_path": script_repo_path,
+        "script_repo_sha256": sha256_file(script_repo_path),
+        "frame_count": frame_count,
+    }
+
+
+def _write_capture_edge_runtime_receipts(
+    *,
+    package_dir: Path,
+    trace: dict[str, Any],
+    runtime_report: dict[str, Any],
+) -> None:
+    runtime_dir = package_dir / "data" / "runtime_evidence"
+    event_log_sha = str(runtime_report["runtime_event_log_sha256"])
+    events = read_runtime_event_log(Path(runtime_report["runtime_event_log_path"]))
+    canonical_sha = sha256_bytes((stable_json(trace) + "\n").encode("utf-8"))
+    write_json(
+        runtime_dir / "runtime_event_manifest.json",
+        {
+            "schema_version": RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION,
+            "evidence_level": "L2_verifier_owned_raw_runtime_events",
+            "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
+            "runtime_event_log_sha256": event_log_sha,
+            "capture_id": events[0]["capture_id"] if events else None,
+            "capture_script_id": RUNTIME_EVENT_CAPTURE_SCRIPT_ID,
+            "evidence_origin": RUNTIME_EVENT_CAPTURE_EDGE_EVIDENCE_ORIGIN,
+            "producer_kind": RUNTIME_EVENT_CAPTURE_EDGE_PRODUCER_KIND,
+            "closing_evidence": True,
+            "source_backend": RUNTIME_BACKEND,
+            "source_process_kind": CAPTURE_EDGE_SOURCE_PROCESS_KIND,
+            "frame_count": len(_frames(trace)),
+            "event_count": len(events),
+            "required_channels": list(RUNTIME_EVENT_REQUIRED_CHANNELS),
+            "generated_by_rdf_sim": True,
+            "external_partner_data": False,
+            "non_claims": dict(NON_CLAIMS),
+        },
+    )
+    write_json(
+        runtime_dir / "runtime_reconstruction_receipt.json",
+        {
+            "schema_version": RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION,
+            "reconstruction_algorithm": RUNTIME_RECONSTRUCTION_ALGORITHM,
+            "runtime_event_log_sha256": event_log_sha,
+            "reconstructed_canonical_trace_sha256": canonical_sha,
+            "included_canonical_trace_sha256": canonical_sha,
+            "matches_included_canonical_trace": True,
+            "runtime_capture_supplied": False,
+            "runtime_capture_sufficient": False,
+            "runtime_capture_structurally_valid": False,
+            "runtime_capture_path": None,
+            "runtime_capture_sha256": None,
+            "runtime_event_capture_supplied": True,
+            "runtime_event_capture_sufficient": True,
+            "runtime_event_capture_structurally_valid": True,
+            "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
+            "ready_status_allowed": True,
+            "frame_count": len(_frames(trace)),
+            "required_channels": list(RUNTIME_EVENT_REQUIRED_CHANNELS),
+        },
+    )
+
+
+def _git_value(*args: str) -> str:
+    completed = subprocess.run(["git", *args], cwd=ROOT, text=True, capture_output=True, check=False)
+    if completed.returncode != 0:
+        return "unknown"
+    return completed.stdout.strip() or "unknown"
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
 def _profile(profile_id: str) -> ProfileSpec:
@@ -1018,7 +1515,7 @@ def _write_ur_csv(path: Path, frames: list[dict[str, Any]], spec: ProfileSpec) -
         "safety_status",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         for frame in frames:
             ur = frame["ur"]
@@ -1524,11 +2021,13 @@ def _write_buyer_report(package_dir: Path, *, config: dict[str, Any], coverage: 
   <p>RDF rehearses recorded-log file-drop ingestion with generated digital-twin logs. This is not external partner data evaluation.</p>
   <p>Status: <code>{config['status']}</code></p>
   <p>Contract ready: {str(config['file_drop_rehearsal_contract_ready']).lower()} | Ready: {str(config['file_drop_rehearsal_ready']).lower()}</p>
-  <p>Runtime capture sufficient: {str(config['runtime_capture_sufficient']).lower()} | Blocked reason: {config['blocked_reason']}</p>
+  <p>Runtime capture supplied: {str(config['runtime_capture_supplied']).lower()} | Runtime capture sufficient: {str(config['runtime_capture_sufficient']).lower()}</p>
+  <p>Runtime event capture supplied: {str(config['runtime_event_capture_supplied']).lower()} | Runtime event capture sufficient: {str(config['runtime_event_capture_sufficient']).lower()} | Blocked reason: {config['blocked_reason']}</p>
   <table><thead><tr><th>Profile</th><th>Golden</th><th>Corrupt matrix</th></tr></thead><tbody>{rows}</tbody></table>
   <p>Corrupt cases: {coverage['corrupt_case_count']} | silent pass rate: {coverage['silent_pass_rate']}</p>
   <h2>Proof boundary</h2>
   <p>The verifier-backed package evidence is the source of truth, not this HTML report.</p>
+  <p>Process provenance binds the declared command, script, config, logs, and event hash. It does not prove the runtime was a genuine physics run rather than replay or fabrication.</p>
   <p>No external partner data evaluation.</p>
   <p>No real robot success.</p>
   <p>No hardware readiness.</p>
@@ -1550,6 +2049,20 @@ def _write_buyer_report(package_dir: Path, *, config: dict[str, Any], coverage: 
 
 
 def _write_readme(package_dir: Path, *, config: dict[str, Any]) -> None:
+    if config["file_drop_rehearsal_ready"]:
+        close_text = """`file_drop_rehearsal_ready=true` is opened only for the L2/L3
+capture-edge path: raw runtime events, process provenance receipt, L2 runtime
+manifest, reconstruction receipt, and verifier recomputation all agree.
+Runtime-shaped summary JSON or helper-derived event logs are not closing
+evidence."""
+    else:
+        close_text = """`file_drop_rehearsal_ready=true` is disabled for this
+contract-ready consistency package. The ready close requires a capture-edge
+runtime event emitter, process provenance receipt, L2 runtime manifest,
+reconstruction receipt, and verifier recomputation. Runtime-shaped summary JSON
+or helper-derived event logs are not closing evidence. This checked-in fixture
+package remains contract-ready."""
+    verifier_args = "--deep-hdf5" if config["status"] == STATUS_READY else "--allow-contract-ready --deep-hdf5"
     text = f"""# MVP-5A-pre Digital Twin File-Drop Chaos Rehearsal
 
 Status: `{config['status']}`
@@ -1560,14 +2073,14 @@ digital-twin UR/Franka/ROS2-style/generic logs.
 The default verifier recomputes package consistency from included evidence:
 
 ```bash
-python3 scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py {package_dir.as_posix()}/package_manifest.json --allow-contract-ready --deep-hdf5
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/{PACKAGE_NAME}/package_manifest.json {verifier_args}
 ```
 
-`file_drop_rehearsal_ready=true` is disabled for the PR #12 consistency
-baseline. The future ready close requires a capture-edge runtime event emitter,
-process provenance receipt, L2 runtime manifest, reconstruction receipt, and
-verifier recomputation. Runtime-shaped summary JSON or helper-derived event logs
-are not closing evidence. This checked-in fixture package remains contract-ready.
+{close_text}
+
+For a ready package, process provenance binds the declared command, script,
+config, stdout/stderr logs, and runtime event hash. It does not prove the
+runtime was a genuine physics run rather than replay or fabrication.
 
 ## Claim Boundary
 
@@ -1735,7 +2248,7 @@ def _mutate_ur_csv(path: Path, mutator: Callable[[list[dict[str, str]]], None]) 
         fieldnames = list(reader.fieldnames or [])
     mutator(rows)
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
