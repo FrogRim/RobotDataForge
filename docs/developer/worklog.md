@@ -22942,3 +22942,918 @@ git push origin codex/mvp5a-l2-l3-capture-edge-close
   GitHub CI 확인 후 G006 ultragoal checkpoint와 Codex goal completion.
 - Claim boundary는 여전히 digital-twin capture-edge file-drop rehearsal이며,
   external partner data, real robot, hardware readiness, policy uplift를 주장하지 않는다.
+
+## 2026-06-26 — MVP-5B RDF File-Drop Evaluator Alpha spec 작성
+
+### 작업 내용
+
+- `docs/superpowers/specs/2026-06-26-mvp5b-rdf-file-drop-evaluator-alpha-design.md`를 추가했다.
+- 다음 제품화 milestone을 `MVP-5B: RDF File-Drop Evaluator Alpha`로 정의했다.
+- 방향은 `CLI-first + local web UI + Pake shell`로 수렴했다.
+- Pake는 desktop shell로만 쓰고, CLI/verifier가 source of truth라는 경계를 명시했다.
+- folder/zip 입력, explicit profile selection, preflight, evaluation, verifier, buyer report, UI/Pake shell, partner intake kit까지 spec 범위를 정리했다.
+
+### 판단 이유
+
+- MVP-5A L2/L3로 verifier-backed backend boundary는 강해졌지만, 사용자가 실제로 folder/zip file-drop을 평가하는 제품 표면은 아직 부족하다.
+- Desktop app을 먼저 만들면 UI가 trust verdict를 계산하는 두 번째 verifier가 될 위험이 있다.
+- 따라서 CLI/verifier를 먼저 고정하고, web UI와 Pake는 결과 표시 shell로 제한하는 것이 RDF proof discipline과 일치한다.
+
+### 변경 파일
+
+```text
+docs/superpowers/specs/2026-06-26-mvp5b-rdf-file-drop-evaluator-alpha-design.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+wc -l docs/superpowers/specs/2026-06-26-mvp5b-rdf-file-drop-evaluator-alpha-design.md
+  -> 1553 lines
+
+git diff --check
+  -> passed before Handoff/worklog updates
+```
+
+### 남은 gap 또는 다음 작업
+
+- 아직 구현은 시작하지 않았다.
+- 다음 단계는 이 spec을 기준으로 `$ralplan --deliberate`를 작성하는 것이다.
+- RALPLAN에서 결정해야 할 핵심:
+  CLI entrypoint 형태, local command bridge/API 형태, Pake integration depth,
+  test corpus 위치, partner intake kit 포함 여부.
+
+## 2026-06-26 — MVP-5B RDF File-Drop Evaluator Alpha RALPLAN 승인
+
+### 작업 내용
+
+- `docs/superpowers/specs/2026-06-26-mvp5b-rdf-file-drop-evaluator-alpha-design.md`를 기준으로 `$ralplan --deliberate` 계획을 작성했다.
+- `.omx/context/mvp5b-rdf-file-drop-evaluator-alpha-20260626T121242Z.md`에 planning context snapshot을 저장했다.
+- `.omx/plans/prd-mvp5b-rdf-file-drop-evaluator-alpha.md`에 PRD를 저장했다.
+- `.omx/plans/test-spec-mvp5b-rdf-file-drop-evaluator-alpha.md`에 test spec을 저장했다.
+- `.omx/plans/ralplan-mvp5b-rdf-file-drop-evaluator-alpha.md`에 deliberate implementation plan을 저장했다.
+- Architect iteration 1에서 지적한 `FastAPI command bridge` 위험을 반영해 command bridge safety contract를 PRD/test spec/RALPLAN에 추가했다.
+- Architect iteration 2와 Critic review를 순차 실행했고 둘 다 `APPROVE`를 받았다.
+- RALPLAN consensus handoff를 plan 파일에 기록하고 실행 후속으로 `$ultragoal`을 지정했다.
+
+### 판단 이유
+
+- MVP-5B는 Desktop/Pake UI를 여는 작업이지만, RDF의 trust verdict는 여전히 CLI/verifier가 소유해야 한다.
+- 기존 MVP-5A verifier는 4-profile full rehearsal package 전용이라, 임의 single file-drop run에는 별도 single-run verifier가 필요하다.
+- 브라우저에서 로컬 명령을 실행하는 FastAPI bridge는 보안 표면이므로 구현 전에 allowlist, `shell=False`, sanitized env, timeout, output cap, output-root confinement, local-only/no broad CORS를 testable contract로 고정했다.
+
+### 변경 파일
+
+```text
+.omx/context/mvp5b-rdf-file-drop-evaluator-alpha-20260626T121242Z.md
+.omx/plans/prd-mvp5b-rdf-file-drop-evaluator-alpha.md
+.omx/plans/test-spec-mvp5b-rdf-file-drop-evaluator-alpha.md
+.omx/plans/ralplan-mvp5b-rdf-file-drop-evaluator-alpha.md
+.omx/plans/ralplan-architect-review-mvp5b-rdf-file-drop-evaluator-alpha-iteration1.md
+.omx/plans/ralplan-architect-review-mvp5b-rdf-file-drop-evaluator-alpha-iteration2.md
+.omx/plans/ralplan-critic-review-mvp5b-rdf-file-drop-evaluator-alpha.md
+Handoff.md
+docs/developer/worklog.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+Architect review iteration 1
+  -> ITERATE
+  -> command bridge safety contract 보강 요구
+
+Architect review iteration 2
+  -> APPROVE
+
+Critic review
+  -> APPROVE
+  -> blocking changes 없음
+
+git diff --check
+  -> 실행 예정
+```
+
+### 남은 gap 또는 다음 작업
+
+- 아직 구현은 시작하지 않았다.
+- 다음 단계는 아래 승인 plan을 기준으로 `$ultragoal` 실행이다.
+
+```text
+$ultragoal .omx/plans/ralplan-mvp5b-rdf-file-drop-evaluator-alpha.md
+```
+
+- 구현 중 특히 유지해야 할 경계:
+  - CLI/verifier만 `PASS/FAIL` source of truth.
+  - FastAPI는 constrained command bridge.
+  - Web/Pake는 display shell.
+  - real robot, external partner data, hardware readiness, live UR/Franka/ROS2, policy uplift, production readiness claim 금지.
+
+## 2026-06-26 — MVP-5B G1 Baseline + CLI safe input resolver
+
+### 작업 내용
+
+- MVP-5A ready package baseline을 `--deep-hdf5`로 재검증했다.
+- `scripts/rdf_file_drop_evaluator.py`를 추가했다.
+- CLI subcommand 초안을 추가했다.
+  - `profiles list`
+  - `profiles inspect`
+  - `preflight`
+  - `evaluate` / `verify` / `report` / `doctor`는 후속 goal용 fail-closed stub로 등록
+- folder/zip safe resolver를 추가했다.
+  - zip path traversal 차단
+  - zip absolute path 차단
+  - folder symlink escape 차단
+  - unknown profile fail-closed
+- G1 focused 테스트를 추가했다.
+
+### 판단 이유
+
+- MVP-5B의 첫 사용자-facing entrypoint는 UI가 아니라 CLI여야 한다.
+- 이후 FastAPI bridge와 Pake shell은 이 CLI JSON/exit-code contract만 호출해야 하므로, subprocess 기반 테스트로 CLI 동작을 먼저 고정했다.
+- evaluator-run package와 independent verifier는 G2에서 구현하므로 G1에서는 preflight까지만 닫았다.
+
+### 변경 파일
+
+```text
+scripts/rdf_file_drop_evaluator.py
+apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py
+apps/api/tests/test_mvp5b_file_drop_evaluator_security.py
+docs/developer/worklog.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --deep-hdf5
+  -> VERDICT: VERIFIED
+  -> status=file_drop_rehearsal_ready
+  -> file_drop_rehearsal_ready=true
+
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py
+  -> 16 passed
+
+uv run python -m compileall scripts/rdf_file_drop_evaluator.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py
+  -> passed
+
+uvx ruff check scripts/rdf_file_drop_evaluator.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py
+  -> All checks passed
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G2에서 evaluator-run package layout과 `scripts/verify_rdf_file_drop_evaluator_run.py`를 구현해야 한다.
+- 현재 `evaluate` / `verify` / `report` / `doctor`는 의도적으로 `not_implemented` fail-closed 상태다.
+
+## 2026-06-26 — MVP-5B G2 Evaluator-run package + independent verifier
+
+### 작업 내용
+
+- `scripts/rdf_file_drop_evaluator.py`의 `evaluate` / `verify`를 구현했다.
+- `evaluate`가 `artifacts/rdf_file_drop_evaluator/<run_id>/` 형태의 evaluator-run package를 생성하도록 했다.
+  - `source_drop/`
+  - `input_receipt.json`
+  - `preflight_result.json`
+  - `evaluation_result.json`
+  - `normalized/normalized_contract.json`
+  - `export/dataset.hdf5` 및 export receipts
+  - `reports/buyer_report.json`
+  - `reports/buyer_report.html`
+  - `package_manifest.json`
+- `scripts/verify_rdf_file_drop_evaluator_run.py`를 추가했다.
+  - producer service module import 없이 4개 profile source file을 직접 파싱한다.
+  - `source_drop`에서 frame count, pass/fail, rejection reason, normalized rows를 재계산한다.
+  - `evaluation_result.json` / `normalized_contract.json` / HDF5 export를 summary가 아닌 included evidence 기준으로 대조한다.
+  - `.html` 포함 buyer-facing artifact claim scan을 수행한다.
+  - `--deep-hdf5` 없이는 HDF5 export가 있는 package를 fail-closed 처리한다.
+- tamper 테스트를 추가했다.
+  - cached evaluation summary tamper
+  - buyer report forbidden claim text injection
+  - source file semantic tamper 후 hash refresh
+  - verifier import guard
+
+### 판단 이유
+
+- CLI/UI가 생성한 package를 신뢰하지 않고, 별도 verifier가 included evidence를 다시 계산해야 MVP-5B도 기존 proof discipline을 유지할 수 있다.
+- verifier는 producer helper를 import하지 않아야 하므로 profile constants와 parser를 독립 구현했다.
+- HDF5는 binary artifact라 기본 verifier에서 조용히 신뢰하지 않고 `--deep-hdf5`를 요구한다.
+
+### 변경 파일
+
+```text
+scripts/rdf_file_drop_evaluator.py
+scripts/verify_rdf_file_drop_evaluator_run.py
+apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py
+docs/developer/worklog.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest -q apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py
+  -> 9 passed
+
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py
+  -> 25 passed
+
+uv run python -m compileall scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py
+  -> passed
+
+uvx ruff check scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py
+  -> All checks passed
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G3에서 deterministic golden/corrupt corpus fixture/factory와 rejection reason matrix를 추가해야 한다.
+- `report` / `doctor`는 아직 후속 goal용 fail-closed stub 상태다.
+
+## 2026-06-26 — MVP-5B G3 File-drop corpus + corrupt cases
+
+### 작업 내용
+
+- `apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py`를 추가했다.
+- 기존 MVP-5A deterministic mutation factory를 MVP-5B evaluator-run package 경로에 연결했다.
+- 4개 profile golden drop을 모두 CLI `evaluate`로 package화하고 independent verifier로 검증했다.
+- 52개 corrupt mutation을 모두 CLI `evaluate`에 태웠다.
+  - corrupt drop은 CLI exit non-zero
+  - expected rejection reason 포함
+  - `export_eligible=false`
+  - `trainer_smoke_eligible=false`
+  - `normalized_contract.rows=[]`
+  - `export/dataset.hdf5` 미생성
+- rejected package도 verifier가 source evidence에서 `passed=false`를 재계산해 `VERIFIED`할 수 있게 했다.
+  - 단, source 자체에 forbidden positive claim이 들어간 package는 verifier가 `forbidden_claim_leakage`로 fail한다.
+- `unknown_profile`처럼 source metadata가 망가진 case도 requested profile 기준으로 package를 끝까지 생성하도록 CLI package contract를 보강했다.
+
+### 판단 이유
+
+- 실제 file-drop에서는 실패 package도 buyer/debug artifact로 남아야 하므로, rejected package는 "성공"이 아니라 "검증 가능한 rejection"이어야 한다.
+- corrupt input을 단순히 실패시키는 것만으로는 부족하고, training/export eligibility가 열리지 않는 것을 artifact와 verifier 경로로 고정해야 한다.
+- claim-boundary 위반 fixture는 rejected package 검증보다 더 강하게 verifier fail이 맞다.
+
+### 변경 파일
+
+```text
+scripts/rdf_file_drop_evaluator.py
+scripts/verify_rdf_file_drop_evaluator_run.py
+apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py
+docs/developer/worklog.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py
+  -> 57 passed
+
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py
+  -> 82 passed
+
+uv run python -m compileall scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py
+  -> passed
+
+uvx ruff check scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py
+  -> All checks passed
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G4에서 FastAPI local command bridge를 추가해야 한다.
+- API bridge는 CLI/verifier의 JSON/exit-code를 표시해야 하며 자체 PASS/FAIL 계산을 하면 안 된다.
+
+## 2026-06-26 — MVP-5B G4 FastAPI command bridge
+
+### 작업 내용
+
+- `apps/api/app/routers/file_drop.py`를 추가하고 `apps/api/app/main.py`에 router를 등록했다.
+- local-only FastAPI bridge endpoint를 추가했다.
+  - `GET /api/file-drop/profiles`
+  - `GET /api/file-drop/profiles/{profile_id}`
+  - `POST /api/file-drop/preflight`
+  - `POST /api/file-drop/evaluate`
+  - `POST /api/file-drop/verify`
+- bridge는 `scripts/rdf_file_drop_evaluator.py`만 allowlisted argv list로 실행한다.
+  - `shell=False`
+  - repo root cwd
+  - sanitized env
+  - timeout
+  - stdout/stderr cap
+  - malformed JSON fail-closed
+  - evaluator output root confinement
+  - verifier input path confinement
+- API는 CLI/verifier exit code와 JSON 결과를 그대로 노출하고, 자체 PASS/FAIL 계산을 하지 않는다.
+- `apps/api/tests/test_file_drop_api_bridge.py`를 추가했다.
+  - profiles/preflight/evaluate/verify endpoint
+  - unsafe `run_id` rejection
+  - artifact root 밖 verify path rejection
+  - argv + `shell=False` 실행 강제
+  - malformed JSON / timeout / noisy output fail-closed
+  - verifier failure result를 API가 rewrite하지 않는지 검증
+
+### 판단 이유
+
+- Desktop/Pake shell은 신뢰 판정의 주체가 아니므로, FastAPI도 CLI/verifier를 감싼 constrained bridge로 제한했다.
+- output root와 verifier target을 분리하지 않으면 UI에서 임의 local path/package를 verifier 경로로 밀어 넣을 수 있으므로 artifact root confinement를 먼저 잠갔다.
+- API가 verifier 결과를 "사용자 친화적으로" 재해석하면 self-attestation 계층이 다시 생기므로 raw exit code/JSON을 보존한다.
+
+### 변경 파일
+
+```text
+apps/api/app/main.py
+apps/api/app/routers/file_drop.py
+apps/api/tests/test_file_drop_api_bridge.py
+docs/developer/worklog.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest -q apps/api/tests/test_file_drop_api_bridge.py
+  -> 11 passed
+
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_file_drop_api_bridge.py
+  -> 93 passed
+
+uv run python -m compileall scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_file_drop_api_bridge.py
+  -> passed
+
+uv run --with ruff ruff check scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_file_drop_api_bridge.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py
+  -> All checks passed
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G5에서 browser-facing UI shell을 추가해야 한다.
+- UI는 API bridge 결과를 표시하는 역할만 하며 PASS/FAIL을 직접 계산하면 안 된다.
+
+## 2026-06-26 — MVP-5B G5 Browser file-drop evaluator shell
+
+### 작업 내용
+
+- `apps/web/app/file-drop/page.tsx`를 추가했다.
+- `apps/web/lib/api.ts` / `apps/web/lib/types.ts`에 file-drop bridge API 타입과 호출 함수를 추가했다.
+- `apps/web/app/layout.tsx`와 `apps/web/app/page.tsx`에 `/file-drop` 진입 링크를 추가했다.
+- `apps/web/styles/globals.css`에 file-drop tool 화면용 form/result 스타일을 추가했다.
+- UI 기능:
+  - profile list 로드
+  - input folder/zip path 입력
+  - optional run id 입력
+  - preflight/evaluate 실행
+  - evaluate 결과의 `run_dir`를 verify input으로 연결
+  - verify 실행
+  - CLI/verifier `command_argv`, exit code, bridge error, stdout/stderr cap 상태, rejection reasons, failed checks 표시
+  - non-claim footer 표시
+- UI는 verifier stage에서만 `exit_code==0`, `result.ok==true`, `result.verdict=="VERIFIED"`일 때 녹색 `VERIFIED`를 표시한다.
+
+### 판단 이유
+
+- Desktop/Pake alpha의 browser shell은 사용자와 마주보는 표면이지만 신뢰 판단 주체가 아니므로, API bridge 결과를 표시하는 역할로 제한했다.
+- preflight/evaluate는 package 생성/검사 단계이고 최종 검증이 아니므로, 화면에서 최종 PASS로 승격하지 않는다.
+- file picker의 browser-local path는 local API가 직접 읽을 수 없으므로, v0는 local path paste 방식으로 제한하고 이 제약은 G6 docs에 명시한다.
+
+### 변경 파일
+
+```text
+apps/web/app/file-drop/page.tsx
+apps/web/app/layout.tsx
+apps/web/app/page.tsx
+apps/web/lib/api.ts
+apps/web/lib/types.ts
+apps/web/styles/globals.css
+docs/developer/worklog.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+cd apps/web && npm ci
+  -> installed from package-lock; npm audit reports 1 moderate vulnerability (existing dependency posture, not changed here)
+
+cd apps/web && npm run lint
+  -> passed
+
+cd apps/web && npm run build
+  -> passed
+
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_file_drop_api_bridge.py
+  -> 93 passed
+
+uv run python -m compileall scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_file_drop_api_bridge.py
+  -> passed
+
+uv run --with ruff ruff check scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_file_drop_api_bridge.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py
+  -> All checks passed
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G6에서 Pake shell 사용 문서와 partner file-drop intake kit를 추가해야 한다.
+- UI는 local path paste 방식이며, drag/drop folder bytes를 browser가 API로 업로드하는 구조는 이번 alpha 범위가 아니다.
+
+## 2026-06-26 — MVP-5B G6 Pake docs + partner intake kit
+
+### 작업 내용
+
+- `docs/desktop/pake_file_drop_evaluator_alpha.md`를 추가했다.
+  - local backend/web 실행 절차
+  - Pake localhost wrapper command
+  - Pake shell-only trust boundary
+  - alpha input model(local path paste)
+  - stop conditions
+- `docs/partner_intake/` 문서 세트를 추가했다.
+  - `README.md`
+  - `ur_rtde_file_drop_request.md`
+  - `franka_file_drop_request.md`
+  - `ros2_channel_bundle_file_drop_request.md`
+  - `generic_command_state_file_drop_request.md`
+  - `data_privacy_license_provenance_checklist.md`
+  - `file_drop_triage_runbook.md`
+- 각 partner intake 문서는 현재 실제 profile registry와 동일한 profile id, robot metadata, required files, required fields, expected rejection examples를 사용한다.
+- `docs/developer/debugging_guide.md`에 MVP-5B File-Drop Evaluator Alpha 실행 절차를 추가했다.
+
+### 판단 이유
+
+- 실제 external/partner log를 받기 전에 상대에게 요구할 파일, metadata, units, action/state semantics, license/privacy 정보를 명확히 해야 한다.
+- Pake는 desktop shell일 뿐이고 verifier source of truth를 대체하지 않으므로, packaging command보다 trust boundary와 stop condition을 먼저 문서화했다.
+- 현재 UI는 browser upload가 아니라 local path paste 방식이므로, 이 UX 제약을 문서에 명시했다.
+
+### 변경 파일
+
+```text
+docs/desktop/pake_file_drop_evaluator_alpha.md
+docs/partner_intake/README.md
+docs/partner_intake/ur_rtde_file_drop_request.md
+docs/partner_intake/franka_file_drop_request.md
+docs/partner_intake/ros2_channel_bundle_file_drop_request.md
+docs/partner_intake/generic_command_state_file_drop_request.md
+docs/partner_intake/data_privacy_license_provenance_checklist.md
+docs/partner_intake/file_drop_triage_runbook.md
+docs/developer/debugging_guide.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+test -f docs/desktop/pake_file_drop_evaluator_alpha.md && test -f docs/partner_intake/README.md && test -f docs/partner_intake/ur_rtde_file_drop_request.md && test -f docs/partner_intake/franka_file_drop_request.md && test -f docs/partner_intake/ros2_channel_bundle_file_drop_request.md && test -f docs/partner_intake/generic_command_state_file_drop_request.md && test -f docs/partner_intake/file_drop_triage_runbook.md
+  -> docs-present
+
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_file_drop_api_bridge.py
+  -> 93 passed
+
+cd apps/web && npm run lint
+  -> passed
+
+cd apps/web && npm run build
+  -> passed
+
+uv run --with ruff ruff check scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_file_drop_api_bridge.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py
+  -> All checks passed
+
+uv run python -m compileall scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_file_drop_api_bridge.py
+  -> passed
+
+git diff --check
+  -> passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G7 final regression, frozen verifier regression, ai-slop-cleaner, independent review, final Handoff update가 남았다.
+- 실제 Pake binary packaging은 local optional smoke로 문서화했으며 CI 필수 검증으로 넣지 않았다.
+
+## 2026-06-26 — MVP-5B G7 final regression + review gate
+
+### 작업 내용
+
+- MVP-5B RDF File-Drop Evaluator Alpha의 최종 ultragoal gate를 수행했다.
+- `ai-slop-cleaner` 관점에서 `report` / `doctor` stub가 `not_implemented` 상태로 남아 있던 문제를 닫고, CLI command surface를 실제 구현으로 정리했다.
+- 독립 code-reviewer가 지적한 6개 blocker를 닫았다.
+  - buyer report JSON/HTML semantic drift가 verifier를 통과하던 문제
+  - `--out --force` 임의 디렉터리 삭제 위험
+  - snake_case forbidden claim positive leakage
+  - rejected package를 UI가 green VERIFIED로 오독시키던 상태 표시
+  - zip entry count/size cap 부재
+  - partner intake docs의 current-alpha metadata와 future-partner request metadata 혼동
+- 재리뷰 중 추가로 발견된 claim scanner 구멍을 닫았다.
+  - `external_partner_data_evaluated is true` 같은 HTML/prose positive claim이 이전 문단의 “No ... claim” negation에 묻혀 통과하던 문제를 회귀 테스트로 고정했다.
+- 독립 architect가 지적한 copy-safety blocker를 닫았다.
+  - folder input 내부 symlink loop를 copy 전에 `symlink_escape`로 fail-closed
+  - zip duplicate normalized target overwrite를 `duplicate_zip_member`로 fail-closed
+- `artifacts/`는 local runtime/test output이므로 `.gitignore`에 추가해 pytest/evaluator 실행 후 작업 트리가 오염되지 않게 했다.
+
+### 판단 이유
+
+- MVP-5B는 실제 외부 로봇 로그 평가가 아니라 pre-real-log local file-drop evaluator alpha이므로, 신뢰 판단은 UI나 summary가 아니라 CLI/verifier 재계산 결과만 기준이어야 한다.
+- untrusted file-drop input에서는 symlink 자체가 copy-safe하지 않으므로 root 내부 symlink도 허용하지 않는 symlink-free contract가 alpha에 가장 안전하다.
+- buyer-facing HTML은 사람이 보는 표면이므로 JSON 구조 필드뿐 아니라 prose claim leakage도 verifier가 검사해야 한다.
+- generated evaluator artifacts는 proof package가 아니라 local runtime output이므로 git tracking 대상이 아니다.
+
+### 변경 파일
+
+```text
+.gitignore
+scripts/rdf_file_drop_evaluator.py
+scripts/verify_rdf_file_drop_evaluator_run.py
+apps/api/app/main.py
+apps/api/app/routers/file_drop.py
+apps/api/tests/test_file_drop_api_bridge.py
+apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py
+apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py
+apps/api/tests/test_mvp5b_file_drop_evaluator_security.py
+apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py
+apps/web/app/file-drop/page.tsx
+apps/web/app/layout.tsx
+apps/web/app/page.tsx
+apps/web/lib/api.ts
+apps/web/lib/types.ts
+apps/web/styles/globals.css
+docs/desktop/pake_file_drop_evaluator_alpha.md
+docs/partner_intake/README.md
+docs/partner_intake/ur_rtde_file_drop_request.md
+docs/partner_intake/franka_file_drop_request.md
+docs/partner_intake/ros2_channel_bundle_file_drop_request.md
+docs/partner_intake/generic_command_state_file_drop_request.md
+docs/partner_intake/data_privacy_license_provenance_checklist.md
+docs/partner_intake/file_drop_triage_runbook.md
+docs/superpowers/specs/2026-06-26-mvp5b-rdf-file-drop-evaluator-alpha-design.md
+docs/developer/debugging_guide.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_file_drop_api_bridge.py
+  -> 104 passed, 1 warning
+
+uv run pytest -q
+  -> 1341 passed, 6 skipped, 1 warning
+
+cd apps/web && npm run lint && npm run build
+  -> passed
+
+uv run python -m compileall scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_file_drop_api_bridge.py
+  -> passed
+
+uv run --with ruff ruff check scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_file_drop_api_bridge.py
+  -> All checks passed
+
+git diff --check
+  -> passed
+
+Frozen verifier regression:
+  scripts/verify_mvp2_package.py
+  scripts/verify_proof_package.py
+  scripts/verify_mvp3b_source_adapter_package.py
+  scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py
+  scripts/verify_external_robot_data_ingest_package.py
+  scripts/verify_lerobot_public_slice_package.py --deep-hdf5
+  scripts/verify_lerobot_public_dataset_matrix_package.py --deep-hdf5
+  scripts/scan_rdf_trustpack_html_claims.py
+  scripts/compare_rdf_public_dataset_trustpack_regeneration.py
+  scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py --deep-hdf5
+  -> all VERIFIED/PASS
+
+Independent review:
+  code-reviewer -> APPROVE
+  architect -> CLEAR
+```
+
+### 남은 gap 또는 다음 작업
+
+- 실제 external/partner robot log는 아직 평가하지 않았다.
+- Pake binary packaging은 문서화된 optional local step이며 CI에서 binary build를 수행하지 않는다.
+- Browser alpha는 local path paste 방식이다. Native drag/drop folder upload나 installer UX는 다음 productization slice에서 다룬다.
+- 다음 우선순위는 Lore protocol 기준 커밋 분리, push/PR/CI, 그리고 이후 desktop/Pake binary smoke 또는 실제 file-drop dry run으로 이어진다.
+
+## 2026-06-26 - MVP-5B adversarial review blocker closure
+
+### 작업 내용
+
+- MVP-5B RDF File-Drop Evaluator Alpha 작업트리에 대한 적대적 코드 리뷰에서 나온 6개 gap을 닫았다.
+- producer/verifier의 timestamp gap threshold drift를 제거했다.
+  - producer와 verifier 모두 `MAX_TIMESTAMP_GAP_SECONDS=0.08`로 맞췄다.
+  - `0.09s` gap을 가진 hash-refreshed package가 verifier에서 실패하는 회귀 테스트를 추가했다.
+- folder input preflight에 zip과 동등한 entry count, per-file size, total size cap을 추가했다.
+  - 너무 많은 파일, oversized file, total-size 초과가 copy/hash 전에 fail-closed된다.
+- FastAPI file-drop bridge를 loopback-only로 제한했다.
+  - non-loopback client는 `403 file_drop_api_loopback_only`로 거부된다.
+- verifier claim scanner가 JSON/string-valued positive forbidden claim을 잡도록 강화했다.
+  - 예: `"production_readiness": "ready"`는 forbidden positive claim으로 실패한다.
+  - negated prose claim은 기존처럼 허용된다.
+- verifier가 producer-owned rejection reason을 추가로 허용하지 않도록 exact-set 비교로 강화했다.
+  - `evaluation_summary.json`과 `buyer_report.json`의 rejection reason은 verifier recomputation과 정확히 일치해야 한다.
+- Pake/desktop 문서에서 "green VERIFIED" 표현을 더 정확하게 고쳤다.
+  - verifier exit code가 성공이어도 data가 accepted인지 rejected인지는 별도 verdict로 표시한다.
+
+### 판단 이유
+
+- 이번 slice의 product surface는 UI가 아니라 verifier-backed local evaluator다.
+- 따라서 리뷰 blocker는 기능 추가보다 false PASS 가능성을 제거하는 방향으로 처리했다.
+- `package_manifest.json`, `buyer_report.json`, cached summary가 verifier recomputation을 override하지 못해야 한다.
+- UI/API/Pake는 trust decision을 만들지 않고 CLI/verifier 결과만 표시해야 한다.
+
+### 변경 파일
+
+```text
+scripts/rdf_file_drop_evaluator.py
+scripts/verify_rdf_file_drop_evaluator_run.py
+apps/api/app/routers/file_drop.py
+apps/api/tests/test_mvp5b_file_drop_evaluator_security.py
+apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py
+apps/api/tests/test_file_drop_api_bridge.py
+docs/desktop/pake_file_drop_evaluator_alpha.md
+docs/developer/debugging_guide.md
+docs/developer/worklog.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_file_drop_api_bridge.py
+  -> 38 passed, 1 warning
+
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_file_drop_api_bridge.py
+  -> 111 passed, 1 warning
+
+uv run pytest -q
+  -> 1348 passed, 6 skipped, 1 warning
+
+python -m compileall scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_file_drop_api_bridge.py
+  -> passed
+
+uv run --with ruff ruff check scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_file_drop_api_bridge.py
+  -> All checks passed
+
+cd apps/web && npm run lint
+  -> passed
+
+cd apps/web && npm run build
+  -> passed
+
+git diff --check
+  -> passed
+```
+
+Frozen proof verifier regression:
+
+```text
+python3 scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+  -> VERIFIED
+
+python3 scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+  -> VERIFIED
+
+python3 scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+  -> PASS / source_adapter_infrastructure_closed
+
+python3 scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+  -> PASS
+
+python3 scripts/verify_external_robot_data_ingest_package.py docs/proof/external_robot_data_ingest_eval_v0_proof_package/package_manifest.json
+  -> VERIFIED / external_ingest_contract_ready
+
+python3 scripts/verify_lerobot_public_slice_package.py docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json
+  -> VERIFIED
+
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json
+  -> PASS
+
+python3 scripts/verify_lerobot_public_dataset_matrix_package.py docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/package_manifest.json
+  -> PASS
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --deep-hdf5
+  -> VERIFIED / file_drop_rehearsal_ready=true
+```
+
+### 남은 gap 또는 다음 작업
+
+- 실제 external/partner robot log는 아직 평가하지 않았다.
+- system `python3`로 MVP-5A deep-HDF5 verifier를 실행하면 local `h5py/numpy` ABI mismatch가 발생한다. 이 package의 verified path는 `uv run python ... --deep-hdf5`다.
+- Pake binary packaging은 아직 optional local packaging 문서 단계다. 이번 조치는 browser alpha/API/CLI trust boundary를 닫는 범위다.
+- 다음 단계는 Lore protocol 기준 커밋 분리, push/PR/CI, 그리고 PR review 후 desktop binary smoke 또는 blind local dry run이다.
+
+## 2026-06-27 — MVP-5B second adversarial review blocker closure
+
+### 작업 내용
+
+- 독립 적대 리뷰에서 발견된 MVP-5B blocker 3개와 warning 2개를 닫았다.
+- `verify_rdf_file_drop_evaluator_run.py`가 `preflight_result.json`의 cached verdict를
+  다시 source rows에서 계산한 값과 대조하도록 강화했다.
+- rejection reason 비교를 set 비교에서 list exact parity로 바꿔 duplicate/order drift를 차단했다.
+- claim scanner의 negation detection을 contrast-aware로 바꿔 `does not claim ..., but real robot success is proven`
+  같은 문장을 fail-closed 처리한다.
+- FastAPI file-drop bridge에 local web shell 전용 CORS allowlist를 추가했다.
+- Web UI의 `live runtime` 표시를 `claimed`에서 `metadata only`로 낮춰 future profile metadata가
+  live runtime claim처럼 보이지 않게 했다.
+
+### 판단 이유
+
+- cached `preflight_result.json`, `buyer_report.json`, `evaluation_result.json`은 source of truth가 아니다.
+  verifier는 included source evidence에서 pass/fail과 rejection reason을 재계산해야 한다.
+- non-claim prose의 negation은 같은 문장 안의 contrast 이후 positive claim을 덮으면 안 된다.
+- Pake/web shell은 local desktop alpha 표면이므로 browser CORS는 `127.0.0.1:3000`과 `localhost:3000`만 허용한다.
+- UI는 verifier/CLI verdict를 표시하는 shell이며 live runtime support를 claim하지 않는다.
+
+### 변경 파일
+
+```text
+scripts/verify_rdf_file_drop_evaluator_run.py
+apps/api/app/main.py
+apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py
+apps/api/tests/test_file_drop_api_bridge.py
+apps/web/app/file-drop/page.tsx
+docs/developer/worklog.md
+docs/developer/debugging_guide.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest -q apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_file_drop_api_bridge.py
+  -> 32 passed
+
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_file_drop_api_bridge.py
+  -> 116 passed, 1 warning
+
+uv run pytest -q
+  -> 1353 passed, 6 skipped, 1 warning
+
+python -m compileall scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_file_drop_api_bridge.py
+  -> passed
+
+uvx ruff check scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_file_drop_api_bridge.py
+  -> All checks passed
+
+npm run lint --prefix apps/web
+  -> passed
+
+npm run build --prefix apps/web
+  -> passed
+
+git diff --check
+  -> passed
+```
+
+Frozen proof verifier regression:
+
+```text
+python scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+  -> VERIFIED
+
+python scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+  -> VERIFIED
+
+python scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+  -> VERIFIED
+
+python scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+  -> VERIFIED
+
+python scripts/verify_external_robot_data_ingest_package.py docs/proof/external_robot_data_ingest_eval_v0_proof_package/package_manifest.json
+  -> VERIFIED / external_ingest_contract_ready
+
+python scripts/verify_lerobot_public_slice_package.py docs/proof/lerobot_public_aloha_slice_semantic_parity_proof_package/package_manifest.json
+  -> VERIFIED
+
+python scripts/verify_lerobot_public_dataset_matrix_package.py docs/proof/lerobot_public_dataset_matrix_semantic_parity_proof_package/package_manifest.json
+  -> VERIFIED
+
+python scripts/verify_lerobot_public_dataset_matrix_package.py docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/package_manifest.json
+  -> VERIFIED
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --deep-hdf5
+  -> VERIFIED / file_drop_rehearsal_ready=true
+```
+
+### 남은 gap 또는 다음 작업
+
+- 실제 external/partner robot log는 아직 평가하지 않았다.
+- system `python`/`python3`는 local `h5py/numpy` ABI mismatch가 있어 MVP-5A deep-HDF5 verifier는
+  `uv run python ... --deep-hdf5`를 사용해야 한다.
+- 현재 작업트리는 MVP-5B alpha와 review hardening 변경이 uncommitted 상태다. 다음 단계는 Lore protocol
+  기준 커밋 분리, push/PR, CI 확인이다.
+
+## 2026-06-27 — MVP-5B rejected-export verifier blocker closure
+
+### 작업 내용
+
+- Claude 적대 리뷰에서 발견한 HIGH blocker D를 TDD로 닫았다.
+- rejected run에 `export/dataset.hdf5`, `hdf5_inspection_report.json`,
+  `trainer_smoke_report.json`을 수동으로 붙이고 manifest hash를 refresh해도 verifier가
+  `export_not_allowed_for_rejected_run`로 fail-closed하도록 했다.
+- `validate_source_drop()`의 rejected path에서 `computed["rows"]`가 남던 no-op 삼항을 `[]`로 교정했다.
+- 회귀 테스트 `test_verifier_rejects_rejected_run_with_training_export_attached`를 추가했다.
+
+### 판단 이유
+
+- producer는 정상적으로 rejected run에 export를 쓰지 않지만, verifier는 producer bug 또는 수동 forge를
+  독립적으로 막아야 한다.
+- rejected evidence package가 `VERIFIED` 되는 것과 rejected rows가 training material로 승격되는 것은
+  별개다. verifier는 후자를 명시적으로 금지해야 한다.
+- `export_eligible=false`인 run에 export directory가 존재하면 package structure 자체가 claim boundary와
+  충돌한다.
+
+### 변경 파일
+
+```text
+scripts/verify_rdf_file_drop_evaluator_run.py
+apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py
+docs/developer/worklog.md
+docs/developer/debugging_guide.md
+Handoff.md
+```
+
+### 실행한 검증 명령과 결과
+
+RED:
+
+```text
+uv run pytest -q apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py::test_verifier_rejects_rejected_run_with_training_export_attached
+  -> failed, verifier returned rc=0 for rejected run with attached export
+```
+
+GREEN / regression:
+
+```text
+uv run pytest -q apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py::test_verifier_rejects_rejected_run_with_training_export_attached
+  -> 1 passed
+
+uv run pytest -q apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_file_drop_api_bridge.py
+  -> 33 passed
+
+uv run pytest -q apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_file_drop_api_bridge.py
+  -> 117 passed, 1 warning
+
+uv run pytest -q
+  -> 1354 passed, 6 skipped, 1 warning
+
+python -m compileall scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_file_drop_api_bridge.py
+  -> passed
+
+uvx ruff check scripts/rdf_file_drop_evaluator.py scripts/verify_rdf_file_drop_evaluator_run.py apps/api/app/routers/file_drop.py apps/api/app/main.py apps/api/tests/test_mvp5b_file_drop_evaluator_cli.py apps/api/tests/test_mvp5b_file_drop_evaluator_corpus.py apps/api/tests/test_mvp5b_file_drop_evaluator_security.py apps/api/tests/test_verify_rdf_file_drop_evaluator_run.py apps/api/tests/test_file_drop_api_bridge.py
+  -> All checks passed
+
+npm run lint --prefix apps/web
+  -> passed
+
+npm run build --prefix apps/web
+  -> passed
+
+git diff --check
+  -> passed
+```
+
+Frozen verifier spot regression:
+
+```text
+python scripts/verify_mvp2_package.py docs/proof/mvp2_learning_proven_evidence_package/package_manifest.json
+  -> VERIFIED
+
+python scripts/verify_proof_package.py docs/proof/mvp3a_target_fixture_pose_variant_proof_package/package_manifest.json
+  -> VERIFIED
+
+python scripts/verify_mvp3b_source_adapter_package.py docs/proof/mvp3b_source_adapter_matrix_proof_package/package_manifest.json
+  -> exit 0 / VERIFIED
+
+python scripts/verify_mvp3c_isaac_sim_embodiment_source_package.py docs/proof/mvp3c_isaac_sim_embodiment_source_proof_package/package_manifest.json
+  -> exit 0 / VERIFIED
+
+python scripts/verify_lerobot_public_dataset_matrix_package.py docs/proof/rdf_public_dataset_trustpack_v0_lerobot_matrix_package/package_manifest.json
+  -> exit 0 / VERIFIED
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --deep-hdf5
+  -> VERIFIED / file_drop_rehearsal_ready=true
+```
+
+### 남은 gap 또는 다음 작업
+
+- 실제 external/partner robot log는 아직 평가하지 않았다.
+- MVP-5B alpha + review blocker closures는 커밋 전 검수 기준을 충족했다.
+- 다음 단계는 Lore protocol 기준 커밋 분리, push/PR, CI 확인이다.
