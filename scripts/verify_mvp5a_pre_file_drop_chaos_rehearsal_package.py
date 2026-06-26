@@ -18,6 +18,7 @@ import re
 from typing import Any, cast
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
 STATUS_CONTRACT_READY = "file_drop_rehearsal_contract_ready"
 STATUS_READY = "file_drop_rehearsal_ready"
 RUNTIME_CAPTURE_SCHEMA_VERSION = "rdf_mvp5a_pre_isaac_sim_runtime_capture_v0.1.0"
@@ -26,6 +27,7 @@ RAW_RUNTIME_EVENT_SCHEMA_VERSION = "rdf_mvp5a_pre_raw_runtime_event_v0.1.0"
 RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_event_manifest_v0.1.0"
 RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_reconstruction_receipt_v0.1.0"
 PROCESS_PROVENANCE_RECEIPT_SCHEMA_VERSION = "rdf_mvp5a_pre_process_provenance_receipt_v0.1.0"
+CAPTURE_EDGE_EMITTER_CONFIG_SCHEMA_VERSION = "rdf_mvp5a_pre_capture_edge_emitter_config_v0.1.0"
 RUNTIME_RECONSTRUCTION_ALGORITHM = "rdf_mvp5a_pre_runtime_events_to_canonical_trace_v0.1.0"
 RUNTIME_BACKED_SOURCE_KIND = "isaac_sim_runtime_backed_canonical_trace"
 RUNTIME_BACKEND = "isaac_sim"
@@ -37,7 +39,13 @@ RUNTIME_EVENT_HELPER_EVIDENCE_ORIGIN = "canonical_trace_projection_helper"
 RUNTIME_EVENT_HELPER_PRODUCER_KIND = "dev_fixture_helper"
 RUNTIME_EVENT_HELPER_SOURCE_FUNCTION = "build_runtime_event_log_from_trace"
 RUNTIME_SOURCE_PROCESS_KIND = "isaac_sim_process"
-CAPTURE_EDGE_READY_CLOSE_ENABLED = False
+CAPTURE_EDGE_SOURCE_PROCESS_KIND = "digital_twin_capture_edge_emitter"
+CAPTURE_EDGE_EMITTER_SCRIPT_REPO_PATH = "scripts/capture_mvp5a_pre_raw_runtime_event_log.py"
+CAPTURE_EDGE_EMITTER_SCRIPT_SNAPSHOT_PATH = "data/process_provenance/capture_edge_emitter_script_snapshot.py"
+CAPTURE_EDGE_EMITTER_CONFIG_PATH = "data/process_provenance/capture_edge_emitter_config.json"
+CAPTURE_EDGE_EMITTER_STDOUT_PATH = "data/process_provenance/capture_edge_emitter_stdout.log"
+CAPTURE_EDGE_EMITTER_STDERR_PATH = "data/process_provenance/capture_edge_emitter_stderr.log"
+CAPTURE_EDGE_READY_CLOSE_ENABLED = True
 CAPTURE_EDGE_READY_CLOSE_DISABLED_ISSUE = (
     "file_drop_rehearsal_ready close is disabled for PR #12 consistency baseline"
 )
@@ -398,6 +406,7 @@ def _verify_ready_runtime_event_evidence(package_dir: Path, canonical: dict[str,
     if not events:
         return
     _verify_runtime_event_manifest(package_dir, runtime_manifest, reconstruction_receipt, events, issues)
+    _verify_capture_edge_emitter_contract(package_dir, events, issues)
     issues.extend(_runtime_event_global_issues(events))
     channel_issues: list[str] = []
     for event in events:
@@ -436,7 +445,7 @@ def _verify_process_provenance_receipt(
         issues.append("process_provenance_receipt capture_script_id mismatch")
     if receipt.get("source_backend") != RUNTIME_BACKEND:
         issues.append("process_provenance_receipt source_backend mismatch")
-    if receipt.get("source_process_kind") != RUNTIME_SOURCE_PROCESS_KIND:
+    if receipt.get("source_process_kind") != CAPTURE_EDGE_SOURCE_PROCESS_KIND:
         issues.append("process_provenance_receipt source_process_kind mismatch")
     if receipt.get("runtime_event_log_path") != event_log_rel:
         issues.append("process_provenance_receipt runtime_event_log_path mismatch")
@@ -444,6 +453,29 @@ def _verify_process_provenance_receipt(
         issues.append("process_provenance_receipt runtime_event_log_sha256 mismatch")
     if receipt.get("exit_code") != 0:
         issues.append("process_provenance_receipt exit_code must be 0")
+    if receipt.get("script_path") != CAPTURE_EDGE_EMITTER_SCRIPT_SNAPSHOT_PATH:
+        issues.append("process_provenance_receipt script_path mismatch")
+    if receipt.get("script_repo_path") != CAPTURE_EDGE_EMITTER_SCRIPT_REPO_PATH:
+        issues.append("process_provenance_receipt script_repo_path mismatch")
+    repo_script = REPO_ROOT / CAPTURE_EDGE_EMITTER_SCRIPT_REPO_PATH
+    if not repo_script.is_file():
+        issues.append("process_provenance_receipt script_repo_path missing")
+    elif receipt.get("script_repo_sha256") != _sha256_file(repo_script):
+        issues.append("process_provenance_receipt script_repo_sha256 mismatch")
+    if (
+        isinstance(receipt.get("script_sha256"), str)
+        and isinstance(receipt.get("script_repo_sha256"), str)
+        and receipt.get("script_sha256") != receipt.get("script_repo_sha256")
+    ):
+        issues.append("process_provenance_receipt script snapshot does not match repo script")
+    if receipt.get("config_path") != CAPTURE_EDGE_EMITTER_CONFIG_PATH:
+        issues.append("process_provenance_receipt config_path mismatch")
+    if receipt.get("stdout_log_path") != CAPTURE_EDGE_EMITTER_STDOUT_PATH:
+        issues.append("process_provenance_receipt stdout_log_path mismatch")
+    if receipt.get("stderr_log_path") != CAPTURE_EDGE_EMITTER_STDERR_PATH:
+        issues.append("process_provenance_receipt stderr_log_path mismatch")
+    if receipt.get("process_provenance_ceiling") != "declared_process_identity_only_not_physics_authenticity":
+        issues.append("process_provenance_receipt provenance ceiling missing")
     for key in ("git_commit", "command", "python_version", "os_summary", "started_at", "ended_at"):
         if not isinstance(receipt.get(key), str) or not receipt.get(key):
             issues.append(f"process_provenance_receipt {key} missing")
@@ -527,7 +559,7 @@ def _verify_runtime_event_manifest(
         issues.append("helper-derived runtime evidence cannot open ready status")
     if runtime_manifest.get("source_backend") != RUNTIME_BACKEND:
         issues.append("runtime_event_manifest source_backend mismatch")
-    if runtime_manifest.get("source_process_kind") != RUNTIME_SOURCE_PROCESS_KIND:
+    if runtime_manifest.get("source_process_kind") != CAPTURE_EDGE_SOURCE_PROCESS_KIND:
         issues.append("runtime_event_manifest source_process_kind mismatch")
     if len(capture_ids) != 1 or runtime_manifest.get("capture_id") not in capture_ids:
         issues.append("runtime_event_manifest capture_id mismatch")
@@ -556,6 +588,157 @@ def _verify_runtime_event_manifest(
         issues.append("runtime_reconstruction_receipt ready_status_allowed must be true")
 
 
+def _verify_capture_edge_emitter_contract(package_dir: Path, events: list[dict[str, Any]], issues: list[str]) -> None:
+    config = _read_json(
+        package_dir / CAPTURE_EDGE_EMITTER_CONFIG_PATH,
+        issues,
+        CAPTURE_EDGE_EMITTER_CONFIG_PATH,
+    )
+    if config.get("schema_version") != CAPTURE_EDGE_EMITTER_CONFIG_SCHEMA_VERSION:
+        issues.append("capture_edge_emitter_config schema_version mismatch")
+    if config.get("source_backend") != RUNTIME_BACKEND:
+        issues.append("capture_edge_emitter_config source_backend mismatch")
+    if config.get("source_process_kind") != CAPTURE_EDGE_SOURCE_PROCESS_KIND:
+        issues.append("capture_edge_emitter_config source_process_kind mismatch")
+    if config.get("generated_by_rdf_sim") is not True:
+        issues.append("capture_edge_emitter_config generated_by_rdf_sim must be true")
+    if config.get("external_partner_data") is not False:
+        issues.append("capture_edge_emitter_config external_partner_data must be false")
+    if config.get("real_robot_success") is not False:
+        issues.append("capture_edge_emitter_config real_robot_success must be false")
+    capture_id = config.get("capture_id")
+    frame_count = config.get("frame_count")
+    if not isinstance(capture_id, str) or not capture_id:
+        issues.append("capture_edge_emitter_config capture_id missing")
+        return
+    if not isinstance(frame_count, int) or frame_count < MIN_CANONICAL_FRAMES:
+        issues.append("capture_edge_emitter_config frame_count invalid")
+        return
+    expected_events = _expected_capture_edge_runtime_event_log(capture_id=capture_id, frame_count=frame_count)
+    if events != expected_events:
+        issues.append("runtime event log does not match verifier-owned capture-edge emitter contract")
+    actual_bytes = (package_dir / "data" / "runtime_evidence" / "runtime_event_log.jsonl").read_bytes()
+    expected_bytes = _jsonl_bytes(expected_events)
+    if actual_bytes != expected_bytes:
+        issues.append("runtime event log bytes do not match verifier-owned capture-edge emitter contract")
+
+
+def _expected_capture_edge_runtime_event_log(*, capture_id: str, frame_count: int) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    event_index = 0
+    for index in range(frame_count):
+        timestamp = round(index * 0.04, 6)
+        delta = round(0.0007 * (index + 1), 6)
+        ur_actual = [round(0.04 * math.sin(index / 4 + joint) + delta, 6) for joint in range(6)]
+        ur_target = [round(value + 0.003, 6) for value in ur_actual]
+        franka_actual = [round(0.03 * math.cos(index / 5 + joint) + delta, 6) for joint in range(7)]
+        franka_target = [round(value + 0.002, 6) for value in franka_actual]
+        tcp_position = [
+            round(0.42 + 0.001 * index + delta, 6),
+            -0.015,
+            round(0.16 - 0.0015 * index, 6),
+        ]
+        tcp_rotation = [0.0, 3.14159, 0.0]
+        channel_rows: tuple[tuple[str, dict[str, Any], dict[str, str]], ...] = (
+            ("phase_marker", {"phase": "approach" if index < frame_count - 3 else "insert_rehearsal"}, {}),
+            (
+                "ur_joint_state",
+                {
+                    "joint_names": PROFILE_JOINT_NAMES["ur_rtde_csv_v0"],
+                    "actual_q": ur_actual,
+                    "target_q": ur_target,
+                    "robot_mode": "RUNNING",
+                    "safety_status": "NORMAL",
+                },
+                {"joint_position": "rad"},
+            ),
+            (
+                "ur_tcp_state",
+                {
+                    "actual_TCP_pose": [*tcp_position, *tcp_rotation],
+                    "target_TCP_pose": [tcp_position[0] + 0.001, tcp_position[1], tcp_position[2], *tcp_rotation],
+                    "actual_TCP_speed": [0.025, 0.0, -0.018, 0.0, 0.0, 0.0],
+                },
+                {"tcp_position": "m", "tcp_rotation": "rotation_vector_rad", "tcp_speed": "m_per_s"},
+            ),
+            (
+                "franka_joint_state",
+                {
+                    "joint_names": PROFILE_JOINT_NAMES["franka_state_jsonl_v0"],
+                    "q": franka_actual,
+                    "q_d": franka_target,
+                    "robot_mode": "move",
+                },
+                {"joint_position": "rad"},
+            ),
+            (
+                "franka_eef_state",
+                {
+                    "O_T_EE": _pose_matrix(x=tcp_position[0], y=tcp_position[1], z=tcp_position[2]),
+                    "O_T_EE_d": _pose_matrix(x=tcp_position[0] + 0.001, y=tcp_position[1], z=tcp_position[2]),
+                },
+                {"pose_matrix": "homogeneous_transform_row_major_m"},
+            ),
+            (
+                "generic_command_state",
+                {
+                    "state": ur_actual,
+                    "command": ur_target,
+                    "state_timestamp": timestamp,
+                    "command_timestamp": round(max(timestamp - 0.01, 0.0), 6),
+                    "action_semantics": "commanded_target_state",
+                    "state_semantics": "actual_robot_state",
+                },
+                {"state": "profile_native", "command": "profile_native"},
+            ),
+        )
+        for channel, payload, units in channel_rows:
+            events.append(
+                {
+                    "schema_version": RAW_RUNTIME_EVENT_SCHEMA_VERSION,
+                    "capture_id": capture_id,
+                    "event_index": event_index,
+                    "frame_index": index,
+                    "timestamp": timestamp,
+                    "channel": channel,
+                    "source_backend": RUNTIME_BACKEND,
+                    "source_process_kind": CAPTURE_EDGE_SOURCE_PROCESS_KIND,
+                    "units": units,
+                    "payload": payload,
+                }
+            )
+            event_index += 1
+    return events
+
+
+def _pose_matrix(*, x: float, y: float, z: float) -> list[float]:
+    return [
+        1.0,
+        0.0,
+        0.0,
+        x,
+        0.0,
+        1.0,
+        0.0,
+        y,
+        0.0,
+        0.0,
+        1.0,
+        z,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+    ]
+
+
+def _jsonl_bytes(rows: list[dict[str, Any]]) -> bytes:
+    return b"".join(
+        (json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+        for row in rows
+    )
+
+
 def _runtime_event_global_issues(events: list[dict[str, Any]]) -> list[str]:
     issues: list[str] = []
     if [event.get("event_index") for event in events] != list(range(len(events))):
@@ -571,7 +754,7 @@ def _runtime_event_global_issues(events: list[dict[str, Any]]) -> list[str]:
             issues.append("runtime event schema_version mismatch")
         if event.get("source_backend") != RUNTIME_BACKEND:
             issues.append("runtime event source_backend mismatch")
-        if event.get("source_process_kind") != RUNTIME_SOURCE_PROCESS_KIND:
+        if event.get("source_process_kind") != CAPTURE_EDGE_SOURCE_PROCESS_KIND:
             issues.append("runtime event source_process_kind mismatch")
         timestamp = event.get("timestamp")
         if not isinstance(timestamp, (int, float)) or isinstance(timestamp, bool) or not _finite_number(timestamp):

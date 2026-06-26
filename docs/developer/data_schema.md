@@ -2221,8 +2221,25 @@ exactly one event per required channel per frame
 no unknown closing channel
 no non-finite numeric payload
 source_backend=isaac_sim
-source_process_kind=isaac_sim_process
 external_partner_data=false
+```
+
+`source_process_kind`는 evidence role별로 분리한다.
+
+```text
+canonical_trace_projection_helper:
+  non-closing helper evidence.
+  build_runtime_event_log_from_trace가 canonical trace에서 projection한 consistency fixture다.
+  file_drop_rehearsal_ready=true를 열 수 없다.
+
+digital_twin_capture_edge_emitter:
+  closing L2/L3 capture-edge evidence.
+  capture_mvp5a_pre_raw_runtime_event_log.py가 raw runtime event log를 먼저 emit하고,
+  verifier가 그 event log에서 canonical trace와 package verdict를 재계산한다.
+
+isaac_sim_process:
+  legacy/runtime-capture provenance label.
+  이 라벨만으로는 capture-edge ready close를 열 수 없다.
 ```
 
 금지 claim:
