@@ -1,4 +1,13 @@
-import type { AdminKpis, DatasetRead, EpisodeRead, TaskRead, TaskSummary, TrajectoryRead } from "./types";
+import type {
+  AdminKpis,
+  DatasetRead,
+  EpisodeRead,
+  FileDropBridgeResult,
+  FileDropProfilesResult,
+  TaskRead,
+  TaskSummary,
+  TrajectoryRead,
+} from "./types";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -62,6 +71,42 @@ export function exportDataset(payload: {
   export_format: "json";
 }): Promise<ApiResult<{ dataset_id: string; status: string; export_path: string }>> {
   return request("/api/datasets/export", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listFileDropProfiles(): Promise<ApiResult<FileDropProfilesResult>> {
+  return request<FileDropProfilesResult>("/api/file-drop/profiles");
+}
+
+export function preflightFileDrop(payload: {
+  input_path: string;
+  profile_id: string;
+}): Promise<ApiResult<FileDropBridgeResult>> {
+  return request<FileDropBridgeResult>("/api/file-drop/preflight", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function evaluateFileDrop(payload: {
+  input_path: string;
+  profile_id: string;
+  run_id?: string;
+  force?: boolean;
+}): Promise<ApiResult<FileDropBridgeResult>> {
+  return request<FileDropBridgeResult>("/api/file-drop/evaluate", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function verifyFileDrop(payload: {
+  run_path: string;
+  deep_hdf5: boolean;
+}): Promise<ApiResult<FileDropBridgeResult>> {
+  return request<FileDropBridgeResult>("/api/file-drop/verify", {
     method: "POST",
     body: JSON.stringify(payload),
   });

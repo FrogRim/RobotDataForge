@@ -140,6 +140,76 @@ curl -sS http://localhost:8000/health
 
 ---
 
+## 2.5 MVP-5B File-Drop Evaluator Alpha 확인
+
+이 alpha는 실제 external partner data 평가 claim이 아니다. `MVP-5A` digital-twin file-drop rehearsal profile을 local CLI/API/web shell로 평가하는 pre-real-log evaluator surface다.
+
+지원 profile:
+
+```text
+ur_rtde_csv_v0
+franka_state_jsonl_v0
+ros2_channel_bundle_jsonl_v0
+generic_command_state_jsonl_v0
+```
+
+CLI profile 확인:
+
+```bash
+cd ~/robot-data-forge
+uv run python scripts/rdf_file_drop_evaluator.py profiles list --json
+```
+
+CLI preflight/evaluate/verify:
+
+```bash
+uv run python scripts/rdf_file_drop_evaluator.py preflight /path/to/drop --profile ur_rtde_csv_v0 --json
+
+uv run python scripts/rdf_file_drop_evaluator.py evaluate /path/to/drop \
+  --profile ur_rtde_csv_v0 \
+  --out artifacts/rdf_file_drop_evaluator/manual-ur-check \
+  --json
+
+uv run python scripts/rdf_file_drop_evaluator.py verify \
+  artifacts/rdf_file_drop_evaluator/manual-ur-check \
+  --deep-hdf5 \
+  --json
+```
+
+Local API bridge:
+
+```bash
+uv run uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 8000
+```
+
+Web UI:
+
+```bash
+cd apps/web
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 npm run dev -- --hostname 127.0.0.1 --port 3000
+```
+
+Open:
+
+```text
+http://127.0.0.1:3000/file-drop
+```
+
+Pake desktop shell은 web UI wrapper일 뿐이다. 실행 절차는 `docs/desktop/pake_file_drop_evaluator_alpha.md`를 따른다.
+
+Partner 또는 external file-drop을 받기 전 요청 문서는 `docs/partner_intake/`를 사용한다.
+
+주의:
+
+```text
+- UI는 PASS/FAIL source of truth가 아니다.
+- verifier가 exit_code 0과 VERDICT VERIFIED를 내기 전까지 최종 통과로 보지 않는다.
+- rejected run은 buyer/debug artifact로 남을 수 있지만 training eligible이 아니다.
+- browser drag/drop upload는 alpha 범위가 아니며 local path paste 방식이다.
+```
+
+---
+
 ## 3. One-shot Live Smoke Test
 
 터미널 여러 개를 오가며 API, Isaac 실행, curl 확인을 따로 수행하면 실수가 생기기 쉽다. 실제 Quest/OpenXR/Isaac recorder 제출 검증은 아래 스크립트를 우선 사용한다.
@@ -5325,6 +5395,275 @@ forbidden positive claim phrase:
 symlink escapes package:
   artifact index의 `data/...` 경로가 symlink로 package 밖을 가리킴.
 ```
+
+## MVP-5B file-drop evaluator alpha hardening diagnostics
+
+MVP-5B RDF File-Drop Evaluator Alpha는 CLI/verifier가 trust decision의 source
+of truth이고, FastAPI/web/Pake surface는 그 결과를 표시하는 shell이다. 다음
+failure reason은 적대적 리뷰 blocker를 닫으면서 추가 또는 강화된 경계다.
+
+### Folder preflight size/count failures
+
+```text
+folder_too_many_entries
+folder_entry_too_large
+folder_total_too_large
+```
+
+원인:
+
+- folder input이 허용 entry count를 초과했다.
+- 단일 파일이 per-file cap을 초과했다.
+- folder 전체 파일 합계가 total cap을 초과했다.
+
+조치:
+
+- 실제 평가할 source drop만 별도 directory로 분리한다.
+- 큰 media, cache, generated output, previous TrustPack output을 input folder에서 제거한다.
+- zip input과 동일하게 folder input도 copy/hash 전에 resource cap을 적용한다.
+
+### Timestamp gap strictness
+
+MVP-5B verifier와 producer는 모두 다음 상수를 사용한다.
+
+```text
+MAX_TIMESTAMP_GAP_SECONDS = 0.08
+```
+
+`0.08s`를 초과하는 gap은 clean data로 통과하지 않아야 한다. 이전에는 producer와
+verifier threshold가 달라 `0.09s` gap이 hash-refresh 후 통과할 수 있었으나,
+현재는 verifier recomputation에서 실패한다.
+
+관련 증상:
+
+```text
+evaluation_summary_mismatch
+buyer_report_mismatch
+normalized_contract_mismatch
+```
+
+조치:
+
+- source timestamp가 실제로 drop/gap을 포함하는지 확인한다.
+- gap을 summary에서 지우거나 hash를 refresh하지 않는다. verifier가 included
+  source rows에서 다시 계산한다.
+
+### Exact rejection reason parity
+
+Verifier는 producer가 만든 rejection reason의 superset을 허용하지 않는다. 다음
+파일의 reason set은 verifier recomputation과 정확히 일치해야 한다.
+
+```text
+data/evaluation_summary.json
+data/buyer_report.json
+```
+
+증상:
+
+```text
+evaluation_summary_mismatch
+buyer_report_mismatch
+```
+
+원인:
+
+- producer가 verifier-owned reason 외의 extra reason을 추가했다.
+- summary/report를 수동으로 고쳤다.
+- parser/schema gate가 drift되어 producer와 verifier가 다른 reason을 계산한다.
+
+조치:
+
+- cached summary를 source of truth로 취급하지 않는다.
+- source rows, metadata, contract, HDF5를 기준으로 verifier recomputation이 어떤
+  reason을 내는지 먼저 확인한다.
+
+### Structured forbidden claim scan
+
+Verifier는 prose뿐 아니라 JSON/string-valued structured claim도 검사한다.
+
+실패해야 하는 예:
+
+```json
+{
+  "production_readiness": "ready"
+}
+```
+
+허용되는 예:
+
+```text
+This package does not prove production readiness.
+```
+
+증상:
+
+```text
+forbidden positive claim phrase
+```
+
+조치:
+
+- buyer report, manifest, JSON sidecar에 positive forbidden claim value를 넣지 않는다.
+- non-claim은 `false` 또는 negated prose로 유지한다.
+
+### Contrast-aware non-claim prose
+
+MVP-5B verifier는 negated non-claim prose를 허용하지만, 같은 문장에서 contrast 이후
+positive forbidden claim이 나오면 fail-closed한다.
+
+허용되는 예:
+
+```text
+This package does not prove real robot success.
+```
+
+실패해야 하는 예:
+
+```text
+This package does not claim production readiness, but real robot success is proven.
+```
+
+증상:
+
+```text
+forbidden_claim_leakage
+```
+
+조치:
+
+- non-claim 문장은 짧고 분리해서 쓴다.
+- `but`, `however`, `yet` 뒤에 positive claim을 붙이지 않는다.
+- buyer-facing HTML/JSON/Markdown 모두 verifier scan 대상이다.
+
+### Cached preflight result mismatch
+
+`preflight_result.json`은 source of truth가 아니다. verifier는 `source_drop/`에서
+pass/fail, frame count, export eligibility, trainer smoke eligibility, rejection reasons를
+다시 계산하고 cached preflight payload와 exact 비교한다.
+
+증상:
+
+```text
+preflight_result_mismatch
+```
+
+흔한 원인:
+
+- `source_drop/`을 바꾼 뒤 `preflight_result.json`만 수동으로 PASS로 바꿨다.
+- hash를 refresh했지만 semantic source drift가 남아 있다.
+- `preflight_result.json`의 `rejection_reasons` order 또는 duplicate가 recompute 결과와 다르다.
+
+조치:
+
+- cached summary를 고치지 말고 `rdf_file_drop_evaluator.py evaluate ...`를 다시 실행한다.
+- tamper/debug 중이면 verifier output의 recomputed reason을 기준으로 source data를 확인한다.
+
+### Exact rejection reason parity
+
+MVP-5B verifier는 rejection reasons를 set으로 비교하지 않는다. list 순서와 중복까지
+source recomputation 결과와 정확히 같아야 한다.
+
+증상:
+
+```text
+evaluation_summary_mismatch
+buyer_report_mismatch
+preflight_result_mismatch
+```
+
+흔한 원인:
+
+- 같은 reason이 두 번 들어갔다.
+- producer가 verifier-owned reason 외의 extra reason을 추가했다.
+- buyer report와 evaluation summary의 reason order가 다르다.
+
+조치:
+
+- `source_drop/`를 기준으로 verifier가 계산하는 reason list를 확인한다.
+- 사람이 읽기 좋은 설명은 별도 explanatory text로 두고, machine verdict field는 verifier-owned list를 유지한다.
+
+### Rejected run export is forbidden
+
+Rejected file-drop run은 raw evidence와 buyer/debug report를 남길 수 있지만, training
+material export를 포함하면 안 된다.
+
+증상:
+
+```text
+export_not_allowed_for_rejected_run
+```
+
+실패해야 하는 상황:
+
+```text
+passed=false
+export_eligible=false
+trainer_smoke_eligible=false
+export/dataset.hdf5 exists
+export/trainer_smoke_report.json says passed=true
+```
+
+조치:
+
+- rejected run에서 `export/` directory를 만들지 않는다.
+- producer bug나 수동 tamper로 rejected run에 export가 붙으면 hash refresh 여부와 관계없이
+  verifier가 fail-closed해야 한다.
+- rejected data를 분석용 raw evidence로 보존하는 것과 training eligible export로 승격하는 것을
+  분리한다.
+
+### Local API loopback boundary
+
+MVP-5B FastAPI bridge는 local desktop/web shell 전용이다. non-loopback client는
+거부된다.
+
+증상:
+
+```text
+HTTP 403 file_drop_api_loopback_only
+```
+
+조치:
+
+- local browser/Pake shell에서 `127.0.0.1` 또는 `localhost` backend로 접속한다.
+- remote UI/API product claim으로 확장하지 않는다.
+
+### Local web CORS boundary
+
+MVP-5B browser/Pake shell은 local FastAPI bridge에만 붙는다. API CORS allowlist는
+다음 origin만 허용한다.
+
+```text
+http://127.0.0.1:3000
+http://localhost:3000
+```
+
+증상:
+
+```text
+OPTIONS /api/file-drop/profiles -> 400
+missing access-control-allow-origin
+```
+
+조치:
+
+- local Next dev server origin이 위 둘 중 하나인지 확인한다.
+- remote origin이나 broad `*` CORS를 추가하지 않는다. desktop alpha는 remote product API가 아니다.
+
+### Pake / UI verified wording
+
+Pake/web surface는 verifier exit code와 evaluator verdict를 분리해서 보여야 한다.
+
+정확한 해석:
+
+```text
+PACKAGE VERIFIED / DATA ACCEPTED
+PACKAGE VERIFIED / DATA REJECTED
+PACKAGE VERIFY FAILED
+```
+
+`PACKAGE VERIFIED`는 package structure와 recomputation이 일치한다는 뜻이다.
+rejected data package도 정직하게 verified될 수 있다. UI는 rejected evidence를
+accepted training data로 승격하면 안 된다.
 
 중요한 경계:
 
