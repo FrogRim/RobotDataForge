@@ -12,6 +12,111 @@
 
 ---
 
+## 2026-06-26: MVP-5A L2/L3 capture-edge evidence close spec
+
+### 작업 내용
+
+MVP-5A runtime evidence contract PR #12의 검수 결과를 반영해, 다음 단계
+spec을 작성했다. 구현은 시작하지 않았다. 이번 작업은
+`canonical_trace -> runtime_event_log` helper-derived evidence가 blessed
+capture evidence처럼 `file_drop_rehearsal_ready=true`를 열 수 있는 구멍을
+로드맵과 acceptance criteria에서 명시적으로 닫는 단계다.
+
+변경 파일:
+
+```text
+docs/superpowers/specs/2026-06-26-mvp5a-l2-l3-capture-edge-evidence-close-design.md
+docs/developer/worklog.md
+tasks/todo.md
+Handoff.md
+```
+
+핵심 결정:
+
+```text
+- PR #12는 ready close가 아니라 consistency baseline으로 취급한다.
+- PR #12 merge 전 helper-derived ready evidence forge hole을 먼저 닫는
+  Option B를 선택한다.
+- `build_runtime_event_log_from_trace()`는 fixture/dev helper로 격리해야 한다.
+- ready package는 helper-derived event log를 blessed capture_script_id로
+  라벨링해도 verifier가 FAIL해야 한다.
+- `file_drop_rehearsal_ready=true`는 L2 content consistency와 L3 process
+  provenance가 결합된 capture-edge close에서만 열 수 있다.
+- Forward derivation은 artifact만으로 증명할 수 없고, blessed emitter identity,
+  process provenance, helper rejection, verifier reconstruction의 결합으로
+  강제한다.
+- L3 process provenance는 declared process identity를 묶지만 genuine physics
+  run을 암호학적으로 증명하지 않는다는 non-claim을 둔다.
+```
+
+### 판단 이유
+
+현재 PR #12 코드에서 raw runtime event를 만드는 생산자는
+`build_runtime_event_log_from_trace()`이며, 이는 canonical trace에서 event
+rows를 후처리로 생성한다. Verifier는 `(events, trace)` consistency는 독립적으로
+검증하지만, event가 capture-edge에서 정방향으로 나온 것인지 canonical trace에서
+역산된 것인지는 artifact만으로 관측할 수 없다. 따라서 ready claim은
+L2 consistency만으로 열 수 없고, producer 격리와 L3 provenance가 함께 필요하다.
+
+### 실행한 검증 명령과 결과
+
+```bash
+rg -n "build_runtime_event_log_from_trace|write_runtime_evidence|capture_script_id|RUNTIME_EVENT_CAPTURE_SCRIPT_ID|ready_status_allowed|file_drop_rehearsal_ready|runtime_event_log" \
+  apps/api/app/services/mvp5a_file_drop_rehearsal.py \
+  scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py \
+  scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py \
+  apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+# helper-derived event producer and blessed capture_script_id stamping path confirmed.
+
+git diff --check
+# pending after this doc update; run before commit/plan handoff.
+```
+
+Manual `$ralplan --deliberate` consensus was executed because the installed OMX
+CLI does not expose an `omx plan` command in this environment.
+
+```text
+Planner result:
+  Option B chosen.
+  Phase 0 immediate hardening -> Phase 1 PR #12 consistency baseline merge ->
+  Phase 2 separate L2/L3 capture-edge close.
+
+Architect iteration 1:
+  APPROVE.
+  Notes: existing helper-positive ready test must be inverted, helper issue
+  string must be explicit, process provenance artifact linkage must be
+  acceptance-tested.
+
+Critic iteration 1:
+  ITERATE.
+  Required: RALPLAN-DR principles/drivers, deliberate pre-mortem, expanded
+  Unit/Integration/E2E/Observability test plan, helper-positive inversion,
+  process provenance hash-lock/package-manifest criteria.
+
+Architect iteration 2:
+  APPROVE.
+
+Critic iteration 2:
+  APPROVE.
+```
+
+Created planning artifacts:
+
+```text
+.omx/context/mvp5a-l2-l3-capture-edge-evidence-close-20260626T053603Z.md
+.omx/plans/prd-mvp5a-l2-l3-capture-edge-evidence-close.md
+.omx/plans/test-spec-mvp5a-l2-l3-capture-edge-evidence-close.md
+.omx/plans/ralplan-mvp5a-l2-l3-capture-edge-evidence-close.md
+```
+
+### 남은 gap 또는 다음 작업
+
+- 승인된 ralplan 기준으로 Phase 0 immediate helper-forge hardening을 구현한다.
+- PR #12는 hardening 후 consistency baseline으로 merge하고, 실제 L2/L3
+  capture-edge evidence close는 별도 branch에서 진행한다.
+
+---
+
 ## 2026-06-23: LeRobot Public Slice Semantic Parity spec 초안
 
 ### 작업 내용
@@ -22039,3 +22144,424 @@ git diff --check
 - `file_drop_rehearsal_ready=true`는 아직 의도적으로 미지원이다. 다음 hardening
   slice는 verifier-owned raw runtime evidence contract 또는 실제 partner file-drop
   intake로 열어야 한다.
+
+## 2026-06-25 - MVP-5A verifier-owned raw runtime evidence contract spec
+
+### 작업 내용
+
+- `codex/mvp5a-runtime-evidence-contract` 브랜치에서
+  verifier-owned raw runtime evidence contract spec을 작성했다.
+- 현재 `file_drop_rehearsal_ready=true` blocker가 runtime-shaped JSON
+  self-attestation 문제임을 재확인했다.
+- L0/L1/L2/L3 evidence level을 분리했다.
+  - L0 deterministic fixture: contract-ready only.
+  - L1 runtime-shaped summary JSON: contract-ready only.
+  - L2 raw runtime event log: ready-status 최소 후보.
+  - L3 process-level provenance: future stronger evidence.
+- L2 package layout, `runtime_event_log.jsonl`, `runtime_event_manifest.json`,
+  `runtime_reconstruction_receipt.json`, required channels, reconstruction
+  algorithm, ready criteria, tamper matrix를 명세했다.
+
+### 판단 이유
+
+- `runtime_capture.json`처럼 이미 `mvp5a_canonical_trace.frames`를 담은
+  payload는 verifier가 origin을 재유도할 수 없어 closing evidence가 아니다.
+- ready를 열려면 verifier가 raw events를 직접 group/validate/reconstruct해서
+  `canonical_trace.json` 및 downstream source/HDF5/trainer artifacts와 대조해야 한다.
+- L2도 genuine Isaac process origin을 암호학적으로 증명하지는 못하므로, claim은
+  digital-twin rehearsal readiness로 제한해야 한다.
+
+### 변경 파일
+
+```text
+docs/superpowers/specs/2026-06-25-mvp5a-verifier-owned-raw-runtime-evidence-contract-design.md
+Handoff.md
+tasks/todo.md
+docs/developer/worklog.md
+```
+
+### 검증
+
+```text
+pending: git diff --check
+```
+
+### 남은 gap 또는 다음 작업
+
+- deliberate implementation plan을 작성해야 한다.
+- 추천 첫 단계는 contract-first다. 즉 verifier reconstruction support와 tamper
+  tests를 먼저 추가하고, 실제 L2 event evidence가 생기기 전에는 기존 package를
+  `file_drop_rehearsal_contract_ready` 상태로 유지한다.
+
+## 2026-06-25 - MVP-5A verifier-owned runtime evidence deliberate plan
+
+### 작업 내용
+
+- spec을 기준으로 deliberate implementation plan을 작성했다.
+- `.omx/context/`, `.omx/plans/prd-*`, `.omx/plans/test-spec-*`,
+  `.omx/plans/ralplan-*` 실행 계획을 추가했다.
+- `docs/superpowers/plans/2026-06-25-mvp5a-verifier-owned-raw-runtime-evidence-contract.md`
+  에 장기 문서용 plan pointer를 추가했다.
+
+### 판단 이유
+
+- 이번 slice는 `file_drop_rehearsal_ready=true`를 성급히 여는 작업이 아니라,
+  runtime-shaped JSON을 거부하고 verifier-owned L2 event reconstruction path를
+  여는 작업이다.
+- 따라서 plan은 contract-first를 기본으로 두고, package-close는 실제 L2 event
+  evidence가 있을 때만 수행하는 optional gate로 분리했다.
+
+### 변경 파일
+
+```text
+.omx/context/mvp5a-runtime-evidence-contract-20260625T005346Z.md
+.omx/plans/prd-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+.omx/plans/test-spec-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+.omx/plans/ralplan-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+docs/superpowers/plans/2026-06-25-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+Handoff.md
+tasks/todo.md
+docs/developer/worklog.md
+```
+
+### 검증
+
+```text
+pending: git diff --check
+```
+
+### 남은 gap 또는 다음 작업
+
+- 다음 실행 권장 명령:
+
+```text
+$ultragoal .omx/plans/ralplan-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+```
+
+- 구현 첫 태스크는 ready positive path와 runtime-capture-only fail path를 TDD로
+  먼저 추가하는 것이다.
+
+## 2026-06-25 - MVP-5A verifier-owned L2 runtime evidence contract 구현
+
+### 작업 내용
+
+- `$ultragoal .omx/plans/ralplan-mvp5a-verifier-owned-raw-runtime-evidence-contract.md`
+  기준으로 G001-G005를 구현했다.
+- `file_drop_rehearsal_ready=true`가 `runtime_capture.json` 같은
+  runtime-shaped summary JSON만으로 열리지 않도록 유지하고, 별도 L2 evidence
+  계약을 추가했다.
+- producer는 선택적으로 다음 artifact를 생성할 수 있다.
+
+```text
+data/runtime_evidence/runtime_event_log.jsonl
+data/runtime_evidence/runtime_event_manifest.json
+data/runtime_evidence/runtime_reconstruction_receipt.json
+```
+
+- verifier는 ready package에서 L2 event log를 직접 읽고 다음을 재계산한다.
+
+```text
+event_index contiguous
+frame_index contiguous
+timestamp finite/monotonic
+required channel set exactly once per frame
+unknown/duplicate channel rejection
+channel-specific units/dimensions/semantics
+canonical trace reconstruction
+source projection / normalized contract / HDF5 / trainer smoke chain
+```
+
+- required channel은 다음 6개로 고정했다.
+
+```text
+phase_marker
+ur_joint_state
+ur_tcp_state
+franka_joint_state
+franka_eef_state
+generic_command_state
+```
+
+- temp-package 테스트에서는 L2 event evidence를 포함한 package가
+  `file_drop_rehearsal_ready=true`를 열 수 있음을 확인했다.
+- checked-in MVP-5A-pre proof package는 의도적으로
+  `file_drop_rehearsal_contract_ready` 상태를 유지한다. 실제 L2 runtime event
+  evidence를 tracked package에 넣지 않았기 때문이다.
+
+### 판단 이유
+
+- 기존 blocker는 `runtime_capture.json`이 canonical trace shape를 이미 담은
+  self-attested derived artifact라는 점이었다.
+- ready를 열려면 verifier가 raw event stream을 group/validate/reconstruct해
+  downstream package chain과 대조해야 한다.
+- L2도 genuine Isaac process origin을 암호학적으로 증명하지는 못하므로 claim은
+  digital-twin rehearsal readiness로 제한한다.
+- 이 slice는 contract-first 구현이며, checked-in package를 ready로 재생성하지
+  않는다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/mvp5a_file_drop_rehearsal.py
+apps/api/tests/test_mvp5a_pre_file_drop_profiles.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+scripts/run_mvp5a_pre_file_drop_chaos_rehearsal.py
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+docs/developer/data_schema.md
+docs/developer/debugging_guide.md
+docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/README.md
+Handoff.md
+tasks/todo.md
+```
+
+### 검증
+
+```text
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_profiles.py
+  -> 67 passed
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> 136 passed
+```
+
+### 남은 gap 또는 다음 작업
+
+- G006 final gate를 완료했다.
+
+```text
+uv run pytest -q
+  -> 1222 passed, 6 skipped
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_file_drop_profiles.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 212 passed
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED
+  -> status=file_drop_rehearsal_contract_ready
+  -> file_drop_rehearsal_ready=false
+
+uvx ruff check <touched MVP-5A-pre files>
+  -> All checks passed
+
+uv run python -m compileall <touched MVP-5A-pre Python files>
+  -> passed
+
+git diff --check
+  -> passed
+
+ai-slop-cleaner changed-file pass
+  -> passed/no-op; touched Python scope has no masking fallback slop
+
+independent code-reviewer
+  -> APPROVE
+
+independent architect
+  -> CLEAR
+
+omx ultragoal checkpoint --goal-id G006-docs-regression-and-review-gate-upda --status complete ...
+  -> ultragoal checkpoint: G006-docs-regression-and-review-gate-upda -> complete
+  -> ultragoal artifact goals: complete
+```
+
+- Review follow-up에서 spec example drift가 발견되어 final gate 전에 수정했다.
+  - allowed phase list에 `insert_rehearsal` 추가
+  - UR example을 `RUNNING` / `NORMAL`로 정정
+  - Franka EEF unit key를 `pose_matrix`로 정정
+  - L2 capture script id를
+    `mvp5a_pre_isaac_sim_raw_runtime_event_capture_v0`로 정정
+  - manifest `non_claims` example을 verifier의 exact claim set으로 확장
+- quality gate JSON:
+
+```text
+.omx/reports/quality-gate-mvp5a-verifier-owned-runtime-evidence-contract.json
+.omx/reports/codex-goal-mvp5a-runtime-evidence-contract-complete.json
+```
+
+### 남은 gap 또는 다음 작업
+
+- 현재 작업은 아직 커밋하지 않았다.
+- 다음 단계는 Lore protocol에 맞춘 commit split, push/PR, CI 확인이다.
+- checked-in package는 여전히 `file_drop_rehearsal_contract_ready`다. 실제
+  `file_drop_rehearsal_ready=true` artifact는 future capture-edge
+  `runtime_event_log.jsonl`가 package에 포함될 때 별도 slice에서 생성해야 한다.
+
+## 2026-06-26 - MVP-5A L2/L3 Phase 0 helper-forge hardening
+
+### 작업 내용
+
+- `docs/superpowers/specs/2026-06-26-mvp5a-l2-l3-capture-edge-evidence-close-design.md`
+  기준으로 `$ralplan --deliberate`를 완료하고 `$ultragoal` 실행을 시작했다.
+- Phase 0 hardening의 G001-G003를 구현했다.
+  - G001: 기존 helper-positive ready 테스트를 fail-closed 테스트로 뒤집었다.
+  - G002: canonical trace projection helper가 capture-edge evidence 배지를 달지
+    못하게 producer metadata를 non-closing으로 바꿨다.
+  - G003: verifier가 helper-origin 또는 origin-less/hash-refreshed
+    blessed-looking runtime evidence로 `file_drop_rehearsal_ready=true`를 열 수
+    없게 했다.
+- `.omx/ultragoal` objective mismatch를 복구했다.
+  - 처음 생성한 Codex goal objective가 ultragoal stable objective와 달라
+    checkpoint가 막혔다.
+  - `.omx/ultragoal/goals.json`을 현재 active aggregate objective에 맞춰
+    복구했고 G001-G003 checkpoint를 완료했다.
+
+### 판단 이유
+
+- 현재 PR #12의 runtime event producer는:
+
+```text
+canonical_trace.json
+-> build_runtime_event_log_from_trace()
+-> runtime_event_log.jsonl
+```
+
+- 이 경로는 capture-edge raw runtime event가 아니라 canonical trace에서
+  역산한 helper-derived consistency evidence다.
+- artifacts만으로는 event->trace 정방향 파생과 trace->event 역산을 구분할 수
+  없다. 따라서 ready=true는 helper projection이 아니라 future
+  capture-edge emitter + process provenance + verifier reconstruction의 결합으로만
+  열려야 한다.
+
+### 변경 파일
+
+```text
+apps/api/app/services/mvp5a_file_drop_rehearsal.py
+apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+Handoff.md
+tasks/todo.md
+docs/developer/worklog.md
+```
+
+### 핵심 변경
+
+```text
+Producer:
+  build_runtime_event_log_from_trace()
+    -> dev-helper / consistency-only evidence로 문서화
+
+  write_runtime_evidence()
+    capture_script_id=mvp5a_pre_canonical_trace_projection_helper_v0
+    evidence_origin=canonical_trace_projection_helper
+    producer_kind=dev_fixture_helper
+    helper_source_function=build_runtime_event_log_from_trace
+    closing_evidence=false
+    runtime_capture_sufficient=false
+    ready_status_allowed=false
+
+Verifier:
+  PR #12 consistency baseline:
+    any status=file_drop_rehearsal_ready package fails with
+    file_drop_rehearsal_ready close is disabled for PR #12 consistency baseline
+
+  ready=true requires:
+    evidence_origin=capture_edge_runtime_event_emitter
+    producer_kind=capture_edge_emitter
+    closing_evidence=true
+    data/process_provenance/process_provenance_receipt.json
+    process_provenance_receipt schema/version/hash/process checks
+
+  helper-derived or origin-less ready evidence now fails with:
+    helper-derived runtime evidence cannot open ready status
+
+  hash-refreshed helper evidence relabeled as capture-edge now fails with:
+    ready status requires data/process_provenance/process_provenance_receipt.json
+
+  dummy process provenance receipt now fails with:
+    process_provenance_receipt schema_version mismatch
+    process_provenance_receipt runtime_event_log_sha256 mismatch
+
+  hash-consistent forged process provenance still fails with:
+    file_drop_rehearsal_ready close is disabled for PR #12 consistency baseline
+```
+
+### 실행한 검증 명령과 결과
+
+```text
+uv run pytest apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py::test_helper_derived_l2_runtime_event_package_cannot_mint_ready -q
+  -> first RED run before guard: FAILED as expected
+  -> after guard: 1 passed
+
+uv run pytest apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py::test_write_runtime_evidence_marks_canonical_projection_helper_non_closing apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py::test_helper_derived_l2_runtime_event_package_cannot_mint_ready apps/api/tests/test_mvp5a_pre_file_drop_profiles.py::test_write_runtime_evidence_emits_manifest_and_reconstruction_receipt apps/api/tests/test_mvp5a_pre_file_drop_profiles.py::test_runtime_event_evidence_option_does_not_close_package -q
+  -> 4 passed
+
+uv run pytest apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py::test_hash_refreshed_helper_derived_capture_edge_relabel_requires_process_provenance apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py::test_helper_derived_l2_runtime_event_package_cannot_mint_ready -q
+  -> first RED run before process-provenance gate: FAILED as expected
+  -> after gate: 2 passed
+
+uv run pytest apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py::test_hash_refreshed_helper_derived_capture_edge_relabel_rejects_dummy_process_provenance apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py::test_hash_refreshed_helper_derived_capture_edge_relabel_requires_process_provenance apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py::test_helper_derived_l2_runtime_event_package_cannot_mint_ready -q
+  -> 3 passed
+
+uv run pytest apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py::test_hash_refreshed_helper_derived_capture_edge_relabel_rejects_hash_consistent_process_provenance apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py::test_hash_refreshed_helper_derived_capture_edge_relabel_rejects_dummy_process_provenance apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py::test_helper_derived_l2_runtime_event_package_cannot_mint_ready -q
+  -> 3 passed
+
+uv run pytest apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py -q
+  -> 136 passed
+
+uv run pytest apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py -q
+  -> 207 passed
+
+uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
+  -> VERDICT: VERIFIED
+  -> status=file_drop_rehearsal_contract_ready
+  -> file_drop_rehearsal_ready=false
+
+uv run pytest -q apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py
+  -> 9 passed
+
+uv run python -m compileall apps/api/app/services/mvp5a_file_drop_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> passed
+
+uvx ruff check apps/api/app/services/mvp5a_file_drop_rehearsal.py scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py
+  -> All checks passed
+
+uvx pyright --pythonpath .venv/bin/python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py
+  -> 0 errors, 0 warnings, 0 informations
+
+git diff --check
+  -> passed
+
+uv run pytest -q
+  -> 1226 passed, 6 skipped
+```
+
+### 검증 중 발견한 환경 이슈
+
+```text
+python3 scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py ... --allow-contract-ready --deep-hdf5
+  -> FAILED
+  -> h5py/numpy ABI mismatch:
+     ValueError: numpy.dtype size changed, may indicate binary incompatibility.
+
+uv run python ... --allow-contract-ready --deep-hdf5
+  -> VERIFIED
+```
+
+- 현 시스템 `python3`의 h5py/numpy ABI가 맞지 않는다.
+- repo 검증은 `uv run python` 경로에서 통과했다.
+
+### 남은 gap 또는 다음 작업
+
+- G004를 계속 진행해야 한다.
+  - independent review
+  - Lore protocol commit/push/PR #12 update
+- PR #12는 merge하더라도 consistency baseline일 뿐이다.
+- `file_drop_rehearsal_ready=true`는 아직 열리지 않았다.
+- Phase 2의 실제 close는 별도 branch에서 capture-edge emitter + L3 process
+  provenance + verifier reconstruction을 함께 묶어야 한다.
+- Independent architect review found a blocker after the first G004 pass:
+  capture-edge manifest labels were still mutable self-attestation. The fix is
+  now in place: ready=true requires `data/process_provenance/process_provenance_receipt.json`,
+  and a hash-refreshed relabel forge regression covers this path.
+- Independent architect re-review found a second blocker: a dummy process
+  provenance receipt could satisfy the existence gate. The fix is now in place:
+  ready=true validates receipt schema, capture script id, source backend/process
+  kind, runtime event log path/hash, exit code, command/env fields, and
+  script/config/stdout/stderr path+sha256 bindings.
+- Independent code-reviewer found a stronger blocker: package-controlled but
+  hash-consistent forged process provenance could still open ready. The fix is
+  now in place for the PR #12 baseline: all `file_drop_rehearsal_ready` packages
+  fail with an explicit disabled-close issue until the separate capture-edge
+  emitter/provenance branch implements the real positive close path.
+- Independent code-reviewer follow-up found a pyright narrowing issue in the
+  process provenance path handling. It is fixed by explicit `str` narrowing for
+  receipt paths and runtime event timestamps before `Path` joining / `float()`.

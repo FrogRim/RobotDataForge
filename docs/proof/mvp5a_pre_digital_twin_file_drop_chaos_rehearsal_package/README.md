@@ -11,6 +11,11 @@ The default verifier recomputes package consistency from included evidence:
 python3 scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py /home/kangrim/robot-data-forge/docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5
 ```
 
+`file_drop_rehearsal_ready=true` is allowed only for packages that include
+`data/runtime_evidence/runtime_event_log.jsonl` plus the L2 runtime manifest and
+reconstruction receipt. Runtime-shaped summary JSON alone is not closing
+evidence. This checked-in fixture package remains contract-ready.
+
 ## Claim Boundary
 
 No external partner data evaluation.

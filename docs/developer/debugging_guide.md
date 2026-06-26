@@ -5280,35 +5280,29 @@ deep hdf5 states/actions/timestamps mismatch:
   normalized contract나 receipt를 같이 고쳐도 source evidence와 불일치하면
   verifier가 실패해야 한다.
 
-file_drop_rehearsal_ready requires verifier-owned runtime evidence contract:
-  v0 verifier는 `file_drop_rehearsal_ready=true`를 의도적으로 fail-closed한다.
-  `runtime_capture.json`이 있어도 그 JSON만으로는 실제 Isaac Sim process에서
-  온 raw runtime evidence인지 독립 검증할 수 없다. 별도 verifier-owned raw
-  runtime evidence contract가 생기기 전까지는 contract-ready가 최대 상태다.
+ready status requires data/runtime_evidence/runtime_event_log.jsonl:
+  `file_drop_rehearsal_ready=true`를 주장했지만 verifier-owned L2 raw runtime
+  event log가 package에 없다. `runtime_capture.json`처럼 이미
+  `mvp5a_canonical_trace.frames`를 담은 summary payload는 ready evidence가
+  아니다. ready는 `data/runtime_evidence/runtime_event_log.jsonl`에서 verifier가
+  frame/channel events를 직접 group/validate/reconstruct할 때만 허용된다.
 
-ready status requires data/canonical_trace/runtime_capture.json:
-  `file_drop_rehearsal_ready=true`를 주장했지만 package 안에 runtime capture가
-  없음. 이 오류가 없더라도 v0에서는 위의 verifier-owned runtime evidence
-  contract 오류가 함께 발생해야 한다.
+runtime_event_manifest / runtime_reconstruction_receipt mismatch:
+  L2 event log의 sha256, frame/event count, required channel set, capture id,
+  reconstruction algorithm, canonical trace hash가 package summary와 맞지 않는다.
+  이 파일들은 source of truth가 아니라 verifier가 재계산하는 receipt/index다.
 
-ready runtime_capture canonical schema invalid:
-  runtime capture가 `mvp5a_canonical_trace.frames`를 포함하더라도 timestamp만
-  있거나 commanded/actual joints, TCP pose, Franka EEF, robot mode, safety
-  status, task phase가 빠져 있으면 ready 상태로 승격할 수 없다.
+runtime event_index not contiguous / runtime frame_index not contiguous /
+duplicate runtime event for frame/channel / unknown runtime event channel:
+  L2 event log의 global invariant가 깨졌다. event_index는 0부터 연속이어야 하고,
+  frame_index도 0부터 연속이어야 하며, 각 frame은 required channel 6종을 정확히
+  하나씩 가져야 한다.
 
-ready runtime_capture provenance invalid:
-  원본 `runtime_capture.json` payload가 Isaac Sim runtime provenance를 충분히
-  담지 않는다. `runtime_backend=isaac_sim`, expected capture script id,
-  capture command, Isaac/runtime version, source process receipt, 그리고
-  capture 내부 canonical trace의 `source_kind=isaac_sim_runtime_backed_canonical_trace`,
-  `runtime_backed=true`가 필요하다. builder/verifier가 deterministic fixture를
-  runtime-backed로 덮어써 승격하면 안 된다. 단, 이 provenance가 모두 있더라도
-  v0에서는 self-attested JSON으로만 취급하며 ready 상태를 열지 않는다.
-
-ready runtime_capture provenance invalid: runtime_capture_matches_deterministic_fixture:
-  runtime capture payload의 frame content가 known deterministic fixture와 동일하다.
-  `trace_id`, `source_kind`, `runtime_backed`, provenance 문자열만 바꾼 relabel은
-  runtime-backed evidence가 아니므로 contract-ready에 머물러야 한다.
+UR joint_names mismatch / UR joint_position unit mismatch /
+Franka EEF matrix length mismatch / generic action-state lag exceeds threshold:
+  L2 event log의 channel payload가 verifier-owned semantic contract를 위반했다.
+  unit, joint order, DOF, robot mode, safety status, frame pose, action/state
+  semantics는 cached summary가 아니라 event payload에서 직접 검사한다.
 
 golden source rows do not match canonical projection:
   source drop, normalized contract, HDF5, receipt를 모두 hash-refresh해도

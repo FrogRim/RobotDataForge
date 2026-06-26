@@ -1,5 +1,149 @@
 # ForgeXR / RDF Data Trust Layer Reset - 2026-06-04
 
+## Current MVP-5A L2/L3 Capture-Edge Evidence Close Spec - 2026-06-26 KST
+
+Goal: PR #12의 L2 runtime evidence contract를 consistency baseline으로
+유지하되, helper-derived runtime event가 blessed capture evidence처럼 ready
+status를 열 수 있는 구멍을 먼저 닫고, 이후 L2/L3 capture-edge package로
+`file_drop_rehearsal_ready=true`를 닫는다.
+
+Current status:
+
+```text
+branch=codex/mvp5a-runtime-evidence-contract
+spec=docs/superpowers/specs/2026-06-26-mvp5a-l2-l3-capture-edge-evidence-close-design.md
+implementation_status=phase0_helper_forge_hardening_reverified_after_forged_provenance_blocker_pending_review_commit
+```
+
+Checklist:
+
+- [x] Read handoff and project instructions before architecture/spec work.
+- [x] Verify current producer path uses `build_runtime_event_log_from_trace()`.
+- [x] Verify current helper can stamp the blessed raw runtime capture script id.
+- [x] Brainstorm A/B/C PR #12 handling options.
+- [x] Choose Option B: add immediate helper-forge hardening to PR #12, then merge.
+- [x] Define L2/L3 capture-edge close as a combined ready boundary.
+- [x] Add required forge regression test to the spec.
+- [x] Add process provenance ceiling non-claim to the spec.
+- [x] Run `$ralplan --deliberate` from the spec.
+  - [x] Architect iteration 1: APPROVE.
+  - [x] Critic iteration 1: ITERATE.
+  - [x] Add RALPLAN-DR principles/drivers, pre-mortem, expanded test plan,
+        helper-positive inversion requirement, process provenance hash-lock
+        criteria.
+  - [x] Architect iteration 2: APPROVE.
+  - [x] Critic iteration 2: APPROVE.
+- [x] Implement Phase 0 immediate hardening before PR #12 merge.
+  - [x] G001 RED: helper-derived ready package initially fails the new expected
+        fail-closed test (`assert True is False` before guard).
+  - [x] G002 producer guard: canonical projection helper now emits
+        non-closing provenance and `ready_status_allowed=false`.
+  - [x] G003 verifier guard: ready=true rejects helper-origin or origin-less
+        blessed-looking runtime evidence with
+        `helper-derived runtime evidence cannot open ready status`.
+  - [x] Architect blocker fixed: hash-refreshed helper evidence relabeled as
+        capture-edge now still fails because ready status requires
+        `data/process_provenance/process_provenance_receipt.json`.
+  - [x] Architect re-review blocker fixed: dummy `process_provenance_receipt.json`
+        is not enough; ready provenance must match schema, script identity, event
+        log sha256, command/env fields, and hash-locked script/config/stdout/stderr
+        artifacts.
+  - [x] Code-reviewer blocker fixed: even hash-consistent forged process
+        provenance cannot open ready in PR #12; the verifier now emits
+        `file_drop_rehearsal_ready close is disabled for PR #12 consistency baseline`
+        for all ready packages until the separate capture-edge close branch.
+  - [x] Focused validation:
+        `uv run pytest apps/api/tests/test_mvp5a_pre_file_drop_package_and_verifier.py apps/api/tests/test_mvp5a_pre_file_drop_profiles.py -q`
+        -> `207 passed`.
+  - [x] Checked-in package still contract-ready:
+        `uv run python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/package_manifest.json --allow-contract-ready --deep-hdf5`
+        -> `VERDICT: VERIFIED`, `file_drop_rehearsal_ready=false`.
+  - [x] G004 broader regression:
+        `uv run pytest -q` -> `1226 passed, 6 skipped`.
+  - [x] G004 frozen verifier regression:
+        `uv run pytest -q apps/api/tests/test_mvp5a_pre_frozen_verifier_regressions.py`
+        -> `9 passed`.
+  - [x] G004 compileall/ruff/diff-check passed on touched files.
+  - [x] Code-reviewer pyright blocker fixed:
+        `uvx pyright --pythonpath .venv/bin/python scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py`
+        -> `0 errors, 0 warnings, 0 informations`.
+  - [ ] G004 independent review.
+  - [ ] G004 Lore commit/push/PR update.
+- [ ] Merge PR #12 as consistency baseline after hardening.
+- [ ] Start separate L2/L3 capture-edge evidence close branch.
+
+Claim boundary:
+
+- [x] PR #12 alone is a consistency baseline, not a ready close.
+- [x] Forward derivation is enforced by blessed emitter identity, process
+      provenance, helper rejection, and verifier reconstruction; artifacts alone
+      do not prove direction.
+- [x] L3 process provenance binds declared process identity but does not prove a
+      genuine physics run rather than replay/fabrication.
+- [x] Consensus-approved execution starts with Phase 0 only; Phase 2 L2/L3 close
+      waits for hardened PR #12 merge.
+
+## Current MVP-5A Runtime Evidence Contract - 2026-06-25 KST
+
+Goal: `file_drop_rehearsal_ready=true`를 runtime-shaped JSON이 아니라
+verifier-owned L2 raw runtime event evidence로만 열 수 있게 한다.
+
+Current status:
+
+```text
+branch=codex/mvp5a-runtime-evidence-contract
+spec=docs/superpowers/specs/2026-06-25-mvp5a-verifier-owned-raw-runtime-evidence-contract-design.md
+prd=.omx/plans/prd-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+test_spec=.omx/plans/test-spec-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+ralplan=.omx/plans/ralplan-mvp5a-verifier-owned-raw-runtime-evidence-contract.md
+implementation_status=G001_G006_complete_quality_gate_clean_pending_commit
+checked_in_package_status=file_drop_rehearsal_contract_ready
+checked_in_file_drop_rehearsal_ready=false
+```
+
+Checklist:
+
+- [x] Read handoff and project instructions before architecture/spec work.
+- [x] Confirm existing MVP-5A-pre package is contract-ready only and ready is blocked.
+- [x] Identify current blocker: runtime-shaped JSON cannot be closing evidence.
+- [x] Define L0/L1/L2/L3 runtime evidence levels.
+- [x] Specify L2 `runtime_event_log.jsonl` schema and required channels.
+- [x] Specify verifier reconstruction algorithm and ready criteria.
+- [x] Specify tamper matrix and non-claim boundary.
+- [x] Write deliberate implementation plan.
+- [x] Add verifier reconstruction tests before implementation.
+- [x] Implement optional producer runtime evidence artifacts:
+      `runtime_event_log.jsonl`, `runtime_event_manifest.json`,
+      `runtime_reconstruction_receipt.json`.
+- [x] Implement verifier L2 runtime event parser, manifest/receipt checks,
+      global invariants, channel semantic checks, and canonical reconstruction.
+- [x] Replace the old unconditional ready blocker with L2 evidence checks.
+- [x] Keep runtime-capture-only packages non-closing.
+- [x] Enforce reconstructed canonical trace through source projection,
+      normalized contracts, HDF5/deep payload, export receipts, and trainer smoke.
+- [x] Decide this slice remains contract-first for the checked-in package:
+      shipped evidence stays `file_drop_rehearsal_contract_ready`.
+- [x] Finish G006 final docs/regression/review gate.
+  - [x] Full suite: `1222 passed, 6 skipped`.
+  - [x] Post-cleaner focused suite: `212 passed`.
+  - [x] Checked-in package verifier: `VERDICT: VERIFIED`,
+        `file_drop_rehearsal_ready=false`.
+  - [x] `uvx ruff check` touched files: pass.
+  - [x] `compileall`: pass.
+  - [x] `git diff --check`: pass.
+  - [x] `ai-slop-cleaner`: pass/no-op on changed code scope.
+  - [x] independent code-reviewer: APPROVE.
+  - [x] independent architect: CLEAR.
+  - [x] quality gate JSON:
+        `.omx/reports/quality-gate-mvp5a-verifier-owned-runtime-evidence-contract.json`.
+
+Claim boundary:
+
+- [x] L2 can support digital-twin rehearsal ready only after verifier recomputation.
+- [x] L2 does not prove external partner data evaluation.
+- [x] L2 does not prove real robot success, hardware readiness, live UR/Franka/ROS2
+      support, policy uplift, or production readiness.
+
 ## Current LeRobot Public Dataset Matrix Semantic Parity - 2026-06-24 KST
 
 Goal: ALOHA 단일 public audited slice를 2-profile LeRobot public source matrix로

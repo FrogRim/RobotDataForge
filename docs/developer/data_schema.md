@@ -2123,20 +2123,16 @@ file_drop_rehearsal_ready=false
 blocked_reason=runtime_capture_not_supplied
 ```
 
-`file_drop_rehearsal_ready=true`는 v0 package에서 의도적으로 열리지 않는다.
+Checked-in fixture-only package는 `file_drop_rehearsal_ready=true`를 열지 않는다.
 `runtime_capture.json`이 supplied되고 `MIN_CANONICAL_FRAMES=12` 이상이며 각 frame이
 UR commanded/actual joints, UR TCP pose/speed, Franka commanded/actual state,
 Franka EEF transform, generic command/state, phase, robot mode, safety status를
-모두 포함하더라도, 그 JSON은 self-attested payload일 수 있다. 따라서
-verifier-owned raw runtime evidence contract가 별도 구현되기 전까지는
-`runtime_capture_structurally_valid=true`까지만 기록하고
-`runtime_capture_sufficient=false`,
-`blocked_reason=runtime_capture_unverified_source_process`로 contract-ready에
-머문다. builder가 deterministic fixture를 runtime-backed로 덮어써 승격하면
-안 된다. Known deterministic fixture frame content digest와 동일한 trace는
-`source_kind`와 `runtime_backed`를 relabel해도 ready evidence가 아니며
-contract-ready에 머문다. timestamp-only capture, row-count-only capture,
-provenance 없는 capture도 contract-ready에 머문다.
+모두 포함하더라도, 그 JSON은 self-attested summary payload일 수 있다. 따라서
+ready path는 `data/runtime_evidence/runtime_event_log.jsonl`에 포함된 L2 raw
+runtime events를 verifier가 직접 group/validate/reconstruct할 때만 허용한다.
+builder가 deterministic fixture를 runtime-backed로 덮어써 승격하면 안 된다.
+timestamp-only capture, row-count-only capture, provenance 없는 capture도
+contract-ready에 머문다.
 
 필수 profile:
 
@@ -2159,6 +2155,10 @@ data/canonical_trace/
   runtime_capture.json   # runtime capture가 supplied된 경우에만 존재
   runtime_capture_preflight.json
   runtime_capture_hash_receipt.json
+data/runtime_evidence/  # optional L2 evidence; checked-in fixture package에는 없음
+  runtime_event_log.jsonl
+  runtime_event_manifest.json
+  runtime_reconstruction_receipt.json
 data/source_drops/
   golden/<profile_id>/
   corrupt/<profile_id>/<mutation_id>/
@@ -2192,10 +2192,37 @@ hash와 deep payload check를 묶는다. HDF5가 포함된 MVP-5A-pre package는
 `hdf5 payload verification requires --deep-hdf5`로 fail-closed되어야 한다.
 buyer report와 README는 positive forbidden claim scan 대상이다.
 artifact path는 data/ 상대 경로만 허용하고 symlink escape를 금지한다.
-`file_drop_rehearsal_ready=true`는 현재 verifier에서 항상 fail-closed다. 향후
-ready path를 열려면 included `runtime_capture.json`의 `mvp5a_canonical_trace`
-뿐 아니라 verifier-owned raw runtime evidence를 함께 정의하고, package
-`canonical_trace.json`이 그 raw evidence에서 재계산되어야 한다.
+`file_drop_rehearsal_ready=true`는 `runtime_event_log.jsonl`이 존재하고,
+manifest/receipt/hash, event_index/frame_index, required channel set,
+channel unit/dimension/semantic rules, reconstructed canonical trace,
+source projection, HDF5/deep payload, trainer smoke, non-claim scan이 모두
+통과할 때만 verifier가 허용한다. `runtime_capture.json` 단독으로는 ready를
+열 수 없다.
+```
+
+L2 runtime event required channels:
+
+```text
+phase_marker
+ur_joint_state
+ur_tcp_state
+franka_joint_state
+franka_eef_state
+generic_command_state
+```
+
+L2 global invariant:
+
+```text
+event_index contiguous from 0
+timestamp finite and monotonic by event_index
+frame_index contiguous from 0
+exactly one event per required channel per frame
+no unknown closing channel
+no non-finite numeric payload
+source_backend=isaac_sim
+source_process_kind=isaac_sim_process
+external_partner_data=false
 ```
 
 금지 claim:
