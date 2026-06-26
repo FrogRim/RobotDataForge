@@ -25,12 +25,22 @@ RUNTIME_CAPTURE_PROVENANCE_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_provenance_v0
 RAW_RUNTIME_EVENT_SCHEMA_VERSION = "rdf_mvp5a_pre_raw_runtime_event_v0.1.0"
 RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_event_manifest_v0.1.0"
 RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_reconstruction_receipt_v0.1.0"
+PROCESS_PROVENANCE_RECEIPT_SCHEMA_VERSION = "rdf_mvp5a_pre_process_provenance_receipt_v0.1.0"
 RUNTIME_RECONSTRUCTION_ALGORITHM = "rdf_mvp5a_pre_runtime_events_to_canonical_trace_v0.1.0"
 RUNTIME_BACKED_SOURCE_KIND = "isaac_sim_runtime_backed_canonical_trace"
 RUNTIME_BACKEND = "isaac_sim"
 RUNTIME_CAPTURE_SCRIPT_ID = "mvp5a_pre_isaac_sim_canonical_trace_capture_v0"
 RUNTIME_EVENT_CAPTURE_SCRIPT_ID = "mvp5a_pre_isaac_sim_raw_runtime_event_capture_v0"
+RUNTIME_EVENT_CAPTURE_EDGE_EVIDENCE_ORIGIN = "capture_edge_runtime_event_emitter"
+RUNTIME_EVENT_CAPTURE_EDGE_PRODUCER_KIND = "capture_edge_emitter"
+RUNTIME_EVENT_HELPER_EVIDENCE_ORIGIN = "canonical_trace_projection_helper"
+RUNTIME_EVENT_HELPER_PRODUCER_KIND = "dev_fixture_helper"
+RUNTIME_EVENT_HELPER_SOURCE_FUNCTION = "build_runtime_event_log_from_trace"
 RUNTIME_SOURCE_PROCESS_KIND = "isaac_sim_process"
+CAPTURE_EDGE_READY_CLOSE_ENABLED = False
+CAPTURE_EDGE_READY_CLOSE_DISABLED_ISSUE = (
+    "file_drop_rehearsal_ready close is disabled for PR #12 consistency baseline"
+)
 FIXTURE_FRAME_CONTENT_SHA256 = "ff9f65a980a6ea315b95117dd9961a806c95cc104d4adc7082b3ab82016f287c"
 RUNTIME_FRAME_KEYS = {"frame_index", "timestamp", "phase", "ur", "franka", "generic"}
 RUNTIME_EVENT_REQUIRED_CHANNELS = (
@@ -353,6 +363,8 @@ def _verify_status(
     if status == STATUS_CONTRACT_READY and not allow_contract_ready:
         issues.append("contract-ready package requires --allow-contract-ready")
     if status == STATUS_READY:
+        if not CAPTURE_EDGE_READY_CLOSE_ENABLED:
+            issues.append(CAPTURE_EDGE_READY_CLOSE_DISABLED_ISSUE)
         if preflight.get("runtime_capture_sufficient") is not True:
             issues.append("ready status requires runtime_capture_sufficient=true")
         if receipt.get("ready_status_allowed") is not True:
@@ -365,6 +377,13 @@ def _verify_status(
 
 
 def _verify_ready_runtime_event_evidence(package_dir: Path, canonical: dict[str, Any], issues: list[str]) -> None:
+    process_provenance_receipt = _read_json(
+        package_dir / "data" / "process_provenance" / "process_provenance_receipt.json",
+        issues,
+        "data/process_provenance/process_provenance_receipt.json",
+        missing_issue="ready status requires data/process_provenance/process_provenance_receipt.json",
+    )
+    _verify_process_provenance_receipt(package_dir, process_provenance_receipt, issues)
     runtime_manifest = _read_json(
         package_dir / "data" / "runtime_evidence" / "runtime_event_manifest.json",
         issues,
@@ -401,6 +420,53 @@ def _verify_ready_runtime_event_evidence(package_dir: Path, canonical: dict[str,
         issues.append("runtime_reconstruction_receipt matches_included_canonical_trace must be true")
     if _canonical_runtime_projection(reconstructed) != _canonical_runtime_projection(canonical):
         issues.append("runtime reconstructed canonical trace does not match included canonical trace")
+
+
+def _verify_process_provenance_receipt(
+    package_dir: Path,
+    receipt: dict[str, Any],
+    issues: list[str],
+) -> None:
+    event_log_rel = "data/runtime_evidence/runtime_event_log.jsonl"
+    event_log_path = package_dir / event_log_rel
+    event_log_sha = _sha256_file(event_log_path) if event_log_path.is_file() else None
+    if receipt.get("schema_version") != PROCESS_PROVENANCE_RECEIPT_SCHEMA_VERSION:
+        issues.append("process_provenance_receipt schema_version mismatch")
+    if receipt.get("capture_script_id") != RUNTIME_EVENT_CAPTURE_SCRIPT_ID:
+        issues.append("process_provenance_receipt capture_script_id mismatch")
+    if receipt.get("source_backend") != RUNTIME_BACKEND:
+        issues.append("process_provenance_receipt source_backend mismatch")
+    if receipt.get("source_process_kind") != RUNTIME_SOURCE_PROCESS_KIND:
+        issues.append("process_provenance_receipt source_process_kind mismatch")
+    if receipt.get("runtime_event_log_path") != event_log_rel:
+        issues.append("process_provenance_receipt runtime_event_log_path mismatch")
+    if receipt.get("runtime_event_log_sha256") != event_log_sha:
+        issues.append("process_provenance_receipt runtime_event_log_sha256 mismatch")
+    if receipt.get("exit_code") != 0:
+        issues.append("process_provenance_receipt exit_code must be 0")
+    for key in ("git_commit", "command", "python_version", "os_summary", "started_at", "ended_at"):
+        if not isinstance(receipt.get(key), str) or not receipt.get(key):
+            issues.append(f"process_provenance_receipt {key} missing")
+    for path_key, hash_key in (
+        ("script_path", "script_sha256"),
+        ("config_path", "config_sha256"),
+        ("stdout_log_path", "stdout_log_sha256"),
+        ("stderr_log_path", "stderr_log_sha256"),
+    ):
+        rel_path = receipt.get(path_key)
+        expected_hash = receipt.get(hash_key)
+        if not isinstance(rel_path, str) or not _safe_data_path(rel_path):
+            issues.append(f"process_provenance_receipt {path_key} unsafe")
+            continue
+        artifact_path = package_dir / rel_path
+        if not _is_within(artifact_path, package_dir):
+            issues.append(f"process_provenance_receipt {path_key} escapes package")
+            continue
+        if not artifact_path.is_file():
+            issues.append(f"process_provenance_receipt {path_key} missing")
+            continue
+        if expected_hash != _sha256_file(artifact_path):
+            issues.append(f"process_provenance_receipt {hash_key} mismatch")
 
 
 def _load_runtime_events(package_dir: Path, issues: list[str]) -> list[dict[str, Any]]:
@@ -447,6 +513,18 @@ def _verify_runtime_event_manifest(
         issues.append("runtime_event_manifest runtime_event_log_sha256 mismatch")
     if runtime_manifest.get("capture_script_id") != RUNTIME_EVENT_CAPTURE_SCRIPT_ID:
         issues.append("runtime_event_manifest capture_script_id mismatch")
+    helper_signatures = {
+        runtime_manifest.get("evidence_origin") == RUNTIME_EVENT_HELPER_EVIDENCE_ORIGIN,
+        runtime_manifest.get("producer_kind") == RUNTIME_EVENT_HELPER_PRODUCER_KIND,
+        runtime_manifest.get("helper_source_function") == RUNTIME_EVENT_HELPER_SOURCE_FUNCTION,
+    }
+    capture_edge_ready_origin = (
+        runtime_manifest.get("evidence_origin") == RUNTIME_EVENT_CAPTURE_EDGE_EVIDENCE_ORIGIN
+        and runtime_manifest.get("producer_kind") == RUNTIME_EVENT_CAPTURE_EDGE_PRODUCER_KIND
+        and runtime_manifest.get("closing_evidence") is True
+    )
+    if any(helper_signatures) or not capture_edge_ready_origin:
+        issues.append("helper-derived runtime evidence cannot open ready status")
     if runtime_manifest.get("source_backend") != RUNTIME_BACKEND:
         issues.append("runtime_event_manifest source_backend mismatch")
     if runtime_manifest.get("source_process_kind") != RUNTIME_SOURCE_PROCESS_KIND:
@@ -496,7 +574,7 @@ def _runtime_event_global_issues(events: list[dict[str, Any]]) -> list[str]:
         if event.get("source_process_kind") != RUNTIME_SOURCE_PROCESS_KIND:
             issues.append("runtime event source_process_kind mismatch")
         timestamp = event.get("timestamp")
-        if not _finite_number(timestamp):
+        if not isinstance(timestamp, (int, float)) or isinstance(timestamp, bool) or not _finite_number(timestamp):
             issues.append("runtime timestamp invalid")
         else:
             current_timestamp = float(timestamp)

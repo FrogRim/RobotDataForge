@@ -18,11 +18,16 @@ from app.services.mvp5a_file_drop_rehearsal import (
     RUNTIME_BACKED_SOURCE_KIND,
     RUNTIME_CAPTURE_PROVENANCE_SCHEMA_VERSION,
     RUNTIME_CAPTURE_SCHEMA_VERSION,
+    RUNTIME_EVENT_HELPER_EVIDENCE_ORIGIN,
+    RUNTIME_EVENT_HELPER_PRODUCER_KIND,
+    RUNTIME_EVENT_HELPER_SCRIPT_ID,
+    RUNTIME_EVENT_HELPER_SOURCE_FUNCTION,
     STATUS_CONTRACT_READY,
     STATUS_READY,
     _assert_managed_package_dir,
     build_fixture_canonical_trace,
     build_rehearsal_package,
+    write_runtime_evidence,
 )
 
 
@@ -36,10 +41,12 @@ _SPEC.loader.exec_module(_VERIFIER_MODULE)
 verify_package = _VERIFIER_MODULE.verify_package
 VERIFIER_FORBIDDEN_CLAIMS = cast(set[str], _VERIFIER_MODULE.FORBIDDEN_CLAIMS)
 VERIFIER_FORBIDDEN_POSITIVE_PHRASES = cast(tuple[str, ...], _VERIFIER_MODULE.FORBIDDEN_POSITIVE_PHRASES)
+CAPTURE_EDGE_READY_CLOSE_DISABLED_ISSUE = cast(str, _VERIFIER_MODULE.CAPTURE_EDGE_READY_CLOSE_DISABLED_ISSUE)
 
 RAW_RUNTIME_EVENT_SCHEMA_VERSION = "rdf_mvp5a_pre_raw_runtime_event_v0.1.0"
 RUNTIME_EVENT_MANIFEST_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_event_manifest_v0.1.0"
 RUNTIME_RECONSTRUCTION_RECEIPT_SCHEMA_VERSION = "rdf_mvp5a_pre_runtime_reconstruction_receipt_v0.1.0"
+PROCESS_PROVENANCE_RECEIPT_SCHEMA_VERSION = "rdf_mvp5a_pre_process_provenance_receipt_v0.1.0"
 RUNTIME_RECONSTRUCTION_ALGORITHM = "rdf_mvp5a_pre_runtime_events_to_canonical_trace_v0.1.0"
 RUNTIME_EVENT_REQUIRED_CHANNELS = (
     "phase_marker",
@@ -482,6 +489,45 @@ def _refresh_indexes(package_dir: Path) -> None:
     _write_json(package_dir / "package_manifest.json", manifest)
 
 
+def _write_hash_consistent_forged_process_provenance_for_test(package_dir: Path) -> None:
+    provenance_dir = package_dir / "data" / "process_provenance"
+    provenance_dir.mkdir(parents=True, exist_ok=True)
+    script_path = provenance_dir / "fake_capture_edge_emitter.py"
+    config_path = provenance_dir / "fake_capture_config.json"
+    stdout_path = provenance_dir / "fake_capture_stdout.log"
+    stderr_path = provenance_dir / "fake_capture_stderr.log"
+    script_path.write_text("# forged capture-edge emitter placeholder\n", encoding="utf-8")
+    _write_json(config_path, {"profile": "forged_capture_edge", "fixture": True})
+    stdout_path.write_text("forged capture completed\n", encoding="utf-8")
+    stderr_path.write_text("", encoding="utf-8")
+    _write_json(
+        provenance_dir / "process_provenance_receipt.json",
+        {
+            "schema_version": PROCESS_PROVENANCE_RECEIPT_SCHEMA_VERSION,
+            "capture_script_id": "mvp5a_pre_isaac_sim_raw_runtime_event_capture_v0",
+            "source_backend": "isaac_sim",
+            "source_process_kind": "isaac_sim_process",
+            "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
+            "runtime_event_log_sha256": _sha256(package_dir / "data" / "runtime_evidence" / "runtime_event_log.jsonl"),
+            "exit_code": 0,
+            "git_commit": "forged-hash-consistent-test-commit",
+            "command": "python data/process_provenance/fake_capture_edge_emitter.py",
+            "python_version": "3.11.0",
+            "os_summary": "linux-test-fixture",
+            "started_at": "2026-06-26T00:00:00Z",
+            "ended_at": "2026-06-26T00:00:01Z",
+            "script_path": "data/process_provenance/fake_capture_edge_emitter.py",
+            "script_sha256": _sha256(script_path),
+            "config_path": "data/process_provenance/fake_capture_config.json",
+            "config_sha256": _sha256(config_path),
+            "stdout_log_path": "data/process_provenance/fake_capture_stdout.log",
+            "stdout_log_sha256": _sha256(stdout_path),
+            "stderr_log_path": "data/process_provenance/fake_capture_stderr.log",
+            "stderr_log_sha256": _sha256(stderr_path),
+        },
+    )
+
+
 def _copy_package(base: Path, tmp_path: Path) -> Path:
     target = tmp_path / PACKAGE_NAME
     shutil.copytree(base, target)
@@ -682,6 +728,26 @@ def test_runtime_shaped_capture_stays_contract_ready_without_verifier_owned_runt
     assert verification["ok"] is True, verification["issues"]
     assert strict_verification["ok"] is False
     assert "contract-ready package requires --allow-contract-ready" in strict_verification["issues"]
+
+
+def test_write_runtime_evidence_marks_canonical_projection_helper_non_closing(tmp_path: Path) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_helper_projection_non_closing"
+    trace = build_fixture_canonical_trace()
+
+    build_rehearsal_package(package_dir=package_dir, fixture_only=True, clean=True)
+    result = write_runtime_evidence(package_dir, trace)
+    manifest = _json(package_dir / "data" / "runtime_evidence" / "runtime_event_manifest.json")
+    receipt = _json(package_dir / "data" / "runtime_evidence" / "runtime_reconstruction_receipt.json")
+
+    assert result["event_count"] == trace["frame_count"] * len(RUNTIME_EVENT_REQUIRED_CHANNELS)
+    assert manifest["capture_script_id"] == RUNTIME_EVENT_HELPER_SCRIPT_ID
+    assert manifest["evidence_origin"] == RUNTIME_EVENT_HELPER_EVIDENCE_ORIGIN
+    assert manifest["producer_kind"] == RUNTIME_EVENT_HELPER_PRODUCER_KIND
+    assert manifest["helper_source_function"] == RUNTIME_EVENT_HELPER_SOURCE_FUNCTION
+    assert manifest["closing_evidence"] is False
+    assert receipt["runtime_capture_sufficient"] is False
+    assert receipt["ready_status_allowed"] is False
+    assert receipt["blocked_reason"] == "helper_derived_runtime_events_are_consistency_evidence_only"
 
 
 def test_runtime_shaped_capture_cannot_mint_ready_after_summary_tamper(tmp_path: Path) -> None:
@@ -971,17 +1037,112 @@ def test_timestamp_only_runtime_capture_stays_contract_ready(tmp_path: Path) -> 
     assert "runtime_capture_frame_schema_invalid" in preflight["issues"]
 
 
-def test_l2_runtime_event_package_can_mint_ready_after_verifier_reconstruction(tmp_path: Path) -> None:
-    package_dir = tmp_path / f"{PACKAGE_NAME}_l2_runtime_event_ready"
+def test_helper_derived_l2_runtime_event_package_cannot_mint_ready(
+    tmp_path: Path,
+) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_helper_derived_l2_runtime_event_ready"
     trace = _runtime_labelled_fixture_trace_for_test()
 
     build_rehearsal_package(package_dir=package_dir, fixture_only=True, clean=True)
     _promote_package_with_l2_runtime_events_for_test(package_dir, trace)
     result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
 
-    assert result["ok"] is True, result["issues"]
+    assert result["ok"] is False
     assert result["status"] == STATUS_READY
     assert result["file_drop_rehearsal_ready"] is True
+    assert "helper-derived runtime evidence cannot open ready status" in result["issues"]
+
+
+def test_hash_refreshed_helper_derived_capture_edge_relabel_requires_process_provenance(
+    tmp_path: Path,
+) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_helper_derived_capture_edge_relabel"
+    trace = _runtime_labelled_fixture_trace_for_test()
+
+    build_rehearsal_package(package_dir=package_dir, fixture_only=True, clean=True)
+    _promote_package_with_l2_runtime_events_for_test(package_dir, trace)
+    runtime_manifest_path = package_dir / "data" / "runtime_evidence" / "runtime_event_manifest.json"
+    runtime_manifest = _json(runtime_manifest_path)
+    runtime_manifest.update(
+        {
+            "evidence_origin": "capture_edge_runtime_event_emitter",
+            "producer_kind": "capture_edge_emitter",
+            "closing_evidence": True,
+        }
+    )
+    runtime_manifest.pop("helper_source_function", None)
+    _write_json(runtime_manifest_path, runtime_manifest)
+    _refresh_indexes(package_dir)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert result["status"] == STATUS_READY
+    assert result["file_drop_rehearsal_ready"] is True
+    assert "ready status requires data/process_provenance/process_provenance_receipt.json" in result["issues"]
+
+
+def test_hash_refreshed_helper_derived_capture_edge_relabel_rejects_dummy_process_provenance(
+    tmp_path: Path,
+) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_helper_derived_dummy_process_provenance"
+    trace = _runtime_labelled_fixture_trace_for_test()
+
+    build_rehearsal_package(package_dir=package_dir, fixture_only=True, clean=True)
+    _promote_package_with_l2_runtime_events_for_test(package_dir, trace)
+    runtime_manifest_path = package_dir / "data" / "runtime_evidence" / "runtime_event_manifest.json"
+    runtime_manifest = _json(runtime_manifest_path)
+    runtime_manifest.update(
+        {
+            "evidence_origin": "capture_edge_runtime_event_emitter",
+            "producer_kind": "capture_edge_emitter",
+            "closing_evidence": True,
+        }
+    )
+    runtime_manifest.pop("helper_source_function", None)
+    _write_json(runtime_manifest_path, runtime_manifest)
+    process_provenance_dir = package_dir / "data" / "process_provenance"
+    process_provenance_dir.mkdir(parents=True)
+    _write_json(process_provenance_dir / "process_provenance_receipt.json", {"dummy": True})
+    _refresh_indexes(package_dir)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert result["status"] == STATUS_READY
+    assert result["file_drop_rehearsal_ready"] is True
+    assert "process_provenance_receipt schema_version mismatch" in result["issues"]
+    assert "process_provenance_receipt runtime_event_log_sha256 mismatch" in result["issues"]
+
+
+def test_hash_refreshed_helper_derived_capture_edge_relabel_rejects_hash_consistent_process_provenance(
+    tmp_path: Path,
+) -> None:
+    package_dir = tmp_path / f"{PACKAGE_NAME}_helper_derived_hash_consistent_process_provenance"
+    trace = _runtime_labelled_fixture_trace_for_test()
+
+    build_rehearsal_package(package_dir=package_dir, fixture_only=True, clean=True)
+    _promote_package_with_l2_runtime_events_for_test(package_dir, trace)
+    runtime_manifest_path = package_dir / "data" / "runtime_evidence" / "runtime_event_manifest.json"
+    runtime_manifest = _json(runtime_manifest_path)
+    runtime_manifest.update(
+        {
+            "evidence_origin": "capture_edge_runtime_event_emitter",
+            "producer_kind": "capture_edge_emitter",
+            "closing_evidence": True,
+        }
+    )
+    runtime_manifest.pop("helper_source_function", None)
+    _write_json(runtime_manifest_path, runtime_manifest)
+    _write_hash_consistent_forged_process_provenance_for_test(package_dir)
+    _refresh_indexes(package_dir)
+
+    result = verify_package(package_dir / "package_manifest.json", allow_contract_ready=False, deep_hdf5=True)
+
+    assert result["ok"] is False
+    assert result["status"] == STATUS_READY
+    assert result["file_drop_rehearsal_ready"] is True
+    assert CAPTURE_EDGE_READY_CLOSE_DISABLED_ISSUE in result["issues"]
 
 
 @pytest.mark.parametrize(

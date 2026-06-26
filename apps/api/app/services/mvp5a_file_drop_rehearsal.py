@@ -45,6 +45,10 @@ RUNTIME_BACKED_SOURCE_KIND = "isaac_sim_runtime_backed_canonical_trace"
 RUNTIME_BACKEND = "isaac_sim"
 RUNTIME_CAPTURE_SCRIPT_ID = "mvp5a_pre_isaac_sim_canonical_trace_capture_v0"
 RUNTIME_EVENT_CAPTURE_SCRIPT_ID = "mvp5a_pre_isaac_sim_raw_runtime_event_capture_v0"
+RUNTIME_EVENT_HELPER_SCRIPT_ID = "mvp5a_pre_canonical_trace_projection_helper_v0"
+RUNTIME_EVENT_HELPER_EVIDENCE_ORIGIN = "canonical_trace_projection_helper"
+RUNTIME_EVENT_HELPER_PRODUCER_KIND = "dev_fixture_helper"
+RUNTIME_EVENT_HELPER_SOURCE_FUNCTION = "build_runtime_event_log_from_trace"
 RUNTIME_SOURCE_PROCESS_KIND = "isaac_sim_process"
 FIXTURE_FRAME_CONTENT_SHA256 = "ff9f65a980a6ea315b95117dd9961a806c95cc104d4adc7082b3ab82016f287c"
 RUNTIME_FRAME_KEYS = {"frame_index", "timestamp", "phase", "ur", "franka", "generic"}
@@ -427,7 +431,11 @@ def prepare_canonical_trace(runtime_capture: Path | None, *, fixture_only: bool)
 
 
 def build_runtime_event_log_from_trace(trace: dict[str, Any], *, capture_id: str) -> list[dict[str, Any]]:
-    """Project canonical frames into verifier-owned raw runtime event rows."""
+    """Project canonical frames into dev-helper runtime event rows.
+
+    This is intentionally not capture-edge evidence: it is useful for verifier
+    fixtures and consistency rehearsals, but it must not open ready=true.
+    """
     events: list[dict[str, Any]] = []
     event_index = 0
     for frame in _frames(trace):
@@ -534,7 +542,11 @@ def write_runtime_evidence(
         "runtime_event_log_path": "data/runtime_evidence/runtime_event_log.jsonl",
         "runtime_event_log_sha256": event_log_sha,
         "capture_id": capture_id,
-        "capture_script_id": RUNTIME_EVENT_CAPTURE_SCRIPT_ID,
+        "capture_script_id": RUNTIME_EVENT_HELPER_SCRIPT_ID,
+        "evidence_origin": RUNTIME_EVENT_HELPER_EVIDENCE_ORIGIN,
+        "producer_kind": RUNTIME_EVENT_HELPER_PRODUCER_KIND,
+        "helper_source_function": RUNTIME_EVENT_HELPER_SOURCE_FUNCTION,
+        "closing_evidence": False,
         "source_backend": RUNTIME_BACKEND,
         "source_process_kind": RUNTIME_SOURCE_PROCESS_KIND,
         "frame_count": len(_frames(trace)),
@@ -551,8 +563,9 @@ def write_runtime_evidence(
         "reconstructed_canonical_trace_sha256": included_canonical_sha,
         "included_canonical_trace_sha256": included_canonical_sha,
         "matches_included_canonical_trace": True,
-        "runtime_capture_sufficient": True,
-        "ready_status_allowed": True,
+        "runtime_capture_sufficient": False,
+        "ready_status_allowed": False,
+        "blocked_reason": "helper_derived_runtime_events_are_consistency_evidence_only",
     }
     write_json(runtime_dir / "runtime_event_manifest.json", manifest)
     write_json(runtime_dir / "runtime_reconstruction_receipt.json", receipt)
@@ -1550,10 +1563,11 @@ The default verifier recomputes package consistency from included evidence:
 python3 scripts/verify_mvp5a_pre_file_drop_chaos_rehearsal_package.py {package_dir.as_posix()}/package_manifest.json --allow-contract-ready --deep-hdf5
 ```
 
-`file_drop_rehearsal_ready=true` is allowed only for packages that include
-`data/runtime_evidence/runtime_event_log.jsonl` plus the L2 runtime manifest and
-reconstruction receipt. Runtime-shaped summary JSON alone is not closing
-evidence. This checked-in fixture package remains contract-ready.
+`file_drop_rehearsal_ready=true` is disabled for the PR #12 consistency
+baseline. The future ready close requires a capture-edge runtime event emitter,
+process provenance receipt, L2 runtime manifest, reconstruction receipt, and
+verifier recomputation. Runtime-shaped summary JSON or helper-derived event logs
+are not closing evidence. This checked-in fixture package remains contract-ready.
 
 ## Claim Boundary
 
