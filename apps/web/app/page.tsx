@@ -12,6 +12,7 @@ export default function HomePage() {
       <nav className="nav-grid">
         <Link href="/tasks">Tasks</Link>
         <Link href="/datasets">Datasets</Link>
+        <Link href="/file-drop">File-Drop Evaluator</Link>
         <Link href="/admin">Admin KPIs</Link>
       </nav>
     </main>

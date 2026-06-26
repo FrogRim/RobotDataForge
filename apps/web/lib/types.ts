@@ -95,3 +95,37 @@ export type AdminKpis = {
   evaluation: Record<string, unknown>;
   learning: Record<string, unknown>;
 };
+
+export type FileDropProfile = {
+  profile_id: string;
+  robot_family?: string;
+  robot_model?: string;
+  source_kind?: string;
+  dof?: number;
+  action_semantics?: string;
+  state_semantics?: string;
+  external_partner_data?: boolean;
+  live_runtime_support?: boolean;
+};
+
+export type FileDropBridgeResult = {
+  ok: boolean;
+  exit_code: number | null;
+  command_argv: string[];
+  trust_source: string;
+  bridge_error?: string | null;
+  result: Record<string, unknown> | null;
+  stdout: string;
+  stderr: string;
+  stdout_truncated: boolean;
+  stderr_truncated: boolean;
+};
+
+export type FileDropProfilesResult = FileDropBridgeResult & {
+  result: {
+    ok: boolean;
+    profile_ids: string[];
+    profile_count: number;
+    profiles: FileDropProfile[];
+  } | null;
+};
