@@ -23,6 +23,7 @@ build/
 !.env.example
 
 # RDF local runtime data and generated artifacts
+artifacts/
 storage/*
 !storage/proof_evidence/
 storage/proof_evidence/**
