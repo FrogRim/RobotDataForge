@@ -1,0 +1,19 @@
+{
+  "frame_count": 12,
+  "included_canonical_trace_sha256": "2645e208398c4ed89bf28a600c8d557423ac1c762772a2addb785201523953e8",
+  "matches_included_canonical_trace": true,
+  "ready_status_allowed": true,
+  "reconstructed_canonical_trace_sha256": "2645e208398c4ed89bf28a600c8d557423ac1c762772a2addb785201523953e8",
+  "reconstruction_algorithm": "rdf_mvp5a_pre_runtime_events_to_canonical_trace_v0.1.0",
+  "required_channels": [
+    "phase_marker",
+    "ur_joint_state",
+    "ur_tcp_state",
+    "franka_joint_state",
+    "franka_eef_state",
+    "generic_command_state"
+  ],
+  "runtime_capture_sufficient": true,
+  "runtime_event_log_sha256": "aa084f3aa90bf63c0d258fc69ea0376a081e2e7bbb7d9c9135912fc535060393",
+  "schema_version": "rdf_mvp5a_pre_runtime_reconstruction_receipt_v0.1.0"
+}

@@ -37,6 +37,7 @@ storage/proof_evidence/**
 !docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/data/export/*/dataset.hdf5
 *.h5
 *.log
+!docs/proof/mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package/data/process_provenance/*.log
 output.txt
 
 # Local agent/session memory

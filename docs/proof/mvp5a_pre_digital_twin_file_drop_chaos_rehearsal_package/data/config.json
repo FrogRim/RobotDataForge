@@ -1,12 +1,12 @@
 {
-  "blocked_reason": "runtime_capture_not_supplied",
+  "blocked_reason": null,
   "corrupt_case_count": 52,
   "corrupt_matrix_silent_pass_rate": 0.0,
   "external_data_evaluated": false,
   "external_partner_data": false,
   "file_drop_rehearsal_contract_ready": true,
-  "file_drop_rehearsal_ready": false,
-  "fresh_runtime_capture_required": true,
+  "file_drop_rehearsal_ready": true,
+  "fresh_runtime_capture_required": false,
   "generated_by_rdf_sim": true,
   "golden_profile_count": 4,
   "non_claims": {
@@ -32,15 +32,18 @@
     "visual_policy_performance": false
   },
   "package_name": "mvp5a_pre_digital_twin_file_drop_chaos_rehearsal_package",
+  "process_provenance_receipt_sha256": "f841faf2d5c9fd13af42f27f53864edb862f29b9c265debf6c3d7a14b53a9f90",
   "profile_ids": [
     "ur_rtde_csv_v0",
     "franka_state_jsonl_v0",
     "ros2_channel_bundle_jsonl_v0",
     "generic_command_state_jsonl_v0"
   ],
-  "runtime_capture_structurally_valid": false,
-  "runtime_capture_sufficient": false,
+  "runtime_capture_structurally_valid": true,
+  "runtime_capture_sufficient": true,
+  "runtime_event_log_sha256": "aa084f3aa90bf63c0d258fc69ea0376a081e2e7bbb7d9c9135912fc535060393",
+  "runtime_evidence_level": "L2_verifier_owned_raw_runtime_events",
   "schema_version": "rdf_mvp5a_pre_file_drop_rehearsal_config_v0.1.0",
-  "status": "file_drop_rehearsal_contract_ready",
+  "status": "file_drop_rehearsal_ready",
   "structured_rejection_reason_coverage": true
 }

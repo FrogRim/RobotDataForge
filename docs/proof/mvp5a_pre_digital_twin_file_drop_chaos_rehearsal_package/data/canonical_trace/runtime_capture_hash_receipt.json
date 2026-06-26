@@ -1,10 +1,14 @@
 {
-  "blocked_reason": "runtime_capture_not_supplied",
-  "canonical_trace_sha256": "c0b5a63b3924dd6e364854b40b5629b56a89bd2329f5eb33170b91ba1985248d",
-  "ready_status_allowed": false,
+  "blocked_reason": null,
+  "canonical_trace_sha256": "2645e208398c4ed89bf28a600c8d557423ac1c762772a2addb785201523953e8",
+  "process_provenance_ceiling": "declared_process_identity_only_not_physics_authenticity",
+  "process_provenance_receipt_path": "data/process_provenance/process_provenance_receipt.json",
+  "process_provenance_receipt_sha256": "f841faf2d5c9fd13af42f27f53864edb862f29b9c265debf6c3d7a14b53a9f90",
+  "ready_status_allowed": true,
   "runtime_capture_sha256": null,
-  "runtime_capture_structurally_valid": false,
-  "runtime_capture_sufficient": false,
-  "runtime_capture_supplied": false,
+  "runtime_capture_structurally_valid": true,
+  "runtime_capture_sufficient": true,
+  "runtime_capture_supplied": true,
+  "runtime_event_log_sha256": "aa084f3aa90bf63c0d258fc69ea0376a081e2e7bbb7d9c9135912fc535060393",
   "schema_version": "rdf_mvp5a_pre_runtime_capture_hash_receipt_v0.1.0"
 }

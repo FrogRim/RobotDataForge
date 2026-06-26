@@ -1,15 +1,15 @@
 {
-  "action_array_sha256": "afd309296c552561b43e89ca422133f26b716a628ef76390aba6f3f6521da7ab",
+  "action_array_sha256": "5db922764032d4c86c3da87a19de099e182120bca29aeb103c36f218a6685f38",
   "action_shape": [
     12,
     7
   ],
   "finite_values": true,
-  "hdf5_sha256": "cfed95b9c564b8d145b823722391dd18197f7812bc0879c4c325178353b354fa",
+  "hdf5_sha256": "ff58b627e8a498d2eca70b5ba0181c26acff695b28ccc51376556c6d2a77a14b",
   "passed": true,
   "profile_id": "franka_state_jsonl_v0",
   "schema_version": "rdf_mvp5a_pre_hdf5_inspection_v0.1.0",
-  "state_array_sha256": "0e0116cda69bfbd3b62805b371ca332c74fd3110fb3901d6da75c6b7c13f5bf5",
+  "state_array_sha256": "8a554464f121ad7678f6a77460c030e65ad04880af5d7fcc3d2e7613cdc80234",
   "state_shape": [
     12,
     7
